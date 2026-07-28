@@ -60,20 +60,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String name,
   }) async {
     try {
-      final response =
-          await _client.auth.signUp(email: email, password: password);
-      if (response.user == null)
+      // Registrar sin iniciar sesión automáticamente
+      final response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'name': name},
+      );
+
+      if (response.user == null) {
         throw const AuthException(message: 'Error al registrar usuario');
+      }
 
-      // Crear perfil en tabla profiles
-      await _client.from(SupabaseConstants.profilesTable).insert({
-        'id': response.user!.id,
-        'email': email,
-        'name': name,
-        'role': 'user',
-      });
+      // Cerrar la sesión que Supabase abre automáticamente
+      await _client.auth.signOut();
 
-      return await _fetchProfile(response.user!.id, email);
+      // Devolver un usuario básico con los datos del registro
+      return UserModel(
+        id: response.user!.id,
+        email: email,
+        name: name,
+        role: 'user',
+      );
     } on AuthException {
       rethrow;
     } on AuthApiException catch (e) {

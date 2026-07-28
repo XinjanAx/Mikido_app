@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/database/database_provider.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
+import '../../data/datasources/tournament_local_datasource.dart';
 import '../../data/datasources/tournament_remote_datasource.dart';
 import '../../data/repositories/tournament_repository_impl.dart';
+import '../../data/sync/tournament_sync_adapter.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../../domain/usecases/tournament_usecases.dart';
@@ -14,8 +18,23 @@ final tournamentRemoteDataSourceProvider = Provider<TournamentRemoteDataSource>(
   (ref) => TournamentRemoteDataSourceImpl(Supabase.instance.client),
 );
 
+final tournamentLocalDataSourceProvider = Provider<TournamentLocalDataSource>(
+  (ref) => TournamentLocalDataSourceImpl(ref.watch(appDatabaseProvider)),
+);
+
+final tournamentSyncAdapterProvider = Provider<TournamentSyncAdapter>(
+  (ref) => TournamentSyncAdapter(
+    ref.watch(tournamentRemoteDataSourceProvider),
+    ref.watch(tournamentLocalDataSourceProvider),
+  ),
+);
+
 final tournamentRepositoryProvider = Provider<TournamentRepository>(
-  (ref) => TournamentRepositoryImpl(ref.watch(tournamentRemoteDataSourceProvider)),
+  (ref) => TournamentRepositoryImpl(
+    ref.watch(tournamentLocalDataSourceProvider),
+    ref.watch(appDatabaseProvider),
+    ref.watch(syncEngineProvider),
+  ),
 );
 
 // Use cases

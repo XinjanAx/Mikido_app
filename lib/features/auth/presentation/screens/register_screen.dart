@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/extensions/string_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/extensions/string_extensions.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -21,6 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -33,32 +34,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+
     await ref.read(authProvider.notifier).register(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           name: _nameController.text.trim(),
         );
+
+    final authState = ref.read(authProvider);
+    setState(() => _isSaving = false);
+
+    if (!mounted) return;
+
+    if (authState.status == AuthStatus.unauthenticated) {
+      context.go(RouteConstants.login);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Cuenta creada! Ahora inicia sesión.'),
+          backgroundColor: Color(0xFF2E7D32),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    if (authState.status == AuthStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authState.errorMessage ?? 'Error al registrar'),
+          backgroundColor: const Color(0xFFC62828),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final isLoading = authState.status == AuthStatus.loading;
-
-    ref.listen<AuthState>(authProvider, (_, next) {
-      if (next.status == AuthStatus.authenticated) {
-        context.go(RouteConstants.tournaments);
-      }
-      if (next.status == AuthStatus.error && next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    });
-
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
       body: SafeArea(
@@ -69,11 +81,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Registro', style: AppTextStyles.headlineLarge),
+                const Text('Registro', style: AppTextStyles.headlineLarge),
                 const SizedBox(height: 4),
                 Text(
                   'Completa tus datos para unirte',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey400),
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: AppColors.grey400),
                 ),
                 const SizedBox(height: 28),
                 TextFormField(
@@ -83,8 +96,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     labelText: 'Nombre completo',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Ingresa tu nombre' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Ingresa tu nombre'
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -136,14 +150,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (v) {
-                    if (v != _passwordController.text) return 'Las contraseñas no coinciden';
+                    if (v != _passwordController.text) {
+                      return 'Las contraseñas no coinciden';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: isLoading ? null : _submit,
-                  child: isLoading
+                  onPressed: _isSaving ? null : _submit,
+                  child: _isSaving
                       ? const SizedBox(
                           height: 20,
                           width: 20,
@@ -158,7 +174,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('¿Ya tienes cuenta? ', style: AppTextStyles.bodyMedium),
+                    const Text('¿Ya tienes cuenta? ',
+                        style: AppTextStyles.bodyMedium),
                     TextButton(
                       onPressed: () => context.pop(),
                       child: const Text('Inicia sesión'),

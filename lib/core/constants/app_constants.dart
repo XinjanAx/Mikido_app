@@ -21,6 +21,11 @@ class AppConstants {
   static const String matchStatusInProgress = 'in_progress';
   static const String matchStatusFinished = 'finished';
 
+  // Sistema de puntos para tabla de posiciones
+  static const int pointsForWin = 3;
+  static const int pointsForDraw = 1;
+  static const int pointsForLoss = 0;
+
   // Notificaciones - minutos antes
   static const int notifBeforeStart60 = 60;
   static const int notifBeforeStart30 = 30;

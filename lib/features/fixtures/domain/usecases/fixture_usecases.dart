@@ -28,20 +28,25 @@ class GenerateFixtureUseCase {
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
+    int timesPlayed = 1,
   }) {
-    _validateInputs(playerIds, mode);
+    _validateInputs(playerIds, mode, timesPlayed);
     return repository.generateFixture(
       tournamentId: tournamentId,
       categoryId: categoryId,
       mode: mode,
       playerIds: playerIds,
       playerNames: playerNames,
+      timesPlayed: timesPlayed,
     );
   }
 
-  void _validateInputs(List<String> playerIds, String mode) {
+  void _validateInputs(List<String> playerIds, String mode, int timesPlayed) {
     if (playerIds.length < 2) {
       throw ArgumentError('Se necesitan al menos 2 participantes');
+    }
+    if (mode == AppConstants.tournamentModeLeague && timesPlayed < 1) {
+      throw ArgumentError('El número de veces jugadas debe ser al menos 1');
     }
     if (mode == AppConstants.tournamentModeElimination) {
       // Para eliminación simple, recomendamos potencia de 2
@@ -64,4 +69,12 @@ class UpdateMatchResultUseCase {
         homeScore: homeScore,
         awayScore: awayScore,
       );
+}
+
+class DeleteFixtureUseCase {
+  final FixtureRepository repository;
+  const DeleteFixtureUseCase(this.repository);
+
+  Future<Either<Failure, void>> call(String tournamentId) =>
+      repository.deleteFixture(tournamentId);
 }

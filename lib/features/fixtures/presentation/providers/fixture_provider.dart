@@ -1,7 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/database/database_provider.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
+import '../../../standings/presentation/providers/standing_provider.dart'
+    show standingsRecalculationServiceProvider;
+import '../../../tournaments/presentation/providers/tournament_provider.dart'
+    show tournamentLocalDataSourceProvider;
+import '../../data/datasources/fixture_local_datasource.dart';
 import '../../data/datasources/fixture_remote_datasource.dart';
 import '../../data/repositories/fixture_repository_impl.dart';
+import '../../data/services/elimination_bracket_service.dart';
+import '../../data/services/match_result_service.dart';
+import '../../data/sync/fixture_sync_adapter.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/repositories/fixture_repository.dart';
 import '../../domain/usecases/fixture_usecases.dart';
@@ -9,9 +19,44 @@ import '../../domain/usecases/fixture_usecases.dart';
 final fixtureRemoteDataSourceProvider = Provider<FixtureRemoteDataSource>(
   (ref) => FixtureRemoteDataSourceImpl(Supabase.instance.client),
 );
-final fixtureRepositoryProvider = Provider<FixtureRepository>(
-  (ref) => FixtureRepositoryImpl(ref.watch(fixtureRemoteDataSourceProvider)),
+
+final fixtureLocalDataSourceProvider = Provider<FixtureLocalDataSource>(
+  (ref) => FixtureLocalDataSourceImpl(ref.watch(appDatabaseProvider)),
 );
+
+final fixtureSyncAdapterProvider = Provider<FixtureSyncAdapter>(
+  (ref) => FixtureSyncAdapter(
+    ref.watch(fixtureRemoteDataSourceProvider),
+    ref.watch(fixtureLocalDataSourceProvider),
+  ),
+);
+
+final eliminationBracketServiceProvider = Provider<EliminationBracketService>(
+  (ref) => EliminationBracketService(
+    ref.watch(fixtureLocalDataSourceProvider),
+    ref.watch(appDatabaseProvider),
+  ),
+);
+
+final matchResultServiceProvider = Provider<MatchResultService>(
+  (ref) => MatchResultService(
+    ref.watch(fixtureLocalDataSourceProvider),
+    ref.watch(tournamentLocalDataSourceProvider),
+    ref.watch(standingsRecalculationServiceProvider),
+    ref.watch(eliminationBracketServiceProvider),
+    ref.watch(appDatabaseProvider),
+  ),
+);
+
+final fixtureRepositoryProvider = Provider<FixtureRepository>(
+  (ref) => FixtureRepositoryImpl(
+    ref.watch(fixtureLocalDataSourceProvider),
+    ref.watch(appDatabaseProvider),
+    ref.watch(syncEngineProvider),
+    ref.watch(matchResultServiceProvider),
+  ),
+);
+
 final getMatchesUseCaseProvider = Provider(
   (ref) => GetMatchesUseCase(ref.watch(fixtureRepositoryProvider)),
 );
@@ -20,6 +65,9 @@ final generateFixtureUseCaseProvider = Provider(
 );
 final updateMatchResultUseCaseProvider = Provider(
   (ref) => UpdateMatchResultUseCase(ref.watch(fixtureRepositoryProvider)),
+);
+final deleteFixtureUseCaseProvider = Provider(
+  (ref) => DeleteFixtureUseCase(ref.watch(fixtureRepositoryProvider)),
 );
 
 // ---------- State ----------
@@ -64,16 +112,19 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
   final GetMatchesUseCase _getMatches;
   final GenerateFixtureUseCase _generate;
   final UpdateMatchResultUseCase _updateResult;
+  final DeleteFixtureUseCase _deleteFixture;
   final String tournamentId;
 
   FixtureNotifier({
     required GetMatchesUseCase getMatches,
     required GenerateFixtureUseCase generate,
     required UpdateMatchResultUseCase updateResult,
+    required DeleteFixtureUseCase deleteFixture,
     required this.tournamentId,
   })  : _getMatches = getMatches,
         _generate = generate,
         _updateResult = updateResult,
+        _deleteFixture = deleteFixture,
         super(const FixtureState()) {
     loadMatches();
   }
@@ -92,6 +143,7 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
+    int timesPlayed = 1,
   }) async {
     state = state.copyWith(isGenerating: true);
     final result = await _generate(
@@ -100,6 +152,7 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
       mode: mode,
       playerIds: playerIds,
       playerNames: playerNames,
+      timesPlayed: timesPlayed,
     );
     return result.fold(
       (f) {
@@ -134,12 +187,23 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
         state = state.copyWith(errorMessage: f.message);
         return false;
       },
-      (updated) {
-        state = state.copyWith(
-          matches: state.matches
-              .map((m) => m.id == updated.id ? updated : m)
-              .toList(),
-        );
+      (updated) async {
+        // Recargar TODOS los partidos para incluir nuevas rondas
+        await loadMatches();
+        return true;
+      },
+    );
+  }
+
+  Future<bool> deleteFixture() async {
+    final result = await _deleteFixture(tournamentId);
+    return result.fold(
+      (f) {
+        state = state.copyWith(errorMessage: f.message);
+        return false;
+      },
+      (_) {
+        state = state.copyWith(matches: []);
         return true;
       },
     );
@@ -152,6 +216,7 @@ final fixtureProvider =
     getMatches: ref.watch(getMatchesUseCaseProvider),
     generate: ref.watch(generateFixtureUseCaseProvider),
     updateResult: ref.watch(updateMatchResultUseCaseProvider),
+    deleteFixture: ref.watch(deleteFixtureUseCaseProvider),
     tournamentId: tournamentId,
   ),
 );

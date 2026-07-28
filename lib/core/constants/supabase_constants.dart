@@ -1,9 +1,9 @@
 class SupabaseConstants {
   SupabaseConstants._();
 
-  static const String supabaseUrl = 'https://sneddtvtakcbjtsirlrl.supabase.co';
+  static const String supabaseUrl = 'https://sbjcxjvyyaesfkrtldip.supabase.co';
   static const String supabaseAnonKey =
-      'sb_publishable_Cu0wJyGIfpqn4USHJ-wD9Q_UhIlKIov';
+      'sb_publishable_Vg-FlgaDmbYwfJGSxVkoEQ_jRDpdXMd';
 
   // Nombres de tablas
   static const String tournamentsTable = 'tournaments';

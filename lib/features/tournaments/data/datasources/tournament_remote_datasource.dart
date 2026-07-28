@@ -10,6 +10,10 @@ abstract class TournamentRemoteDataSource {
   Future<TournamentModel> updateTournament(TournamentModel tournament);
   Future<void> deleteTournament(String id);
   Stream<List<TournamentModel>> watchTournaments();
+
+  /// Upsert idempotente (crea o actualiza) usado por el motor de
+  /// sincronización, que puede reintentar la misma operación tras un fallo.
+  Future<TournamentModel> upsertTournament(TournamentModel tournament);
 }
 
 class TournamentRemoteDataSourceImpl implements TournamentRemoteDataSource {
@@ -70,6 +74,20 @@ class TournamentRemoteDataSourceImpl implements TournamentRemoteDataSource {
       return TournamentModel.fromJson(data);
     } catch (e) {
       throw ServerException(message: 'Error al actualizar torneo: $e');
+    }
+  }
+
+  @override
+  Future<TournamentModel> upsertTournament(TournamentModel tournament) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.tournamentsTable)
+          .upsert(tournament.toJson())
+          .select()
+          .single();
+      return TournamentModel.fromJson(data);
+    } catch (e) {
+      throw ServerException(message: 'Error al sincronizar torneo: $e');
     }
   }
 

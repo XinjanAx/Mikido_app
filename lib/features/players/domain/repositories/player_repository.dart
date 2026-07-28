@@ -13,6 +13,10 @@ abstract class PlayerRepository {
     required String tournamentId,
     required String categoryId,
   });
+  Future<Either<Failure, void>> unenrollPlayer({
+    required String playerId,
+    required String tournamentId,
+  });
   Future<Either<Failure, List<PlayerEntity>>> getPlayersByTournament(
       String tournamentId);
 }

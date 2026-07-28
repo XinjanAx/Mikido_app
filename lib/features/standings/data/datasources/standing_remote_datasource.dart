@@ -3,10 +3,20 @@ import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/standing_model.dart';
 
+/// CRUD puro contra Supabase. El cálculo de la tabla de posiciones vive en
+/// StandingsRecalculationService, operando sobre la base local — este
+/// datasource solo lo usa el motor de sincronización para subir/bajar filas.
 abstract class StandingRemoteDataSource {
   Future<List<StandingModel>> getStandings(String tournamentId,
       {String? categoryId});
-  Future<void> recalculateStandings(String tournamentId);
+
+  /// Todas las posiciones (todos los torneos), usado por el motor de
+  /// sincronización para reconciliar la base local.
+  Future<List<StandingModel>> getAllStandings();
+
+  /// Upsert idempotente usado por el motor de sincronización.
+  Future<StandingModel> upsertStanding(StandingModel standing);
+
   Stream<List<StandingModel>> watchStandings(String tournamentId);
 }
 
@@ -31,14 +41,27 @@ class StandingRemoteDataSourceImpl implements StandingRemoteDataSource {
   }
 
   @override
-  Future<void> recalculateStandings(String tournamentId) async {
-    // La recalculación se hace vía Supabase Function o RPC
-    // Se puede implementar como una función PostgreSQL que se llama aquí
+  Future<List<StandingModel>> getAllStandings() async {
     try {
-      await _client.rpc('recalculate_standings',
-          params: {'p_tournament_id': tournamentId});
+      final data =
+          await _client.from(SupabaseConstants.standingsTable).select();
+      return (data as List).map((e) => StandingModel.fromJson(e)).toList();
     } catch (e) {
-      throw ServerException(message: 'Error al recalcular posiciones: $e');
+      throw ServerException(message: 'Error al obtener posiciones: $e');
+    }
+  }
+
+  @override
+  Future<StandingModel> upsertStanding(StandingModel standing) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.standingsTable)
+          .upsert(standing.toJson())
+          .select()
+          .single();
+      return StandingModel.fromJson(data);
+    } catch (e) {
+      throw ServerException(message: 'Error al sincronizar posición: $e');
     }
   }
 

@@ -1,71 +1,103 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/exceptions.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:uuid/uuid.dart';
+
+import '../../../../core/constants/supabase_constants.dart';
+import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/sync/sync_engine.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
-import '../datasources/tournament_remote_datasource.dart';
+import '../datasources/tournament_local_datasource.dart';
 import '../models/tournament_model.dart';
 
+/// Repositorio local-first: toda lectura viene de la base local (drift) y
+/// toda escritura se guarda local de inmediato + se encola en el outbox
+/// para subir a Supabase cuando haya conexión. La UI nunca espera a la red.
 class TournamentRepositoryImpl implements TournamentRepository {
-  final TournamentRemoteDataSource _dataSource;
+  final TournamentLocalDataSource _local;
+  final AppDatabase _db;
+  final SyncEngine _syncEngine;
 
-  const TournamentRepositoryImpl(this._dataSource);
+  const TournamentRepositoryImpl(this._local, this._db, this._syncEngine);
 
   @override
   Future<Either<Failure, List<TournamentEntity>>> getTournaments() async {
     try {
-      final result = await _dataSource.getTournaments();
-      return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Right(await _local.getTournaments());
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al leer torneos locales: $e'));
     }
   }
 
   @override
-  Future<Either<Failure, TournamentEntity>> getTournamentById(String id) async {
+  Future<Either<Failure, TournamentEntity>> getTournamentById(
+      String id) async {
     try {
-      final result = await _dataSource.getTournamentById(id);
+      final result = await _local.getTournamentById(id);
+      if (result == null) {
+        return const Left(NotFoundFailure(message: 'Torneo no encontrado'));
+      }
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al leer torneo local: $e'));
     }
   }
 
   @override
   Future<Either<Failure, TournamentEntity>> createTournament(
-      TournamentEntity tournament) async {
-    try {
-      final model = TournamentModel.fromEntity(tournament);
-      final result = await _dataSource.createTournament(model);
-      return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
-    }
+      TournamentEntity tournament) {
+    return _saveLocally(TournamentModel.fromEntity(tournament));
   }
 
   @override
   Future<Either<Failure, TournamentEntity>> updateTournament(
-      TournamentEntity tournament) async {
+      TournamentEntity tournament) {
+    return _saveLocally(TournamentModel.fromEntity(tournament));
+  }
+
+  Future<Either<Failure, TournamentEntity>> _saveLocally(
+      TournamentModel model) async {
     try {
-      final model = TournamentModel.fromEntity(tournament);
-      final result = await _dataSource.updateTournament(model);
-      return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      await _local.upsert(model, dirty: true);
+      await _enqueue(rowId: model.id, operation: 'upsert', payload: model.toJson());
+      unawaited(_syncEngine.trySync());
+      return Right(model);
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al guardar torneo local: $e'));
     }
   }
 
   @override
   Future<Either<Failure, void>> deleteTournament(String id) async {
     try {
-      await _dataSource.deleteTournament(id);
+      await _local.softDelete(id);
+      await _enqueue(rowId: id, operation: 'delete', payload: null);
+      unawaited(_syncEngine.trySync());
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al eliminar torneo local: $e'));
     }
   }
 
   @override
   Stream<List<TournamentEntity>> watchTournaments() =>
-      _dataSource.watchTournaments();
+      _local.watchTournaments();
+
+  Future<void> _enqueue({
+    required String rowId,
+    required String operation,
+    required Map<String, dynamic>? payload,
+  }) {
+    return _db.enqueueSyncOp(SyncQueueEntriesCompanion.insert(
+      id: const Uuid().v4(),
+      entityTable: SupabaseConstants.tournamentsTable,
+      rowId: rowId,
+      operation: operation,
+      payload: Value(payload == null ? null : jsonEncode(payload)),
+    ));
+  }
 }

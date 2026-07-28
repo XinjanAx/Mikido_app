@@ -14,7 +14,18 @@ abstract class PlayerRemoteDataSource {
     required String tournamentId,
     required String categoryId,
   });
+  Future<void> unenrollPlayer({
+    required String playerId,
+    required String tournamentId,
+  });
   Future<List<PlayerModel>> getPlayersByTournament(String tournamentId);
+
+  /// Upsert idempotente usado por el motor de sincronización.
+  Future<PlayerModel> upsertPlayer(PlayerModel player);
+
+  /// Filas crudas de `enrollments` (todos los torneos), usado por el motor
+  /// de sincronización para reconciliar la base local.
+  Future<List<Map<String, dynamic>>> getAllEnrollments();
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
@@ -100,6 +111,47 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
       });
     } catch (e) {
       throw ServerException(message: 'Error al inscribir participante: $e');
+    }
+  }
+
+  @override
+  Future<void> unenrollPlayer({
+    required String playerId,
+    required String tournamentId,
+  }) async {
+    try {
+      await _client
+          .from(SupabaseConstants.enrollmentsTable)
+          .delete()
+          .eq('player_id', playerId)
+          .eq('tournament_id', tournamentId);
+    } catch (e) {
+      throw ServerException(message: 'Error al desinscribir participante: $e');
+    }
+  }
+
+  @override
+  Future<PlayerModel> upsertPlayer(PlayerModel player) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.playersTable)
+          .upsert(player.toJson())
+          .select()
+          .single();
+      return PlayerModel.fromJson(data);
+    } catch (e) {
+      throw ServerException(message: 'Error al sincronizar participante: $e');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAllEnrollments() async {
+    try {
+      final data =
+          await _client.from(SupabaseConstants.enrollmentsTable).select();
+      return (data as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw ServerException(message: 'Error al obtener inscripciones: $e');
     }
   }
 

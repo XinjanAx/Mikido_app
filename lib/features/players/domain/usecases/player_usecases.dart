@@ -50,3 +50,13 @@ class EnrollPlayerUseCase {
         categoryId: categoryId,
       );
 }
+
+class UnenrollPlayerUseCase {
+  final PlayerRepository repository;
+  const UnenrollPlayerUseCase(this.repository);
+  Future<Either<Failure, void>> call({
+    required String playerId,
+    required String tournamentId,
+  }) =>
+      repository.unenrollPlayer(playerId: playerId, tournamentId: tournamentId);
+}

@@ -43,11 +43,13 @@ class AuthState {
   final AuthStatus status;
   final UserEntity? user;
   final String? errorMessage;
+  final bool isRegistering;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.user,
     this.errorMessage,
+    this.isRegistering = false,
   });
 
   bool get isAdmin => user?.isAdmin ?? false;
@@ -56,11 +58,13 @@ class AuthState {
     AuthStatus? status,
     UserEntity? user,
     String? errorMessage,
+    bool? isRegistering,
   }) =>
       AuthState(
         status: status ?? this.status,
         user: user ?? this.user,
         errorMessage: errorMessage ?? this.errorMessage,
+        isRegistering: isRegistering ?? this.isRegistering,
       );
 }
 
@@ -134,9 +138,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: AuthStatus.error,
         errorMessage: failure.message,
       ),
-      (user) => state = AuthState(
-        status: AuthStatus.authenticated,
-        user: user,
+      (_) => state = const AuthState(
+        status: AuthStatus.unauthenticated,
       ),
     );
   }

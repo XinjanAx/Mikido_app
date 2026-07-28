@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/database/database_provider.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
+import '../../data/datasources/category_local_datasource.dart';
 import '../../data/datasources/category_remote_datasource.dart';
 import '../../data/repositories/category_repository_impl.dart';
+import '../../data/sync/category_sync_adapter.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/usecases/category_usecases.dart';
@@ -10,8 +14,24 @@ import '../../domain/usecases/category_usecases.dart';
 final categoryRemoteDataSourceProvider = Provider<CategoryRemoteDataSource>(
   (ref) => CategoryRemoteDataSourceImpl(Supabase.instance.client),
 );
+
+final categoryLocalDataSourceProvider = Provider<CategoryLocalDataSource>(
+  (ref) => CategoryLocalDataSourceImpl(ref.watch(appDatabaseProvider)),
+);
+
+final categorySyncAdapterProvider = Provider<CategorySyncAdapter>(
+  (ref) => CategorySyncAdapter(
+    ref.watch(categoryRemoteDataSourceProvider),
+    ref.watch(categoryLocalDataSourceProvider),
+  ),
+);
+
 final categoryRepositoryProvider = Provider<CategoryRepository>(
-  (ref) => CategoryRepositoryImpl(ref.watch(categoryRemoteDataSourceProvider)),
+  (ref) => CategoryRepositoryImpl(
+    ref.watch(categoryLocalDataSourceProvider),
+    ref.watch(appDatabaseProvider),
+    ref.watch(syncEngineProvider),
+  ),
 );
 final getCategoriesUseCaseProvider = Provider(
   (ref) => GetCategoriesUseCase(ref.watch(categoryRepositoryProvider)),

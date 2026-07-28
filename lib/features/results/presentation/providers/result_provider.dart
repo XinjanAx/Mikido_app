@@ -1,7 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/database/database_provider.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
+import '../../../fixtures/presentation/providers/fixture_provider.dart'
+    show matchResultServiceProvider;
+import '../../data/datasources/result_local_datasource.dart';
 import '../../data/datasources/result_remote_datasource.dart';
 import '../../data/repositories/result_repository_impl.dart';
+import '../../data/sync/result_sync_adapter.dart';
 import '../../domain/entities/result_entity.dart';
 import '../../domain/repositories/result_repository.dart';
 import '../../domain/usecases/register_result_usecase.dart';
@@ -13,9 +19,24 @@ final resultRemoteDataSourceProvider = Provider<ResultRemoteDataSource>(
   (ref) => ResultRemoteDataSourceImpl(Supabase.instance.client),
 );
 
+final resultLocalDataSourceProvider = Provider<ResultLocalDataSource>(
+  (ref) => ResultLocalDataSourceImpl(ref.watch(appDatabaseProvider)),
+);
+
+final resultSyncAdapterProvider = Provider<ResultSyncAdapter>(
+  (ref) => ResultSyncAdapter(
+    ref.watch(resultRemoteDataSourceProvider),
+    ref.watch(resultLocalDataSourceProvider),
+  ),
+);
+
 final resultRepositoryProvider = Provider<ResultRepository>(
-  (ref) =>
-      ResultRepositoryImpl(ref.watch(resultRemoteDataSourceProvider)),
+  (ref) => ResultRepositoryImpl(
+    ref.watch(resultLocalDataSourceProvider),
+    ref.watch(appDatabaseProvider),
+    ref.watch(syncEngineProvider),
+    ref.watch(matchResultServiceProvider),
+  ),
 );
 
 // Use cases

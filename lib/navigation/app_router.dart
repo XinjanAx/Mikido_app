@@ -33,19 +33,37 @@ class _SplashScreen extends StatelessWidget {
   }
 }
 
+// Rutas que solo puede usar un usuario con rol admin (crear/editar torneos,
+// categorías, inscripciones y reportes). El resto de la app —incluida la
+// lista de torneos, el detalle, fixtures y posiciones— es pública.
+final _adminOnlyPaths = <String>{
+  RouteConstants.tournamentCreate,
+  RouteConstants.tournamentEdit,
+  RouteConstants.categories,
+  RouteConstants.categoryCreate,
+  RouteConstants.playerEnroll,
+  RouteConstants.reports,
+  RouteConstants.playerCreate,
+  RouteConstants.playerEdit,
+};
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: RouteConstants.login,
+    initialLocation: RouteConstants.tournaments,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
+      if (authState.status == AuthStatus.initial) return null; // restaurando sesión
+
       final isLoggedIn = authState.status == AuthStatus.authenticated;
-      final isLoading = authState.status == AuthStatus.initial;
       final isOnAuth = state.matchedLocation == RouteConstants.login ||
           state.matchedLocation == RouteConstants.register;
 
-      if (isLoading) return null;
-      if (!isLoggedIn && !isOnAuth) return RouteConstants.login;
       if (isLoggedIn && isOnAuth) return RouteConstants.tournaments;
+
+      final requiresAdmin = _adminOnlyPaths.contains(state.fullPath);
+      if (requiresAdmin && !authState.isAdmin) {
+        return isLoggedIn ? RouteConstants.tournaments : RouteConstants.login;
+      }
       return null;
     },
     routes: [
@@ -144,11 +162,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
   ref.listen(authProvider, (previous, next) {
-    if (next.status == AuthStatus.authenticated) {
+    if (next.status == AuthStatus.authenticated && !next.isRegistering) {
       router.go(RouteConstants.tournaments);
-    } else if (next.status == AuthStatus.unauthenticated) {
-      router.go(RouteConstants.login);
     }
+    // Ya no se fuerza a /login cuando el estado pasa a 'unauthenticated'
+    // (login o logout): la navegación pública se queda donde está y solo
+    // el `redirect` de arriba manda a login si hace falta rol admin.
   });
 
   return router;

@@ -8,6 +8,13 @@ abstract class CategoryRemoteDataSource {
   Future<CategoryModel> createCategory(CategoryModel category);
   Future<CategoryModel> updateCategory(CategoryModel category);
   Future<void> deleteCategory(String id);
+
+  /// Todas las categorías (todos los torneos), usado por el motor de
+  /// sincronización para reconciliar la base local.
+  Future<List<CategoryModel>> getAllCategories();
+
+  /// Upsert idempotente usado por el motor de sincronización.
+  Future<CategoryModel> upsertCategory(CategoryModel category);
 }
 
 class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
@@ -67,6 +74,31 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
           .eq('id', id);
     } catch (e) {
       throw ServerException(message: 'Error al eliminar categoría: $e');
+    }
+  }
+
+  @override
+  Future<List<CategoryModel>> getAllCategories() async {
+    try {
+      final data =
+          await _client.from(SupabaseConstants.categoriesTable).select();
+      return (data as List).map((e) => CategoryModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ServerException(message: 'Error al obtener categorías: $e');
+    }
+  }
+
+  @override
+  Future<CategoryModel> upsertCategory(CategoryModel category) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.categoriesTable)
+          .upsert(category.toJson())
+          .select()
+          .single();
+      return CategoryModel.fromJson(data);
+    } catch (e) {
+      throw ServerException(message: 'Error al sincronizar categoría: $e');
     }
   }
 }

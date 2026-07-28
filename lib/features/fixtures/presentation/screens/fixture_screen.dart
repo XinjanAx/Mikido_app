@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:torneo_app/features/tournaments/domain/entities/tournament_entity.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../players/presentation/providers/player_provider.dart';
 import '../providers/fixture_provider.dart';
 import '../widgets/match_card_widget.dart';
 
@@ -35,11 +36,7 @@ class FixtureScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(context);
-              await Supabase.instance.client
-                  .from('matches')
-                  .delete()
-                  .eq('tournament_id', tournamentId);
-              ref.read(fixtureProvider(tournamentId).notifier).loadMatches();
+              await ref.read(fixtureProvider(tournamentId).notifier).deleteFixture();
             },
             child: const Text('Eliminar'),
           ),
@@ -215,16 +212,25 @@ class _GenerateFixtureDialog extends StatefulWidget {
 
 class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
   late String _selectedCategory;
+  late String _mode;
+  int _timesPlayed = 1;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.categories.first.$1;
+    final tournaments = widget.ref.read(tournamentsProvider).tournaments;
+    final tournament = tournaments.cast<TournamentEntity>().firstWhere(
+          (t) => t.id == widget.tournamentId,
+          orElse: () => tournaments.cast<TournamentEntity>().first,
+        );
+    _mode = tournament.mode;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLeague = _mode == AppConstants.tournamentModeLeague;
     return AlertDialog(
       title: const Text('Generar fixture'),
       content: Column(
@@ -242,6 +248,29 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
                 .toList(),
             onChanged: (v) => setState(() => _selectedCategory = v!),
           ),
+          if (isLeague) ...[
+            const SizedBox(height: 16),
+            const Text('¿Cuántas veces se enfrenta cada rival?',
+                style: AppTextStyles.bodyMedium),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline),
+                  onPressed: _timesPlayed > 1
+                      ? () => setState(() => _timesPlayed--)
+                      : null,
+                ),
+                Text('$_timesPlayed', style: AppTextStyles.titleMedium),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  onPressed: _timesPlayed < 10
+                      ? () => setState(() => _timesPlayed++)
+                      : null,
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           const Text(
             'El fixture se generará automáticamente según la modalidad del torneo.',
@@ -272,23 +301,17 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
   Future<void> _generate() async {
     setState(() => _isLoading = true);
 
-    // Obtener modalidad del torneo
-    final tournaments = widget.ref.read(tournamentsProvider).tournaments;
-    final tournament = tournaments.cast<TournamentEntity>().firstWhere(
-          (t) => t.id == widget.tournamentId,
-          orElse: () => tournaments.cast<TournamentEntity>().first,
-        );
-    final mode = tournament.mode;
+    final mode = _mode;
 
     // Obtener solo jugadores de la categoría seleccionada
     try {
-      final enrollments = await Supabase.instance.client
-          .from('enrollments')
-          .select('player_id, players(id, name)')
-          .eq('tournament_id', widget.tournamentId)
-          .eq('category_id', _selectedCategory);
+      final tournamentPlayers = await widget.ref
+          .read(playersByTournamentProvider(widget.tournamentId).future);
+      final enrolled = tournamentPlayers
+          .where((p) => p.categoryId == _selectedCategory)
+          .toList();
 
-      if ((enrollments as List).isEmpty) {
+      if (enrolled.isEmpty) {
         setState(() => _isLoading = false);
         if (mounted) {
           Navigator.pop(context);
@@ -302,12 +325,8 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
         return;
       }
 
-      final playerIds =
-          enrollments.map((e) => e['player_id'] as String).toList();
-
-      final playerNames = enrollments
-          .map((e) => (e['players'] as Map<String, dynamic>)['name'] as String)
-          .toList();
+      final playerIds = enrolled.map((p) => p.id).toList();
+      final playerNames = enrolled.map((p) => p.name).toList();
 
       final success = await widget.ref
           .read(fixtureProvider(widget.tournamentId).notifier)
@@ -316,6 +335,8 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
             mode: mode,
             playerIds: playerIds,
             playerNames: playerNames,
+            timesPlayed:
+                mode == AppConstants.tournamentModeLeague ? _timesPlayed : 1,
           );
 
       setState(() => _isLoading = false);

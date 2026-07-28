@@ -38,17 +38,23 @@ class TournamentListScreen extends ConsumerWidget {
             onPressed: () =>
                 ref.read(tournamentsProvider.notifier).loadTournaments(),
           ),
-          IconButton(
-            icon: const Icon(Icons.people_outline),
-            onPressed: () => context.push(RouteConstants.players),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go(RouteConstants.login);
-            },
-          ),
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.people_outline),
+              onPressed: () => context.push(RouteConstants.players),
+            ),
+          if (user != null)
+            IconButton(
+              icon: const Icon(Icons.logout_outlined),
+              tooltip: 'Cerrar sesión',
+              onPressed: () => ref.read(authProvider.notifier).logout(),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.login_outlined),
+              tooltip: 'Iniciar sesión',
+              onPressed: () => context.push(RouteConstants.login),
+            ),
         ],
       ),
       body: _buildBody(context, ref, state, isAdmin),

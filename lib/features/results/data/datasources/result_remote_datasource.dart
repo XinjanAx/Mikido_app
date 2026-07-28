@@ -1,83 +1,27 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/result_model.dart';
 
+/// CRUD puro contra Supabase. Guardar un resultado (actualizar el partido +
+/// recalcular posiciones) ahora vive en MatchResultService, operando sobre
+/// la base local — este datasource solo lo usa el motor de sincronización.
 abstract class ResultRemoteDataSource {
-  Future<ResultModel> registerResult({
-    required String matchId,
-    required String tournamentId,
-    required String homePlayerId,
-    required String awayPlayerId,
-    required int homeScore,
-    required int awayScore,
-    required String registeredBy,
-    String? notes,
-  });
-
   Future<List<ResultModel>> getResultsByTournament(String tournamentId);
   Future<ResultModel?> getResultByMatch(String matchId);
+
+  /// Todos los resultados (todos los torneos), usado por el motor de
+  /// sincronización para reconciliar la base local.
+  Future<List<ResultModel>> getAllResults();
+
+  /// Upsert idempotente (por `match_id`) usado por el motor de
+  /// sincronización.
+  Future<ResultModel> upsertResult(ResultModel result);
 }
 
 class ResultRemoteDataSourceImpl implements ResultRemoteDataSource {
   final SupabaseClient _client;
   const ResultRemoteDataSourceImpl(this._client);
-
-  @override
-  Future<ResultModel> registerResult({
-    required String matchId,
-    required String tournamentId,
-    required String homePlayerId,
-    required String awayPlayerId,
-    required int homeScore,
-    required int awayScore,
-    required String registeredBy,
-    String? notes,
-  }) async {
-    try {
-      // 1. Insertar/actualizar resultado en tabla results
-      final resultData = await _client
-          .from(SupabaseConstants.resultsTable)
-          .upsert({
-            'id': const Uuid().v4(),
-            'match_id': matchId,
-            'tournament_id': tournamentId,
-            'home_player_id': homePlayerId,
-            'away_player_id': awayPlayerId,
-            'home_score': homeScore,
-            'away_score': awayScore,
-            'notes': notes,
-            'registered_by': registeredBy,
-            'registered_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'match_id')
-          .select()
-          .single();
-
-      // 2. Actualizar el partido con el resultado y marcarlo como finalizado
-      await _client
-          .from(SupabaseConstants.matchesTable)
-          .update({
-            'home_score': homeScore,
-            'away_score': awayScore,
-            'status': AppConstants.matchStatusFinished,
-          })
-          .eq('id', matchId);
-
-      // 3. Recalcular posiciones via RPC (función PostgreSQL en Supabase)
-      try {
-        await _client.rpc('recalculate_standings',
-            params: {'p_tournament_id': tournamentId});
-      } catch (_) {
-        // Si la RPC no está disponible, continuar sin error crítico
-      }
-
-      return ResultModel.fromJson(resultData);
-    } catch (e) {
-      throw ServerException(message: 'Error al registrar resultado: $e');
-    }
-  }
 
   @override
   Future<List<ResultModel>> getResultsByTournament(
@@ -106,6 +50,31 @@ class ResultRemoteDataSourceImpl implements ResultRemoteDataSource {
       return ResultModel.fromJson(data);
     } catch (e) {
       throw ServerException(message: 'Error al obtener resultado: $e');
+    }
+  }
+
+  @override
+  Future<List<ResultModel>> getAllResults() async {
+    try {
+      final data =
+          await _client.from(SupabaseConstants.resultsTable).select();
+      return (data as List).map((e) => ResultModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ServerException(message: 'Error al obtener resultados: $e');
+    }
+  }
+
+  @override
+  Future<ResultModel> upsertResult(ResultModel result) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.resultsTable)
+          .upsert(result.toJson(), onConflict: 'match_id')
+          .select()
+          .single();
+      return ResultModel.fromJson(data);
+    } catch (e) {
+      throw ServerException(message: 'Error al sincronizar resultado: $e');
     }
   }
 }

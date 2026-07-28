@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:torneo_app/core/constants/route_constants.dart';
 import 'package:torneo_app/features/categories/presentation/providers/category_provider.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
@@ -29,19 +28,17 @@ class PlayerEnrollmentScreenState
   }
 
   Future<void> _unenroll(String playerId) async {
-    try {
-      await Supabase.instance.client
-          .from('enrollments')
-          .delete()
-          .eq('player_id', playerId)
-          .eq('tournament_id', widget.tournamentId);
-      ref.invalidate(playersByTournamentProvider(widget.tournamentId));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al desinscribir: $e')),
+    final success = await ref.read(playersProvider.notifier).unenrollPlayer(
+          playerId: playerId,
+          tournamentId: widget.tournamentId,
         );
-      }
+    if (success) {
+      ref.invalidate(playersByTournamentProvider(widget.tournamentId));
+    } else if (mounted) {
+      final error = ref.read(playersProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al desinscribir: ${error ?? ''}')),
+      );
     }
   }
 

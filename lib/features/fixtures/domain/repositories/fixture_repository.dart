@@ -11,11 +11,13 @@ abstract class FixtureRepository {
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
+    int timesPlayed = 1,
   });
   Future<Either<Failure, MatchEntity>> updateMatchResult({
     required String matchId,
     required int homeScore,
     required int awayScore,
   });
+  Future<Either<Failure, void>> deleteFixture(String tournamentId);
   Stream<List<MatchEntity>> watchMatches(String tournamentId);
 }

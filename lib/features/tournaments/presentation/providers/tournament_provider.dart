@@ -18,6 +18,9 @@ import '../../../categories/domain/usecases/category_usecases.dart';
 import '../../../categories/presentation/providers/category_provider.dart'
     show createCategoryUseCaseProvider;
 import '../../../../core/constants/app_constants.dart';
+import '../../../notifications/domain/usecases/schedule_notifications_usecase.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart'
+    show scheduleNotificationsUseCaseProvider;
 
 // Infrastructure
 final tournamentRemoteDataSourceProvider = Provider<TournamentRemoteDataSource>(
@@ -91,6 +94,7 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
   final UpdateTournamentUseCase _update;
   final DeleteTournamentUseCase _delete;
   final CreateCategoryUseCase _createCategory;
+  final ScheduleNotificationsUseCase _scheduleNotifications;
   final String _userId;
 
   TournamentsNotifier({
@@ -99,12 +103,14 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
     required UpdateTournamentUseCase update,
     required DeleteTournamentUseCase delete,
     required CreateCategoryUseCase createCategory,
+    required ScheduleNotificationsUseCase scheduleNotifications,
     required String userId,
   })  : _getAll = getAll,
         _create = create,
         _update = update,
         _delete = delete,
         _createCategory = createCategory,
+        _scheduleNotifications = scheduleNotifications,
         _userId = userId,
         super(const TournamentsState()) {
     loadTournaments();
@@ -158,6 +164,12 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
           name: 'General',
           tournamentId: created.id,
         )));
+        unawaited(_scheduleNotifications.schedule(
+          tournamentId: created.id,
+          tournamentName: created.name,
+          startDate: created.startDate,
+          endDate: created.endDate,
+        ));
         state = state.copyWith(
           isLoading: false,
           tournaments: [created, ...state.tournaments],
@@ -175,6 +187,14 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
         return false;
       },
       (updated) {
+        // Las fechas pueden haber cambiado: se reprograman desde cero.
+        unawaited(_scheduleNotifications.cancel(updated.id).then((_) =>
+            _scheduleNotifications.schedule(
+              tournamentId: updated.id,
+              tournamentName: updated.name,
+              startDate: updated.startDate,
+              endDate: updated.endDate,
+            )));
         state = state.copyWith(
           tournaments: state.tournaments
               .map((t) => t.id == updated.id ? updated : t)
@@ -193,6 +213,7 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
         return false;
       },
       (_) {
+        unawaited(_scheduleNotifications.cancel(id));
         state = state.copyWith(
           tournaments: state.tournaments.where((t) => t.id != id).toList(),
         );
@@ -212,6 +233,7 @@ final tournamentsProvider =
       update: ref.watch(updateTournamentUseCaseProvider),
       delete: ref.watch(deleteTournamentUseCaseProvider),
       createCategory: ref.watch(createCategoryUseCaseProvider),
+      scheduleNotifications: ref.watch(scheduleNotificationsUseCaseProvider),
       userId: userId,
     );
   },

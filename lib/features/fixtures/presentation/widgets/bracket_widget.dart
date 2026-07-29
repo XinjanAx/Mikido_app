@@ -51,7 +51,7 @@ class _RoundColumn extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Encabezado de ronda
+          // Encabezado de ronda (fijo)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -70,8 +70,17 @@ class _RoundColumn extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Tarjetas de partidos
-          ...matches.map((m) => _BracketMatchCard(match: m)),
+          // Tarjetas de partidos: si no caben todas en la pantalla,
+          // esta columna se desplaza verticalmente por su cuenta
+          // (en vez de desbordarse por debajo).
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children:
+                    matches.map((m) => _BracketMatchCard(match: m)).toList(),
+              ),
+            ),
+          ),
         ],
       ),
     );

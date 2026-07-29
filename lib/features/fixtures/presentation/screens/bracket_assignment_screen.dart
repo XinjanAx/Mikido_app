@@ -7,9 +7,10 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../players/domain/entities/player_entity.dart';
 import '../providers/fixture_provider.dart';
 
-/// Arma a mano el cuadro de eliminación simple: arrastra participantes
-/// para reordenarlos. Cada 2 en fila forman un partido de la primera
-/// ronda (posiciones 1-2, 3-4, ...); si sobra uno al final, pasa con bye.
+/// Arma a mano el cuadro de eliminación simple: toca un participante y
+/// luego toca otro para intercambiarlos de posición. Cada 2 en fila
+/// forman un partido de la primera ronda (posiciones 1-2, 3-4, ...);
+/// si sobra uno al final, pasa con bye.
 class BracketAssignmentScreen extends ConsumerStatefulWidget {
   final String tournamentId;
   final String categoryId;
@@ -30,6 +31,7 @@ class BracketAssignmentScreen extends ConsumerStatefulWidget {
 class _BracketAssignmentScreenState
     extends ConsumerState<BracketAssignmentScreen> {
   late List<PlayerEntity> _order;
+  int? _selectedIndex;
   bool _isGenerating = false;
 
   @override
@@ -39,14 +41,24 @@ class _BracketAssignmentScreenState
   }
 
   void _shuffle() {
-    setState(() => _order.shuffle());
+    setState(() {
+      _order.shuffle();
+      _selectedIndex = null;
+    });
   }
 
-  void _onReorder(int oldIndex, int newIndex) {
+  void _onTapPlayer(int index) {
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
-      final item = _order.removeAt(oldIndex);
-      _order.insert(newIndex, item);
+      if (_selectedIndex == null) {
+        _selectedIndex = index;
+      } else if (_selectedIndex == index) {
+        _selectedIndex = null;
+      } else {
+        final temp = _order[_selectedIndex!];
+        _order[_selectedIndex!] = _order[index];
+        _order[index] = temp;
+        _selectedIndex = null;
+      }
     });
   }
 
@@ -97,16 +109,18 @@ class _BracketAssignmentScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
-              'Mantén presionado y arrastra para ordenar. Cada 2 en fila '
-              'forman un partido de la primera ronda.',
+              _selectedIndex == null
+                  ? 'Toca un participante para elegirlo y luego toca otro '
+                    'para intercambiarlos de posición.'
+                  : 'Ahora toca al participante con el que quieres '
+                    'intercambiarlo.',
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
             ),
           ),
           Expanded(
-            child: ReorderableListView.builder(
+            child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
               itemCount: _order.length,
-              onReorder: _onReorder,
               itemBuilder: (context, index) {
                 final player = _order[index];
                 final isBye =
@@ -114,6 +128,7 @@ class _BracketAssignmentScreenState
                 final matchLabel = isBye
                     ? 'BYE — pasa directo'
                     : (index.isEven ? 'Partido ${index ~/ 2 + 1}' : null);
+                final isSelected = index == _selectedIndex;
 
                 return Padding(
                   key: ValueKey(player.id),
@@ -130,14 +145,32 @@ class _BracketAssignmentScreenState
                         ),
                       Card(
                         margin: EdgeInsets.zero,
+                        color: isSelected
+                            ? AppColors.accent.withOpacity(0.12)
+                            : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.accent
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
                         child: ListTile(
+                          onTap: () => _onTapPlayer(index),
                           leading: CircleAvatar(
                             child: Text(player.name.isNotEmpty
                                 ? player.name[0].toUpperCase()
                                 : '?'),
                           ),
                           title: Text(player.name),
-                          trailing: const Icon(Icons.drag_handle),
+                          trailing: Icon(
+                            isSelected
+                                ? Icons.check_circle
+                                : Icons.swap_horiz,
+                            color: isSelected ? AppColors.accent : null,
+                          ),
                         ),
                       ),
                     ],

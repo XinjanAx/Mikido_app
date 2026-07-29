@@ -25,6 +25,8 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
   late String _selectedMode;
   late DateTime _startDate;
   late DateTime _endDate;
+  late TimeOfDay _startTime;
+  late TimeOfDay _endTime;
   bool _isSaving = false;
 
   bool get _isEdit => widget.tournament != null;
@@ -38,10 +40,14 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
         TextEditingController(text: widget.tournament?.description ?? '');
     _selectedMode =
         widget.tournament?.mode ?? AppConstants.tournamentModeGroups;
-    _startDate = widget.tournament?.startDate ??
-        DateTime.now().add(const Duration(days: 1));
-    _endDate = widget.tournament?.endDate ??
-        DateTime.now().add(const Duration(days: 7));
+    _startDate = widget.tournament?.startDate ?? DateTime.now();
+    _endDate = widget.tournament?.endDate ?? DateTime.now();
+    _startTime = widget.tournament != null
+        ? TimeOfDay.fromDateTime(widget.tournament!.startDate)
+        : const TimeOfDay(hour: 9, minute: 0);
+    _endTime = widget.tournament != null
+        ? TimeOfDay.fromDateTime(widget.tournament!.endDate)
+        : const TimeOfDay(hour: 18, minute: 0);
   }
 
   @override
@@ -50,6 +56,9 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
     _descController.dispose();
     super.dispose();
   }
+
+  DateTime _combine(DateTime date, TimeOfDay time) =>
+      DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
   Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
@@ -69,8 +78,34 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
     });
   }
 
+  Future<void> _pickTime({required bool isStart}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _startTime : _endTime,
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _startTime = picked;
+      } else {
+        _endTime = picked;
+      }
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final startDateTime = _combine(_startDate, _startTime);
+    final endDateTime = _combine(_endDate, _endTime);
+    if (!endDateTime.isAfter(startDateTime)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La fecha y hora de fin debe ser posterior al inicio'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
 
     bool success;
@@ -83,8 +118,8 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
         description: _descController.text.trim().isEmpty
             ? null
             : _descController.text.trim(),
-        startDate: _startDate,
-        endDate: _endDate,
+        startDate: startDateTime,
+        endDate: endDateTime,
         createdBy: widget.tournament!.createdBy,
         createdAt: widget.tournament!.createdAt,
       );
@@ -94,8 +129,8 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
       success = await ref.read(tournamentsProvider.notifier).createTournament(
             name: _nameController.text.trim(),
             mode: _selectedMode,
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: startDateTime,
+            endDate: endDateTime,
             description: _descController.text.trim().isEmpty
                 ? null
                 : _descController.text.trim(),
@@ -170,6 +205,32 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _TimeField(
+                      label: 'Hora inicio',
+                      time: _startTime,
+                      onTap: () => _pickTime(isStart: true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TimeField(
+                      label: 'Hora fin',
+                      time: _endTime,
+                      onTap: () => _pickTime(isStart: false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Se usan para avisarte con anticipación (30, 10 y 5 min '
+                'antes de empezar; 1h, 30, 10 y 5 min antes de terminar).',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
               ),
               const SizedBox(height: 36),
 
@@ -279,6 +340,50 @@ class _DateField extends StatelessWidget {
                     size: 14, color: AppColors.grey400),
                 const SizedBox(width: 6),
                 Text(date.toDisplayDate(), style: AppTextStyles.bodyMedium),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeField extends StatelessWidget {
+  final String label;
+  final TimeOfDay time;
+  final VoidCallback onTap;
+
+  const _TimeField({
+    required this.label,
+    required this.time,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.grey400)),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.access_time_outlined,
+                    size: 14, color: AppColors.grey400),
+                const SizedBox(width: 6),
+                Text(time.format(context), style: AppTextStyles.bodyMedium),
               ],
             ),
           ],

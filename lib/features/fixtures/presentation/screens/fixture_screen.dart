@@ -136,7 +136,7 @@ class FixtureScreen extends ConsumerWidget {
                     ? Icons.account_tree_outlined
                     : Icons.leaderboard_outlined),
                 label: Text(isElimination
-                    ? 'Ver cuadro eliminatorio'
+                    ? 'Ver cuadro de eliminatorias'
                     : 'Ver tabla de posiciones'),
               ),
             ),
@@ -206,8 +206,8 @@ class FixtureScreen extends ConsumerWidget {
 
           // Lista de partidos
           Expanded(
-              child: _buildMatchesList(
-                  context, ref, fixtureState, isAdmin, isTournamentFinished)),
+              child: _buildMatchesList(context, ref, fixtureState, isAdmin,
+                  isTournamentFinished, isElimination)),
         ],
       ),
     );
@@ -219,8 +219,17 @@ class FixtureScreen extends ConsumerWidget {
       List<StandingEntity> standings) {
     if (isElimination) {
       if (matches.isEmpty) return null;
-      final lastMatch = matches.reduce(
-          (a, b) => (a.matchNumber ?? 0) > (b.matchNumber ?? 0) ? a : b);
+      // Evitar List.reduce aquí: en runtime `matches` suele ser en
+      // realidad un List<MatchModel> (subtipo) expuesto como
+      // List<MatchEntity>, y reduce() liga su callback al tipo genérico
+      // reificado en runtime, no al estático — con reduce eso rompe con
+      // un TypeError de covarianza. Un for manual no tiene ese problema.
+      MatchEntity lastMatch = matches.first;
+      for (final m in matches) {
+        if ((m.matchNumber ?? 0) > (lastMatch.matchNumber ?? 0)) {
+          lastMatch = m;
+        }
+      }
       final winnerId = lastMatch.winner;
       if (winnerId == null) return null;
       return winnerId == lastMatch.homePlayerId
@@ -273,7 +282,8 @@ class FixtureScreen extends ConsumerWidget {
   }
 
   Widget _buildMatchesList(BuildContext context, WidgetRef ref,
-      FixtureState state, bool isAdmin, bool isTournamentFinished) {
+      FixtureState state, bool isAdmin, bool isTournamentFinished,
+      bool isElimination) {
     if (state.isLoading) {
       return const LoadingWidget(message: 'Cargando partidos...');
     }
@@ -289,11 +299,17 @@ class FixtureScreen extends ConsumerWidget {
     }
 
     final byRound = state.matchesByRound;
+    // En eliminación las rondas ya vienen en orden cronológico (octavos,
+    // cuartos, semifinal, final); se invierten para mostrar primero la
+    // ronda más avanzada, sin tener que hacer scroll por las ya jugadas.
+    final roundKeys = isElimination
+        ? byRound.keys.toList().reversed.toList()
+        : byRound.keys.toList();
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: byRound.length,
+      itemCount: roundKeys.length,
       itemBuilder: (_, i) {
-        final round = byRound.keys.elementAt(i);
+        final round = roundKeys[i];
         final matches = byRound[round]!;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

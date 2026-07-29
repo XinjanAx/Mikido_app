@@ -43,7 +43,7 @@ class BracketScreen extends ConsumerWidget {
   String _screenTitle(String? mode) {
     switch (mode) {
       case AppConstants.tournamentModeElimination:
-        return 'Cuadro eliminatorio';
+        return 'Cuadro de eliminatorias';
       case AppConstants.tournamentModeGroups:
         return 'Tablas de grupo';
       default:

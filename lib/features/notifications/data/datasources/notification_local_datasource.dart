@@ -7,6 +7,10 @@ class NotificationLocalDataSource {
 
   NotificationLocalDataSource(this._plugin);
 
+  // Minutos de antelación para avisar antes de que empiece/termine el torneo.
+  static const List<int> _startOffsetsMin = [30, 10, 5];
+  static const List<int> _endOffsetsMin = [60, 30, 10, 5];
+
   Future<void> initialize() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -27,10 +31,12 @@ class NotificationLocalDataSource {
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.requestNotificationsPermission();
+    // Necesario en Android 12+ para poder programar notificaciones a una
+    // hora exacta (androidScheduleMode: exactAllowWhileIdle).
+    await android?.requestExactAlarmsPermission();
   }
 
   /// Programa todas las notificaciones de un torneo
@@ -44,16 +50,14 @@ class NotificationLocalDataSource {
     final baseEndId = tournamentId.hashCode.abs() + AppConstants.notifIdEndBase;
 
     // Notificaciones de inicio
-    final startOffsets = [60, 30, 10, 0];
     final startMessages = [
-      'Falta 1 hora para iniciar',
       'Faltan 30 minutos para iniciar',
       'Faltan 10 minutos para iniciar',
-      '¡El torneo comienza ahora!',
+      '¡Faltan 5 minutos para iniciar!',
     ];
 
-    for (var i = 0; i < startOffsets.length; i++) {
-      final notifTime = startDate.subtract(Duration(minutes: startOffsets[i]));
+    for (var i = 0; i < _startOffsetsMin.length; i++) {
+      final notifTime = startDate.subtract(Duration(minutes: _startOffsetsMin[i]));
       if (notifTime.isAfter(DateTime.now())) {
         await _scheduleNotification(
           id: baseStartId + i,
@@ -65,16 +69,15 @@ class NotificationLocalDataSource {
     }
 
     // Notificaciones de finalización
-    final endOffsets = [60, 30, 10, 0];
     final endMessages = [
       'Falta 1 hora para finalizar',
       'Faltan 30 minutos para finalizar',
       'Faltan 10 minutos para finalizar',
-      '¡El torneo ha finalizado!',
+      '¡Faltan 5 minutos para finalizar!',
     ];
 
-    for (var i = 0; i < endOffsets.length; i++) {
-      final notifTime = endDate.subtract(Duration(minutes: endOffsets[i]));
+    for (var i = 0; i < _endOffsetsMin.length; i++) {
+      final notifTime = endDate.subtract(Duration(minutes: _endOffsetsMin[i]));
       if (notifTime.isAfter(DateTime.now())) {
         await _scheduleNotification(
           id: baseEndId + i,
@@ -90,8 +93,10 @@ class NotificationLocalDataSource {
     final baseStartId = tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
     final baseEndId = tournamentId.hashCode.abs() + AppConstants.notifIdEndBase;
 
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < _startOffsetsMin.length; i++) {
       await _plugin.cancel(baseStartId + i);
+    }
+    for (var i = 0; i < _endOffsetsMin.length; i++) {
       await _plugin.cancel(baseEndId + i);
     }
   }

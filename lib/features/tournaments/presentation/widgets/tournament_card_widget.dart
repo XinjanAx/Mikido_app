@@ -101,9 +101,13 @@ class TournamentCard extends StatelessWidget {
                   Icon(Icons.calendar_today_outlined,
                       size: 14, color: AppColors.grey400),
                   const SizedBox(width: 6),
-                  Text(
-                    '${tournament.startDate.toDisplayDate()} → ${tournament.endDate.toDisplayDate()}',
-                    style: AppTextStyles.bodySmall,
+                  Expanded(
+                    child: Text(
+                      '${tournament.startDate.toDisplayDateTime()} → ${tournament.endDate.toDisplayDateTime()}',
+                      style: AppTextStyles.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

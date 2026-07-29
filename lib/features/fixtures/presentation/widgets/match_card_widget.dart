@@ -37,7 +37,7 @@ class MatchCard extends StatelessWidget {
                       style: AppTextStyles.titleMedium.copyWith(
                         color: finished && _homeWon
                             ? AppColors.accent
-                            : AppColors.white,
+                            : AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -57,15 +57,33 @@ class MatchCard extends StatelessWidget {
                       : AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: finished ? AppColors.primary : const Color(0xFF3A3A3A),
+                    color: finished ? AppColors.primary : AppColors.border,
                   ),
                 ),
                 child: finished
-                    ? Text(
-                        '${match.homeScore} - ${match.awayScore}',
-                        style: AppTextStyles.headlineMedium.copyWith(
-                          color: AppColors.primary,
-                        ),
+                    ? Column(
+                        children: [
+                          Text(
+                            '${match.homeScore} - ${match.awayScore}',
+                            style: AppTextStyles.headlineMedium.copyWith(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          if (isAdmin && onTap != null)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_outlined,
+                                    size: 10, color: AppColors.grey400),
+                                const SizedBox(width: 2),
+                                Text('Editar',
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.grey400,
+                                      fontSize: 9,
+                                    )),
+                              ],
+                            ),
+                        ],
                       )
                     : Column(
                         children: [
@@ -88,7 +106,7 @@ class MatchCard extends StatelessWidget {
                       style: AppTextStyles.titleMedium.copyWith(
                         color: finished && _awayWon
                             ? AppColors.accent
-                            : AppColors.white,
+                            : AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

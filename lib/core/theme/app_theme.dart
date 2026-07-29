@@ -6,34 +6,65 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get darkTheme {
+    return _themeFor(
+      brightness: Brightness.dark,
+      scaffoldBackground: const Color(0xFF1A1A1A),
+      surfaceVariant: const Color(0xFF2C2C2C),
+      onSurface: AppColors.offWhite,
+      border: const Color(0xFF3A3A3A),
+      hint: const Color(0xFF757575),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return _themeFor(
+      brightness: Brightness.light,
+      scaffoldBackground: const Color(0xFFF7F7F8),
+      surfaceVariant: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF1A1A1A),
+      border: const Color(0xFFE0E0E0),
+      hint: const Color(0xFF8A8A8A),
+    );
+  }
+
+  static ThemeData _themeFor({
+    required Brightness brightness,
+    required Color scaffoldBackground,
+    required Color surfaceVariant,
+    required Color onSurface,
+    required Color border,
+    required Color hint,
+  }) {
+    final isDark = brightness == Brightness.dark;
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       fontFamily: 'Poppins',
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme(
+        brightness: brightness,
         primary: AppColors.primary,
         onPrimary: AppColors.white,
         secondary: AppColors.accent,
-        onSecondary: AppColors.surface,
-        surface: AppColors.surfaceVariant,
-        onSurface: AppColors.offWhite,
+        onSecondary: isDark ? AppColors.surface : AppColors.white,
+        surface: surfaceVariant,
+        onSurface: onSurface,
         error: AppColors.error,
         onError: AppColors.white,
       ),
-      scaffoldBackgroundColor: AppColors.surface,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.white,
+      scaffoldBackgroundColor: scaffoldBackground,
+      appBarTheme: AppBarTheme(
+        backgroundColor: scaffoldBackground,
+        foregroundColor: onSurface,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: AppTextStyles.headlineMedium,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surfaceVariant,
+        color: surfaceVariant,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFF3A3A3A), width: 1),
+          side: BorderSide(color: border, width: 1),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       ),
@@ -64,15 +95,15 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariant,
+        fillColor: surfaceVariant,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF3A3A3A)),
+          borderSide: BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF3A3A3A)),
+          borderSide: BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -83,24 +114,26 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.error),
         ),
         labelStyle: AppTextStyles.bodyMedium,
-        hintStyle: const TextStyle(color: AppColors.grey600),
+        hintStyle: TextStyle(color: hint),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surfaceVariant,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: surfaceVariant,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.grey600,
+        unselectedItemColor: hint,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFF3A3A3A),
+      dividerTheme: DividerThemeData(
+        color: border,
         thickness: 1,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceVariant,
+        // ignore: deprecated_member_use
+        backgroundColor: surfaceVariant,
+        // ignore: deprecated_member_use
         selectedColor: AppColors.primary.withOpacity(0.2),
         labelStyle: AppTextStyles.labelSmall,
-        side: const BorderSide(color: Color(0xFF3A3A3A)),
+        side: BorderSide(color: border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -109,19 +142,17 @@ class AppTheme {
         elevation: 4,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceVariant,
+        backgroundColor: surfaceVariant,
         contentTextStyle: AppTextStyles.bodyMedium,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         behavior: SnackBarBehavior.floating,
       ),
-      tabBarTheme: const TabBarThemeData(
+      tabBarTheme: TabBarThemeData(
         labelColor: AppColors.primary,
-        unselectedLabelColor: AppColors.grey600,
+        unselectedLabelColor: hint,
         indicatorColor: AppColors.primary,
         labelStyle: AppTextStyles.titleMedium,
       ),
     );
   }
-
-  static ThemeData get lightTheme => darkTheme;
 }

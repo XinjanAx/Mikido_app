@@ -11,10 +11,6 @@ class RouteConstants {
   static const String tournamentCreate = '/tournaments/create';
   static const String tournamentEdit = '/tournaments/:id/edit';
 
-  // Categorías
-  static const String categories = '/tournaments/:id/categories';
-  static const String categoryCreate = '/tournaments/:id/categories/create';
-
   // Participantes
   static const String players = '/players';
   static const String playerDetail = '/players/:id';

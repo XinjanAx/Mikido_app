@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
@@ -12,8 +13,15 @@ final supabaseClientProvider = Provider<SupabaseClient>(
   (_) => Supabase.instance.client,
 );
 
+final authLocalDataSourceProvider = Provider<AuthLocalDataSource>(
+  (_) => AuthLocalDataSource(),
+);
+
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>(
-  (ref) => AuthRemoteDataSourceImpl(ref.watch(supabaseClientProvider)),
+  (ref) => AuthRemoteDataSourceImpl(
+    ref.watch(supabaseClientProvider),
+    ref.watch(authLocalDataSourceProvider),
+  ),
 );
 
 final authRepositoryProvider = Provider<AuthRepository>(

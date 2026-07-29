@@ -48,21 +48,26 @@ class PlayerRepositoryImpl implements PlayerRepository {
 
   @override
   Future<Either<Failure, PlayerEntity>> createPlayer(PlayerEntity player) async {
-    final duplicate = await _findDuplicateName(player.name);
-    if (duplicate) {
-      return const Left(ValidationFailure(
-          message: 'Ya existe un participante con ese nombre'));
+    try {
+      if (await _findDuplicateName(player.name)) {
+        return const Left(ValidationFailure(
+            message: 'Ya existe un participante con ese nombre'));
+      }
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al validar el nombre: $e'));
     }
     return _savePlayerLocally(PlayerModel.fromEntity(player));
   }
 
   @override
   Future<Either<Failure, PlayerEntity>> updatePlayer(PlayerEntity player) async {
-    final duplicate =
-        await _findDuplicateName(player.name, excludingId: player.id);
-    if (duplicate) {
-      return const Left(ValidationFailure(
-          message: 'Ya existe un participante con ese nombre'));
+    try {
+      if (await _findDuplicateName(player.name, excludingId: player.id)) {
+        return const Left(ValidationFailure(
+            message: 'Ya existe un participante con ese nombre'));
+      }
+    } catch (e) {
+      return Left(CacheFailure(message: 'Error al validar el nombre: $e'));
     }
     return _savePlayerLocally(PlayerModel.fromEntity(player));
   }

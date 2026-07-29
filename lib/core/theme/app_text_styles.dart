@@ -1,111 +1,113 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
+/// Los estilos ya no son `const`: el color depende del tema actual
+/// (ver [AppColors]), así que se recalculan cada vez que se leen.
 class AppTextStyles {
   AppTextStyles._();
 
   static const String _fontFamily = 'Poppins';
 
-  static const TextStyle displayLarge = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 32,
-    fontWeight: FontWeight.w700,
-    color: AppColors.white,
-    letterSpacing: -0.5,
-  );
+  static TextStyle get displayLarge => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+        letterSpacing: -0.5,
+      );
 
-  static const TextStyle displayMedium = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    color: AppColors.white,
-  );
+  static TextStyle get displayMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      );
 
-  static const TextStyle headlineLarge = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: AppColors.white,
-  );
+  static TextStyle get headlineLarge => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      );
 
-  static const TextStyle headlineMedium = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.white,
-  );
+  static TextStyle get headlineMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      );
 
-  static const TextStyle titleLarge = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: AppColors.white,
-  );
+  static TextStyle get titleLarge => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      );
 
-  static const TextStyle titleMedium = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    color: AppColors.white,
-  );
+  static TextStyle get titleMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
+      );
 
-  static const TextStyle bodyLarge = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: AppColors.offWhite,
-  );
+  static TextStyle get bodyLarge => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+      );
 
-  static const TextStyle bodyMedium = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    color: AppColors.offWhite,
-  );
+  static TextStyle get bodyMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+      );
 
-  static const TextStyle bodySmall = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    color: AppColors.grey400,
-  );
+  static TextStyle get bodySmall => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textMuted,
+      );
 
-  static const TextStyle labelLarge = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 14,
-    fontWeight: FontWeight.w600,
-    color: AppColors.white,
-    letterSpacing: 0.5,
-  );
+  static TextStyle get labelLarge => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        letterSpacing: 0.5,
+      );
 
-  static const TextStyle labelSmall = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    color: AppColors.grey400,
-    letterSpacing: 0.8,
-  );
+  static TextStyle get labelSmall => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textMuted,
+        letterSpacing: 0.8,
+      );
 
   // Estilos de datos / tabla
-  static const TextStyle tableHeader = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: AppColors.accent,
-    letterSpacing: 1.0,
-  );
+  static TextStyle get tableHeader => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: AppColors.accent,
+        letterSpacing: 1.0,
+      );
 
-  static const TextStyle tableCell = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: AppColors.offWhite,
-  );
+  static TextStyle get tableCell => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+      );
 
-  static const TextStyle scoreDisplay = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 36,
-    fontWeight: FontWeight.w700,
-    color: AppColors.primary,
-  );
+  static TextStyle get scoreDisplay => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 36,
+        fontWeight: FontWeight.w700,
+        color: AppColors.primary,
+      );
 }

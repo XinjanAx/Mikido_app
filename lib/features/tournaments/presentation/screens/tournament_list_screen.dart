@@ -1,20 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/tournament_provider.dart';
 import '../widgets/tournament_card_widget.dart';
 
-class TournamentListScreen extends ConsumerWidget {
+class TournamentListScreen extends ConsumerStatefulWidget {
   const TournamentListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TournamentListScreen> createState() =>
+      _TournamentListScreenState();
+}
+
+class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
+  static const _seenIntroKey = 'seen_offline_intro';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowIntro());
+  }
+
+  Future<void> _maybeShowIntro() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadySeen = prefs.getBool(_seenIntroKey) ?? false;
+    if (alreadySeen || !mounted) return;
+    await prefs.setBool(_seenIntroKey, true);
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¡Bienvenido!'),
+        content: const Text(
+          'La primera vez inicia sesión con internet para verificar tu cuenta.\n\n'
+          'Luego podrás usar la aplicación sin conexión y los cambios se '
+          'sincronizarán automáticamente cuando haya internet.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Continuar...'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(tournamentsProvider);
     final isAdmin = ref.watch(isAdminProvider);
     final user = ref.watch(currentUserProvider);
@@ -37,6 +78,13 @@ class TournamentListScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             onPressed: () =>
                 ref.read(tournamentsProvider.notifier).loadTournaments(),
+          ),
+          IconButton(
+            icon: Icon(ref.watch(themeModeProvider) == ThemeMode.dark
+                ? Icons.light_mode_outlined
+                : Icons.dark_mode_outlined),
+            tooltip: 'Cambiar tema',
+            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
           ),
           if (isAdmin)
             IconButton(

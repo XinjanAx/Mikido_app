@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -11,6 +13,10 @@ import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../../domain/usecases/tournament_usecases.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../categories/domain/entities/category_entity.dart';
+import '../../../categories/domain/usecases/category_usecases.dart';
+import '../../../categories/presentation/providers/category_provider.dart'
+    show createCategoryUseCaseProvider;
 import '../../../../core/constants/app_constants.dart';
 
 // Infrastructure
@@ -84,6 +90,7 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
   final CreateTournamentUseCase _create;
   final UpdateTournamentUseCase _update;
   final DeleteTournamentUseCase _delete;
+  final CreateCategoryUseCase _createCategory;
   final String _userId;
 
   TournamentsNotifier({
@@ -91,11 +98,13 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
     required CreateTournamentUseCase create,
     required UpdateTournamentUseCase update,
     required DeleteTournamentUseCase delete,
+    required CreateCategoryUseCase createCategory,
     required String userId,
   })  : _getAll = getAll,
         _create = create,
         _update = update,
         _delete = delete,
+        _createCategory = createCategory,
         _userId = userId,
         super(const TournamentsState()) {
     loadTournaments();
@@ -141,6 +150,14 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
         return false;
       },
       (created) {
+        // Ya no se pide elegir/crear categoría en la app: cada torneo
+        // recibe una única categoría "General" automática por dentro, que
+        // sigue usando toda la lógica existente de inscripciones/fixture.
+        unawaited(_createCategory(CategoryEntity(
+          id: const Uuid().v4(),
+          name: 'General',
+          tournamentId: created.id,
+        )));
         state = state.copyWith(
           isLoading: false,
           tournaments: [created, ...state.tournaments],
@@ -194,6 +211,7 @@ final tournamentsProvider =
       create: ref.watch(createTournamentUseCaseProvider),
       update: ref.watch(updateTournamentUseCaseProvider),
       delete: ref.watch(deleteTournamentUseCaseProvider),
+      createCategory: ref.watch(createCategoryUseCaseProvider),
       userId: userId,
     );
   },

@@ -76,7 +76,7 @@ class TournamentCard extends StatelessWidget {
                   ),
                   if (isAdmin && onDelete != null)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline,
+                      icon: Icon(Icons.delete_outline,
                           color: AppColors.grey400, size: 20),
                       onPressed: onDelete,
                       padding: EdgeInsets.zero,
@@ -98,7 +98,7 @@ class TournamentCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_outlined,
+                  Icon(Icons.calendar_today_outlined,
                       size: 14, color: AppColors.grey400),
                   const SizedBox(width: 6),
                   Text(
@@ -126,7 +126,7 @@ class _InfoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF3A3A3A)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Text(label, style: AppTextStyles.labelSmall),
     );

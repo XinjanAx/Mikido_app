@@ -73,7 +73,15 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     }
 
     setState(() => _isSaving = false);
-    if (success && mounted) context.pop();
+    if (!mounted) return;
+    if (success) {
+      context.pop();
+    } else {
+      final error = ref.read(playersProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? 'Error al guardar el participante')),
+      );
+    }
   }
 
   @override

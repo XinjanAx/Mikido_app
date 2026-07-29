@@ -13,10 +13,6 @@ class AppRoutes {
   static const String tournamentDetail = 'tournament-detail';
   static const String tournamentEdit = 'tournament-edit';
 
-  // Categorías
-  static const String categoryList = 'category-list';
-  static const String categoryCreate = 'category-create';
-
   // Participantes
   static const String playerList = 'player-list';
   static const String playerDetail = 'player-detail';

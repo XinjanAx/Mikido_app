@@ -16,6 +16,9 @@ class FixtureGenerator {
     required List<String> playerIds,
     required List<String> playerNames,
     int timesPlayed = 1,
+    int numberOfGroups = 0,
+    List<List<String>>? manualGroups,
+    List<String>? manualBracketOrder,
   }) {
     switch (mode) {
       case AppConstants.tournamentModeLeague:
@@ -23,11 +26,17 @@ class FixtureGenerator {
             timesPlayed: timesPlayed < 1 ? 1 : timesPlayed);
       case AppConstants.tournamentModeElimination:
         return _generateElimination(
-            tournamentId, categoryId, playerIds, playerNames);
+            tournamentId, categoryId, playerIds, playerNames,
+            manualOrder: manualBracketOrder);
       case AppConstants.tournamentModeGroups:
       default:
+        if (manualGroups != null) {
+          return _generateManualGroups(
+              tournamentId, categoryId, manualGroups, playerIds, playerNames);
+        }
         return _generateGroups(
-            tournamentId, categoryId, playerIds, playerNames);
+            tournamentId, categoryId, playerIds, playerNames,
+            numberOfGroups: numberOfGroups);
     }
   }
 
@@ -96,42 +105,51 @@ class FixtureGenerator {
     return matches;
   }
 
-  /// Eliminación simple: cuadro directo
+  /// Eliminación simple: cuadro directo. Empareja de a dos en el orden
+  /// dado (posiciones 1-2, 3-4, ...); si sobra uno, pasa directo con "bye".
+  /// Si no se da [manualOrder], se sortea al azar.
   static List<MatchModel> _generateElimination(String tournamentId,
-      String categoryId, List<String> playerIds, List<String> playerNames) {
+      String categoryId, List<String> playerIds, List<String> playerNames,
+      {List<String>? manualOrder}) {
     final matches = <MatchModel>[];
     int matchNumber = 1;
 
-    // Sortear jugadores
-    final shuffled = List<int>.generate(playerIds.length, (i) => i)..shuffle();
+    final orderedIds = manualOrder ??
+        (List<int>.generate(playerIds.length, (i) => i)..shuffle())
+            .map((i) => playerIds[i])
+            .toList();
 
-    // Emparejar de a dos; si sobra uno, pasa directo con un "bye"
-    for (int i = 0; i < shuffled.length - 1; i += 2) {
-      final homeIdx = shuffled[i];
-      final awayIdx = shuffled[i + 1];
+    String nameOf(String id) {
+      final idx = playerIds.indexOf(id);
+      return idx >= 0 ? playerNames[idx] : id;
+    }
+
+    for (int i = 0; i < orderedIds.length - 1; i += 2) {
+      final homeId = orderedIds[i];
+      final awayId = orderedIds[i + 1];
       matches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
         categoryId: categoryId,
-        homePlayerId: playerIds[homeIdx],
-        awayPlayerId: playerIds[awayIdx],
-        homePlayerName: playerNames[homeIdx],
-        awayPlayerName: playerNames[awayIdx],
+        homePlayerId: homeId,
+        awayPlayerId: awayId,
+        homePlayerName: nameOf(homeId),
+        awayPlayerName: nameOf(awayId),
         status: AppConstants.matchStatusPending,
         round: _eliminationRoundName(playerIds.length),
         matchNumber: matchNumber++,
       ));
     }
 
-    if (shuffled.length.isOdd) {
-      final byeIdx = shuffled.last;
+    if (orderedIds.length.isOdd) {
+      final byeId = orderedIds.last;
       matches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
         categoryId: categoryId,
-        homePlayerId: playerIds[byeIdx],
-        awayPlayerId: playerIds[byeIdx], // mismo jugador = bye
-        homePlayerName: playerNames[byeIdx],
+        homePlayerId: byeId,
+        awayPlayerId: byeId, // mismo jugador = bye
+        homePlayerName: nameOf(byeId),
         awayPlayerName: 'BYE',
         homeScore: 1,
         awayScore: 0,
@@ -151,34 +169,75 @@ class FixtureGenerator {
     return 'Final';
   }
 
-  /// Por grupos: dividir en grupos de ~4 y hacer round-robin por grupo
+  /// Por grupos (modo aleatorio): sortea a los jugadores y los reparte en
+  /// [numberOfGroups] grupos lo más parejo posible (si sobran jugadores,
+  /// los primeros grupos llevan uno extra), luego hace round-robin dentro
+  /// de cada grupo. Si no se especifica un número de grupos (<= 0), se
+  /// calcula automáticamente para que cada grupo tenga como máximo 4
+  /// jugadores.
   static List<MatchModel> _generateGroups(String tournamentId,
-      String categoryId, List<String> playerIds, List<String> playerNames) {
+      String categoryId, List<String> playerIds, List<String> playerNames,
+      {int numberOfGroups = 0}) {
+    final n = playerIds.length;
+
+    // Sortear manteniendo alineados id y nombre.
+    final order = List<int>.generate(n, (i) => i)..shuffle();
+    final shuffledIds = [for (final i in order) playerIds[i]];
+    final shuffledNames = [for (final i in order) playerNames[i]];
+
+    const maxGroupSizeFallback = 4;
+    final groups = numberOfGroups > 0
+        ? numberOfGroups.clamp(1, n)
+        : (n / maxGroupSizeFallback).ceil().clamp(1, n);
+
+    final baseSize = n ~/ groups;
+    final remainder = n % groups;
+
+    final manualGroups = <List<String>>[];
+    int start = 0;
+    for (int g = 0; g < groups; g++) {
+      // Los primeros `remainder` grupos llevan un jugador extra.
+      final size = baseSize + (g < remainder ? 1 : 0);
+      final end = (start + size).clamp(0, n);
+      if (start >= end) break; // sin jugadores suficientes para este grupo
+      manualGroups.add(shuffledIds.sublist(start, end));
+      start = end;
+    }
+
+    return _generateManualGroups(
+        tournamentId, categoryId, manualGroups, shuffledIds, shuffledNames);
+  }
+
+  /// Por grupos (modo manual): usa exactamente la agrupación indicada por
+  /// el admin (por ejemplo, armada arrastrando jugadores en la pantalla de
+  /// asignación) en vez de calcularla automáticamente.
+  static List<MatchModel> _generateManualGroups(
+      String tournamentId,
+      String categoryId,
+      List<List<String>> manualGroups,
+      List<String> playerIds,
+      List<String> playerNames) {
     final matches = <MatchModel>[];
     int matchNumber = 1;
 
-    // Dividir en grupos de máximo 4
-    const groupSize = 4;
-    final numGroups = (playerIds.length / groupSize).ceil();
-
-    for (int g = 0; g < numGroups; g++) {
-      final start = g * groupSize;
-      final end = (start + groupSize).clamp(0, playerIds.length);
-      final groupPlayers = playerIds.sublist(start, end);
-      final groupNames = playerNames.sublist(start, end);
+    for (int g = 0; g < manualGroups.length; g++) {
+      final groupIds = manualGroups[g];
       final groupLabel = String.fromCharCode(65 + g); // A, B, C...
 
-      // Round-robin dentro del grupo
-      for (int i = 0; i < groupPlayers.length; i++) {
-        for (int j = i + 1; j < groupPlayers.length; j++) {
+      for (int i = 0; i < groupIds.length; i++) {
+        for (int j = i + 1; j < groupIds.length; j++) {
+          final homeId = groupIds[i];
+          final awayId = groupIds[j];
+          final homeIdx = playerIds.indexOf(homeId);
+          final awayIdx = playerIds.indexOf(awayId);
           matches.add(MatchModel(
             id: const Uuid().v4(),
             tournamentId: tournamentId,
             categoryId: categoryId,
-            homePlayerId: groupPlayers[i],
-            awayPlayerId: groupPlayers[j],
-            homePlayerName: groupNames[i],
-            awayPlayerName: groupNames[j],
+            homePlayerId: homeId,
+            awayPlayerId: awayId,
+            homePlayerName: homeIdx >= 0 ? playerNames[homeIdx] : homeId,
+            awayPlayerName: awayIdx >= 0 ? playerNames[awayIdx] : awayId,
             status: AppConstants.matchStatusPending,
             round: 'Grupo $groupLabel',
             matchNumber: matchNumber++,

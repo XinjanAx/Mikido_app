@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -67,7 +68,7 @@ class TournamentDetailScreen extends ConsumerWidget {
               // Acciones rápidas
               Text('Módulos', style: AppTextStyles.titleMedium),
               const SizedBox(height: 12),
-              _buildActionGrid(context, isAdmin),
+              _buildActionGrid(context, isAdmin, tournament.mode),
             ],
           ),
         );
@@ -75,17 +76,9 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context, bool isAdmin) {
+  Widget _buildActionGrid(BuildContext context, bool isAdmin, String mode) {
+    final isElimination = mode == AppConstants.tournamentModeElimination;
     final actions = [
-      if (isAdmin)
-        _QuickAction(
-          icon: Icons.category_outlined,
-          label: 'Categorías',
-          color: AppColors.accent,
-          onTap: () => context.push(
-            '/tournaments/$tournamentId/categories',
-          ),
-        ),
       if (isAdmin)
         _QuickAction(
           icon: Icons.people_outline,
@@ -104,11 +97,14 @@ class TournamentDetailScreen extends ConsumerWidget {
         ),
       ),
       _QuickAction(
-        icon: Icons.leaderboard_outlined,
+        icon: isElimination
+            ? Icons.account_tree_outlined
+            : Icons.leaderboard_outlined,
         label: 'Posiciones',
         color: AppColors.success,
         onTap: () => context.push(
-          RouteConstants.standings.replaceAll(':id', tournamentId),
+          (isElimination ? RouteConstants.bracket : RouteConstants.standings)
+              .replaceAll(':id', tournamentId),
         ),
       ),
       if (isAdmin)

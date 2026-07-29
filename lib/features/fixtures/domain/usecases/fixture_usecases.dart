@@ -29,8 +29,12 @@ class GenerateFixtureUseCase {
     required List<String> playerIds,
     required List<String> playerNames,
     int timesPlayed = 1,
+    int numberOfGroups = 0,
+    List<List<String>>? manualGroups,
+    List<String>? manualBracketOrder,
   }) {
-    _validateInputs(playerIds, mode, timesPlayed);
+    _validateInputs(playerIds, mode, timesPlayed, numberOfGroups, manualGroups,
+        manualBracketOrder);
     return repository.generateFixture(
       tournamentId: tournamentId,
       categoryId: categoryId,
@@ -38,19 +42,48 @@ class GenerateFixtureUseCase {
       playerIds: playerIds,
       playerNames: playerNames,
       timesPlayed: timesPlayed,
+      numberOfGroups: numberOfGroups,
+      manualGroups: manualGroups,
+      manualBracketOrder: manualBracketOrder,
     );
   }
 
-  void _validateInputs(List<String> playerIds, String mode, int timesPlayed) {
+  void _validateInputs(
+      List<String> playerIds,
+      String mode,
+      int timesPlayed,
+      int numberOfGroups,
+      List<List<String>>? manualGroups,
+      List<String>? manualBracketOrder) {
     if (playerIds.length < 2) {
       throw ArgumentError('Se necesitan al menos 2 participantes');
     }
     if (mode == AppConstants.tournamentModeLeague && timesPlayed < 1) {
       throw ArgumentError('El número de veces jugadas debe ser al menos 1');
     }
-    if (mode == AppConstants.tournamentModeElimination) {
-      // Para eliminación simple, recomendamos potencia de 2
-      // pero no es obligatorio (bye automático)
+    if (mode == AppConstants.tournamentModeGroups) {
+      if (manualGroups != null) {
+        final assigned = manualGroups.expand((g) => g).toSet();
+        if (assigned.length < playerIds.length) {
+          throw ArgumentError(
+              'Hay participantes sin asignar a un grupo');
+        }
+      } else if (numberOfGroups > 0) {
+        if (numberOfGroups > playerIds.length) {
+          throw ArgumentError('No puede haber más grupos que participantes');
+        }
+        if (playerIds.length / numberOfGroups < 2) {
+          throw ArgumentError(
+              'Muy pocos participantes para $numberOfGroups grupos (cada grupo necesita al menos 2)');
+        }
+      }
+    }
+    if (mode == AppConstants.tournamentModeElimination &&
+        manualBracketOrder != null) {
+      if (manualBracketOrder.toSet().length != playerIds.length) {
+        throw ArgumentError(
+            'El orden manual del cuadro debe incluir a todos los participantes una sola vez');
+      }
     }
   }
 }

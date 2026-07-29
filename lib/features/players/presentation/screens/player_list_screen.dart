@@ -77,8 +77,8 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
                     _searchQuery.isEmpty
                         ? '${state.players.length} participante(s)'
                         : '${filtered.length} de ${state.players.length}',
-                    style: const TextStyle(
-                      color: Color(0xFF9E9E9E),
+                    style: TextStyle(
+                      color: AppColors.grey400,
                       fontSize: 12,
                     ),
                   ),

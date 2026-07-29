@@ -144,13 +144,13 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
               const SizedBox(height: 24),
 
               // Modalidad
-              const Text('Modalidad', style: AppTextStyles.titleMedium),
+              Text('Modalidad', style: AppTextStyles.titleMedium),
               const SizedBox(height: 12),
               _buildModeSelector(),
               const SizedBox(height: 24),
 
               // Fechas
-              const Text('Fechas', style: AppTextStyles.titleMedium),
+              Text('Fechas', style: AppTextStyles.titleMedium),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -216,7 +216,7 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
                   : AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected ? AppColors.primary : const Color(0xFF3A3A3A),
+                color: isSelected ? AppColors.primary : AppColors.border,
                 width: isSelected ? 1.5 : 1,
               ),
             ),
@@ -264,7 +264,7 @@ class _DateField extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF3A3A3A)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +275,7 @@ class _DateField extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.calendar_today_outlined,
+                Icon(Icons.calendar_today_outlined,
                     size: 14, color: AppColors.grey400),
                 const SizedBox(width: 6),
                 Text(date.toDisplayDate(), style: AppTextStyles.bodyMedium),

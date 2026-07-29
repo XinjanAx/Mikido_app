@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:torneo_app/features/categories/presentation/screens/category_form_screen.dart';
-import 'package:torneo_app/features/categories/presentation/screens/category_list_screen.dart';
 import 'package:torneo_app/features/players/presentation/screens/player_enrollment_screen.dart';
 
 import '../core/constants/route_constants.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
+import '../features/fixtures/presentation/screens/bracket_screen.dart';
 import '../features/fixtures/presentation/screens/fixture_screen.dart';
 import '../features/players/presentation/screens/player_form_screen.dart';
 import '../features/players/presentation/screens/player_list_screen.dart';
@@ -34,13 +33,11 @@ class _SplashScreen extends StatelessWidget {
 }
 
 // Rutas que solo puede usar un usuario con rol admin (crear/editar torneos,
-// categorías, inscripciones y reportes). El resto de la app —incluida la
-// lista de torneos, el detalle, fixtures y posiciones— es pública.
+// inscripciones y reportes). El resto de la app —incluida la lista de
+// torneos, el detalle, fixtures y posiciones— es pública.
 final _adminOnlyPaths = <String>{
   RouteConstants.tournamentCreate,
   RouteConstants.tournamentEdit,
-  RouteConstants.categories,
-  RouteConstants.categoryCreate,
   RouteConstants.playerEnroll,
   RouteConstants.reports,
   RouteConstants.playerCreate,
@@ -102,20 +99,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: 'categories',
-            builder: (_, state) => CategoryListScreen(
-              tournamentId: state.pathParameters['id']!,
-            ),
-            routes: [
-              GoRoute(
-                path: 'create',
-                builder: (_, state) => CategoryFormScreen(
-                  tournamentId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
-          ),
-          GoRoute(
             path: 'enroll',
             builder: (_, state) => PlayerEnrollmentScreen(
               tournamentId: state.pathParameters['id']!,
@@ -130,6 +113,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'standings',
             builder: (_, state) => StandingsScreen(
+              tournamentId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: 'bracket',
+            builder: (_, state) => BracketScreen(
               tournamentId: state.pathParameters['id']!,
             ),
           ),

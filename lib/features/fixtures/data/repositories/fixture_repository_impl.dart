@@ -44,6 +44,9 @@ class FixtureRepositoryImpl implements FixtureRepository {
     required List<String> playerIds,
     required List<String> playerNames,
     int timesPlayed = 1,
+    int numberOfGroups = 0,
+    List<List<String>>? manualGroups,
+    List<String>? manualBracketOrder,
   }) async {
     try {
       // 1. Eliminar fixture anterior de esta categoría (local + encolar borrado)
@@ -62,6 +65,9 @@ class FixtureRepositoryImpl implements FixtureRepository {
         playerIds: playerIds,
         playerNames: playerNames,
         timesPlayed: timesPlayed,
+        numberOfGroups: numberOfGroups,
+        manualGroups: manualGroups,
+        manualBracketOrder: manualBracketOrder,
       );
 
       // 3. Guardarlos localmente + encolar la subida

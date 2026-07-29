@@ -37,9 +37,9 @@ class _ResultFormWidgetState extends State<ResultFormWidget> {
   void initState() {
     super.initState();
     _homeController = TextEditingController(
-        text: widget.initialHomeScore?.toString() ?? '0');
+        text: widget.initialHomeScore?.toString() ?? '');
     _awayController = TextEditingController(
-        text: widget.initialAwayScore?.toString() ?? '0');
+        text: widget.initialAwayScore?.toString() ?? '');
     _notesController = TextEditingController();
   }
 
@@ -196,13 +196,16 @@ class _ScoreInput extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.scoreDisplay,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  contentPadding: const EdgeInsets.symmetric(
+                      vertical: 8, horizontal: 4),
+                  hintText: '0',
+                  hintStyle: AppTextStyles.scoreDisplay
+                      .copyWith(color: AppColors.grey600),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return '';
+                  if (v == null || v.isEmpty) return null;
                   if (int.tryParse(v) == null) return '';
                   if (int.parse(v) < 0) return '';
                   return null;
@@ -235,7 +238,7 @@ class _ScoreButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF3A3A3A)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Icon(icon, size: 18, color: AppColors.offWhite),
       ),

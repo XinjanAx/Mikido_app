@@ -81,7 +81,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Registro', style: AppTextStyles.headlineLarge),
+                Text('Registro', style: AppTextStyles.headlineLarge),
                 const SizedBox(height: 4),
                 Text(
                   'Completa tus datos para unirte',
@@ -174,7 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('¿Ya tienes cuenta? ',
+                    Text('¿Ya tienes cuenta? ',
                         style: AppTextStyles.bodyMedium),
                     TextButton(
                       onPressed: () => context.pop(),

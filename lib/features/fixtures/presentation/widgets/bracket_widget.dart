@@ -93,7 +93,7 @@ class _BracketMatchCard extends StatelessWidget {
         border: Border.all(
           color: match.isFinished
               ? AppColors.primary.withOpacity(0.4)
-              : const Color(0xFF3A3A3A),
+              : AppColors.border,
         ),
       ),
       child: Column(

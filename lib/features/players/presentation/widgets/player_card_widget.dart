@@ -42,11 +42,11 @@ class PlayerCard extends StatelessWidget {
             : null,
         trailing: isAdmin && onDelete != null
             ? IconButton(
-                icon: const Icon(Icons.delete_outline,
+                icon: Icon(Icons.delete_outline,
                     color: AppColors.grey400, size: 20),
                 onPressed: onDelete,
               )
-            : const Icon(Icons.chevron_right, color: AppColors.grey600),
+            : Icon(Icons.chevron_right, color: AppColors.grey600),
       ),
     );
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:torneo_app/core/constants/route_constants.dart';
+import 'package:torneo_app/core/theme/app_colors.dart';
 import 'package:torneo_app/features/categories/presentation/providers/category_provider.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
 
@@ -17,9 +17,9 @@ class PlayerEnrollmentScreen extends ConsumerStatefulWidget {
 
 class PlayerEnrollmentScreenState
     extends ConsumerState<PlayerEnrollmentScreen> {
-  String? _selectedCategoryId;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  bool _creatingDefaultCategory = false;
 
   @override
   void dispose() {
@@ -42,6 +42,17 @@ class PlayerEnrollmentScreenState
     }
   }
 
+  Future<void> _enroll(String playerId, String categoryId) async {
+    final success = await ref.read(playersProvider.notifier).enrollPlayer(
+          playerId: playerId,
+          tournamentId: widget.tournamentId,
+          categoryId: categoryId,
+        );
+    if (success) {
+      ref.invalidate(playersByTournamentProvider(widget.tournamentId));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final allPlayers = ref.watch(playersProvider).players;
@@ -49,9 +60,19 @@ class PlayerEnrollmentScreenState
         ref.watch(playersByTournamentProvider(widget.tournamentId));
     final categoriesState = ref.watch(categoriesProvider(widget.tournamentId));
 
-    if (_selectedCategoryId == null && categoriesState.categories.isNotEmpty) {
-      _selectedCategoryId = categoriesState.categories.first.id;
+    // Torneos creados antes de este cambio pueden no tener la categoría
+    // automática todavía: se crea sola la primera vez que hace falta.
+    if (categoriesState.categories.isEmpty && !_creatingDefaultCategory) {
+      _creatingDefaultCategory = true;
+      Future.microtask(() async {
+        await ref
+            .read(categoriesProvider(widget.tournamentId).notifier)
+            .createCategory(name: 'General');
+        _creatingDefaultCategory = false;
+      });
     }
+    final categoryId =
+        categoriesState.categories.isNotEmpty ? categoriesState.categories.first.id : null;
 
     // Filtrar jugadores disponibles por búsqueda
     final availablePlayers = allPlayers.where((p) {
@@ -65,52 +86,6 @@ class PlayerEnrollmentScreenState
       appBar: AppBar(title: const Text('Participantes del torneo')),
       body: Column(
         children: [
-          // Selector de categoría para inscribir
-          if (categoriesState.categories.isEmpty)
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.orange),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_outlined, color: Colors.orange),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Primero crea categorías para este torneo'),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push(
-                      '/tournaments/${widget.tournamentId}/categories/create',
-                    ),
-                    child: const Text('Crear'),
-                  ),
-                ],
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
-                decoration: const InputDecoration(
-                  labelText: 'Inscribir en categoría',
-                  prefixIcon: Icon(Icons.category_outlined),
-                  isDense: true,
-                ),
-                items: categoriesState.categories
-                    .map((c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategoryId = v),
-              ),
-            ),
-
           const SizedBox(height: 8),
 
           // Buscador
@@ -145,101 +120,84 @@ class PlayerEnrollmentScreenState
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (enrolled) {
                 final enrolledIds = enrolled.map((p) => p.id).toSet();
-                final categories = categoriesState.categories;
+                final inscritos = enrolled.where((p) {
+                  return _searchQuery.isEmpty ||
+                      p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                      (p.email
+                              ?.toLowerCase()
+                              .contains(_searchQuery.toLowerCase()) ??
+                          false);
+                }).toList();
+                final disponibles = availablePlayers
+                    .where((p) => !enrolledIds.contains(p.id))
+                    .toList();
 
                 return ListView(
                   padding: const EdgeInsets.only(bottom: 88),
                   children: [
-                    // ── Inscritos por categoría ──
-                    ...categories.map((cat) {
-                      final inscritosEnCat = enrolled.where((p) {
-                        final matchesSearch = _searchQuery.isEmpty ||
-                            p.name
-                                .toLowerCase()
-                                .contains(_searchQuery.toLowerCase()) ||
-                            (p.email
-                                    ?.toLowerCase()
-                                    .contains(_searchQuery.toLowerCase()) ??
-                                false);
-                        return p.categoryId == cat.id && matchesSearch;
-                      }).toList();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // ── Inscritos ──
+                    Container(
+                      color: AppColors.surfaceVariant,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                      child: Row(
                         children: [
-                          Container(
-                            color: const Color(0xFF2C2C2C),
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.category_outlined,
-                                    size: 13, color: Color(0xFFC9A84C)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  cat.name.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Color(0xFFC9A84C),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '${inscritosEnCat.length} inscrito(s)',
-                                  style: const TextStyle(
-                                    color: Color(0xFF9E9E9E),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
+                          const Text(
+                            'INSCRITOS',
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              letterSpacing: 1,
                             ),
                           ),
-                          if (inscritosEnCat.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              child: Text(
-                                'Sin participantes',
-                                style: TextStyle(
-                                    color: Color(0xFF757575), fontSize: 13),
-                              ),
-                            )
-                          else
-                            ...inscritosEnCat.map((p) => ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        Colors.green.withOpacity(0.15),
-                                    child: Text(
-                                      p.name[0].toUpperCase(),
-                                      style:
-                                          const TextStyle(color: Colors.green),
-                                    ),
-                                  ),
-                                  title: Text(p.name),
-                                  subtitle:
-                                      p.email != null ? Text(p.email!) : null,
-                                  trailing: IconButton(
-                                    icon: const Icon(
-                                        Icons.remove_circle_outline,
-                                        color: Colors.red,
-                                        size: 20),
-                                    tooltip: 'Desinscribir',
-                                    onPressed: () => _unenroll(p.id),
-                                  ),
-                                )),
-                          const Divider(height: 1),
+                          const Spacer(),
+                          Text(
+                            '${inscritos.length} inscrito(s)',
+                            style: TextStyle(
+                              color: AppColors.grey400,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
-                      );
-                    }),
+                      ),
+                    ),
+                    if (inscritos.isEmpty)
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Text(
+                          'Sin participantes',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 13),
+                        ),
+                      )
+                    else
+                      ...inscritos.map((p) => ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.green.withOpacity(0.15),
+                              child: Text(
+                                p.name[0].toUpperCase(),
+                                style: const TextStyle(color: Colors.green),
+                              ),
+                            ),
+                            title: Text(p.name),
+                            subtitle: p.email != null ? Text(p.email!) : null,
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline,
+                                  color: Colors.red, size: 20),
+                              tooltip: 'Desinscribir',
+                              onPressed: () => _unenroll(p.id),
+                            ),
+                          )),
+                    const Divider(height: 1),
 
                     // ── Disponibles (no inscritos) ──
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
                         'DISPONIBLES',
                         style: TextStyle(
-                          color: Color(0xFF9E9E9E),
+                          color: AppColors.grey400,
                           fontWeight: FontWeight.w700,
                           fontSize: 11,
                           letterSpacing: 1,
@@ -247,54 +205,36 @@ class PlayerEnrollmentScreenState
                       ),
                     ),
 
-                    ...availablePlayers
-                        .where((p) => !enrolledIds.contains(p.id))
-                        .map((p) => ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    Colors.blueGrey.withOpacity(0.15),
-                                child: Text(
-                                  p.name[0].toUpperCase(),
-                                  style:
-                                      const TextStyle(color: Colors.blueGrey),
+                    ...disponibles.map((p) => ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blueGrey.withOpacity(0.15),
+                            child: Text(
+                              p.name[0].toUpperCase(),
+                              style: const TextStyle(color: Colors.blueGrey),
+                            ),
+                          ),
+                          title: Text(p.name),
+                          subtitle: p.email != null ? Text(p.email!) : null,
+                          trailing: categoryId != null
+                              ? TextButton(
+                                  onPressed: () => _enroll(p.id, categoryId),
+                                  child: const Text('Inscribir'),
+                                )
+                              : const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
                                 ),
-                              ),
-                              title: Text(p.name),
-                              subtitle: p.email != null ? Text(p.email!) : null,
-                              trailing: _selectedCategoryId != null
-                                  ? TextButton(
-                                      onPressed: () async {
-                                        final success = await ref
-                                            .read(playersProvider.notifier)
-                                            .enrollPlayer(
-                                              playerId: p.id,
-                                              tournamentId: widget.tournamentId,
-                                              categoryId: _selectedCategoryId!,
-                                            );
-                                        if (success) {
-                                          ref.invalidate(
-                                            playersByTournamentProvider(
-                                                widget.tournamentId),
-                                          );
-                                        }
-                                      },
-                                      child: const Text('Inscribir'),
-                                    )
-                                  : const Text(
-                                      'Sin categoría',
-                                      style: TextStyle(color: Colors.orange),
-                                    ),
-                            )),
+                        )),
 
-                    if (availablePlayers
-                        .where((p) => !enrolledIds.contains(p.id))
-                        .isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
+                    if (disponibles.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
                         child: Text(
                           'Todos los participantes están inscritos',
                           style:
-                              TextStyle(color: Color(0xFF757575), fontSize: 13),
+                              TextStyle(color: AppColors.grey600, fontSize: 13),
                           textAlign: TextAlign.center,
                         ),
                       ),

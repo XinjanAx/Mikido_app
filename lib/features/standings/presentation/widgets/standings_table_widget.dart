@@ -25,7 +25,7 @@ class StandingsTableWidget extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.leaderboard_outlined,
+              Icon(Icons.leaderboard_outlined,
                   color: AppColors.grey600, size: 48),
               const SizedBox(height: 12),
               Text(
@@ -36,8 +36,8 @@ class StandingsTableWidget extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Se actualizan al registrar resultados',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.grey600),
+                style:
+                    AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -72,8 +72,7 @@ class StandingsTableWidget extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Text(
               'PJ: Jugados · PG: Ganados · PP: Perdidos · GF: Goles favor · GC: Goles contra · DG: Diferencia · PTS: Puntos',
-              style:
-                  AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
               textAlign: TextAlign.center,
             ),
           ),
@@ -97,9 +96,9 @@ class _TableHeader extends StatelessWidget {
           Expanded(
             child: Text('PARTICIPANTE', style: AppTextStyles.tableHeader),
           ),
-          _H('PJ'),
-          _H('PG'),
-          _H('PP'),
+          _H('J'),
+          _H('G'),
+          _H('P'),
           if (!compact) ...[
             _H('GF'),
             _H('GC'),
@@ -139,17 +138,15 @@ class _TableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: position <= 3
-          ? _positionColor.withOpacity(0.05)
-          : Colors.transparent,
+      color:
+          position <= 3 ? _positionColor.withOpacity(0.05) : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           SizedBox(
             width: 32,
             child: position <= 3
-                ? Icon(Icons.emoji_events,
-                    color: _positionColor, size: 18)
+                ? Icon(Icons.emoji_events, color: _positionColor, size: 18)
                 : Text(
                     '$position',
                     style: AppTextStyles.bodySmall
@@ -161,10 +158,8 @@ class _TableRow extends StatelessWidget {
             child: Text(
               standing.playerName,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: position <= 3 ? _positionColor : AppColors.white,
-                fontWeight: position == 1
-                    ? FontWeight.w700
-                    : FontWeight.w400,
+                color: position <= 3 ? _positionColor : AppColors.textPrimary,
+                fontWeight: position == 1 ? FontWeight.w700 : FontWeight.w400,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -187,8 +182,7 @@ class _TableRow extends StatelessWidget {
                       : null,
             ),
           ],
-          _D('${standing.points}',
-              bold: true, color: AppColors.accent),
+          _D('${standing.points}', bold: true, color: AppColors.accent),
         ],
       ),
     );
@@ -206,8 +200,7 @@ class _H extends StatelessWidget {
         child: Text(
           label,
           style: AppTextStyles.tableHeader.copyWith(
-            fontWeight:
-                bold ? FontWeight.w700 : FontWeight.w600,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
           ),
           textAlign: TextAlign.center,
         ),
@@ -226,8 +219,7 @@ class _D extends StatelessWidget {
         child: Text(
           value,
           style: AppTextStyles.tableCell.copyWith(
-            fontWeight:
-                bold ? FontWeight.w700 : FontWeight.w400,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
             color: color,
           ),
           textAlign: TextAlign.center,

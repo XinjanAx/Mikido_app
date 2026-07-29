@@ -4,27 +4,28 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../providers/fixture_provider.dart';
 import '../widgets/bracket_widget.dart';
 import '../widgets/group_table_widget.dart';
 
+/// Vista gráfica del fixture: cuadro eliminatorio, tablas por grupo o
+/// jornadas de liga, según la modalidad del torneo (se obtiene sola, no
+/// hace falta pasarla).
 class BracketScreen extends ConsumerWidget {
   final String tournamentId;
-  final String mode;
 
-  const BracketScreen({
-    super.key,
-    required this.tournamentId,
-    required this.mode,
-  });
+  const BracketScreen({super.key, required this.tournamentId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fixtureState = ref.watch(fixtureProvider(tournamentId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
+    final mode = tournamentAsync.valueOrNull?.mode;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_screenTitle),
+        title: Text(_screenTitle(mode)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -33,11 +34,13 @@ class BracketScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: _buildBody(fixtureState),
+      body: mode == null
+          ? const LoadingWidget()
+          : _buildBody(fixtureState, mode),
     );
   }
 
-  String get _screenTitle {
+  String _screenTitle(String? mode) {
     switch (mode) {
       case AppConstants.tournamentModeElimination:
         return 'Cuadro eliminatorio';
@@ -48,7 +51,7 @@ class BracketScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildBody(FixtureState state) {
+  Widget _buildBody(FixtureState state, String mode) {
     if (state.isLoading) {
       return const LoadingWidget(message: 'Cargando fixture...');
     }
@@ -190,7 +193,7 @@ class _SimpleMatchTile extends StatelessWidget {
             Expanded(
               child: Text(
                 match.homePlayerName as String,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.offWhite,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -211,7 +214,7 @@ class _SimpleMatchTile extends StatelessWidget {
                 border: Border.all(
                   color: finished
                       ? AppColors.primary.withOpacity(0.4)
-                      : const Color(0xFF3A3A3A),
+                      : AppColors.border,
                 ),
               ),
               child: Text(
@@ -229,7 +232,7 @@ class _SimpleMatchTile extends StatelessWidget {
             Expanded(
               child: Text(
                 match.awayPlayerName as String,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.offWhite,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,

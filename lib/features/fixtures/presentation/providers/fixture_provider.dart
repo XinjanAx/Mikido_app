@@ -144,6 +144,9 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
     required List<String> playerIds,
     required List<String> playerNames,
     int timesPlayed = 1,
+    int numberOfGroups = 0,
+    List<List<String>>? manualGroups,
+    List<String>? manualBracketOrder,
   }) async {
     state = state.copyWith(isGenerating: true);
     final result = await _generate(
@@ -153,6 +156,9 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
       playerIds: playerIds,
       playerNames: playerNames,
       timesPlayed: timesPlayed,
+      numberOfGroups: numberOfGroups,
+      manualGroups: manualGroups,
+      manualBracketOrder: manualBracketOrder,
     );
     return result.fold(
       (f) {

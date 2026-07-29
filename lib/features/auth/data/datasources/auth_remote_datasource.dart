@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/user_model.dart';
+import 'auth_local_datasource.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> login({required String email, required String password});
@@ -14,8 +15,9 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final SupabaseClient _client;
+  final AuthLocalDataSource _localCache;
 
-  const AuthRemoteDataSourceImpl(this._client);
+  const AuthRemoteDataSourceImpl(this._client, this._localCache);
 
   @override
   Future<UserModel> login(
@@ -43,6 +45,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         });
         profile = await _fetchProfile(response.user!.id, response.user!.email!);
       }
+      await _localCache.cacheProfile(profile);
       return profile;
     } on AuthException {
       rethrow;
@@ -96,6 +99,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       await _client.auth.signOut();
     } catch (e) {
       throw AuthException(message: 'Error al cerrar sesión: $e');
+    } finally {
+      await _localCache.clearProfile();
     }
   }
 
@@ -104,9 +109,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final user = _client.auth.currentUser;
     if (user == null) return null;
     try {
-      return await _fetchProfile(user.id, user.email!);
+      final profile = await _fetchProfile(user.id, user.email!);
+      await _localCache.cacheProfile(profile);
+      return profile;
     } catch (_) {
-      return null;
+      // Sin red (u otro error): usar el último perfil que sí se guardó,
+      // en vez de tratar a un usuario ya logueado como invitado.
+      return _localCache.getCachedProfile(user.id);
     }
   }
 
@@ -116,9 +125,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final user = event.session?.user;
       if (user == null) return null;
       try {
-        return await _fetchProfile(user.id, user.email!);
+        final profile = await _fetchProfile(user.id, user.email!);
+        await _localCache.cacheProfile(profile);
+        return profile;
       } catch (_) {
-        return null;
+        return _localCache.getCachedProfile(user.id);
       }
     });
   }

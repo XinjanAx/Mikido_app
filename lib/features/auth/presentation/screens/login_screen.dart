@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 52),
-              const Text('Iniciar sesión', style: AppTextStyles.headlineLarge),
+              Text('Iniciar sesión', style: AppTextStyles.headlineLarge),
               const SizedBox(height: 4),
               Text(
                 'Ingresa tus credenciales para continuar',

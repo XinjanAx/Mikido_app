@@ -12,6 +12,9 @@ abstract class FixtureRepository {
     required List<String> playerIds,
     required List<String> playerNames,
     int timesPlayed = 1,
+    int numberOfGroups = 0,
+    List<List<String>>? manualGroups,
+    List<String>? manualBracketOrder,
   });
   Future<Either<Failure, MatchEntity>> updateMatchResult({
     required String matchId,

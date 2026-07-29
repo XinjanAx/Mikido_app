@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 class StandingEntity extends Equatable {
   final String id;
   final String tournamentId;
-  final String categoryId;
   final String playerId;
   final String playerName;
   final int played;
@@ -17,7 +16,6 @@ class StandingEntity extends Equatable {
   const StandingEntity({
     required this.id,
     required this.tournamentId,
-    required this.categoryId,
     required this.playerId,
     required this.playerName,
     required this.played,
@@ -33,7 +31,7 @@ class StandingEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, tournamentId, categoryId, playerId, playerName,
+        id, tournamentId, playerId, playerName,
         played, won, drawn, lost, goalsFor, goalsAgainst, points
       ];
 }

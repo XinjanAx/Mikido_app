@@ -4,7 +4,7 @@ import '../entities/standing_entity.dart';
 
 abstract class StandingRepository {
   Future<Either<Failure, List<StandingEntity>>> getStandings(
-      String tournamentId, {String? categoryId});
+      String tournamentId);
   Future<Either<Failure, void>> recalculateStandings(String tournamentId);
   Stream<List<StandingEntity>> watchStandings(String tournamentId);
 }

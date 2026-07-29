@@ -11,7 +11,6 @@ abstract class PlayerRepository {
   Future<Either<Failure, void>> enrollPlayer({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   });
   Future<Either<Failure, void>> unenrollPlayer({
     required String playerId,

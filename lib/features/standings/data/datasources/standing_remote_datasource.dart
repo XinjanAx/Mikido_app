@@ -7,8 +7,7 @@ import '../models/standing_model.dart';
 /// StandingsRecalculationService, operando sobre la base local — este
 /// datasource solo lo usa el motor de sincronización para subir/bajar filas.
 abstract class StandingRemoteDataSource {
-  Future<List<StandingModel>> getStandings(String tournamentId,
-      {String? categoryId});
+  Future<List<StandingModel>> getStandings(String tournamentId);
 
   /// Todas las posiciones (todos los torneos), usado por el motor de
   /// sincronización para reconciliar la base local.
@@ -25,15 +24,13 @@ class StandingRemoteDataSourceImpl implements StandingRemoteDataSource {
   const StandingRemoteDataSourceImpl(this._client);
 
   @override
-  Future<List<StandingModel>> getStandings(String tournamentId,
-      {String? categoryId}) async {
+  Future<List<StandingModel>> getStandings(String tournamentId) async {
     try {
-      var query = _client
+      final data = await _client
           .from(SupabaseConstants.standingsTable)
           .select()
-          .eq('tournament_id', tournamentId);
-      if (categoryId != null) query = query.eq('category_id', categoryId);
-      final data = await query.order('points', ascending: false);
+          .eq('tournament_id', tournamentId)
+          .order('points', ascending: false);
       return (data as List).map((e) => StandingModel.fromJson(e)).toList();
     } catch (e) {
       throw ServerException(message: 'Error al obtener posiciones: $e');

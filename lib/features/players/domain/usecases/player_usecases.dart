@@ -42,12 +42,10 @@ class EnrollPlayerUseCase {
   Future<Either<Failure, void>> call({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   }) =>
       repository.enrollPlayer(
         playerId: playerId,
         tournamentId: tournamentId,
-        categoryId: categoryId,
       );
 }
 

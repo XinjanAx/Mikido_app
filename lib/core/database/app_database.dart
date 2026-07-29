@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-import 'tables/categories_table.dart';
 import 'tables/enrollments_table.dart';
 import 'tables/matches_table.dart';
 import 'tables/players_table.dart';
@@ -20,7 +19,6 @@ part 'app_database.g.dart';
 
 @DriftDatabase(tables: [
   Tournaments,
-  Categories,
   Players,
   Enrollments,
   Matches,
@@ -33,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,7 +42,6 @@ class AppDatabase extends _$AppDatabase {
           // v1: solo tournaments + sync_queue_entries.
           if (from < 2) {
             // v2: categories, players, enrollments.
-            await m.createTable(categories);
             await m.createTable(players);
             await m.createTable(enrollments);
           }
@@ -53,6 +50,13 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(matches);
             await m.createTable(results);
             await m.createTable(standings);
+          }
+          if (from < 4) {
+            // v4: se elimina el concepto de categoría por completo.
+            await m.deleteTable('categories');
+            await m.alterTable(TableMigration(matches));
+            await m.alterTable(TableMigration(standings));
+            await m.alterTable(TableMigration(enrollments));
           }
         },
       );
@@ -108,47 +112,6 @@ class AppDatabase extends _$AppDatabase {
         .write(const TournamentsCompanion(dirty: Value(false)));
   }
 
-  // ---------- Categories ----------
-
-  Future<List<Category>> getCategoriesByTournament(String tournamentId) {
-    return (select(categories)
-          ..where((c) =>
-              c.tournamentId.equals(tournamentId) &
-              c.deletedLocally.equals(false))
-          ..orderBy([(c) => OrderingTerm.asc(c.name)]))
-        .get();
-  }
-
-  Future<List<Category>> getAllCategoriesLocal() {
-    return (select(categories)..where((c) => c.deletedLocally.equals(false)))
-        .get();
-  }
-
-  Future<Category?> getCategoryById(String id) {
-    return (select(categories)..where((c) => c.id.equals(id)))
-        .getSingleOrNull();
-  }
-
-  Future<void> upsertCategory(CategoriesCompanion entry) {
-    return into(categories).insertOnConflictUpdate(entry);
-  }
-
-  Future<void> softDeleteCategory(String id) {
-    return (update(categories)..where((c) => c.id.equals(id))).write(
-      const CategoriesCompanion(
-          deletedLocally: Value(true), dirty: Value(true)),
-    );
-  }
-
-  Future<void> hardDeleteCategory(String id) {
-    return (delete(categories)..where((c) => c.id.equals(id))).go();
-  }
-
-  Future<void> clearCategoryDirty(String id) {
-    return (update(categories)..where((c) => c.id.equals(id)))
-        .write(const CategoriesCompanion(dirty: Value(false)));
-  }
-
   // ---------- Players ----------
 
   Future<List<Player>> getAllPlayersLocal() {
@@ -184,9 +147,8 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- Enrollments ----------
 
-  /// Jugadores inscritos en un torneo, con su categoría, resuelto con un
-  /// join local — reemplaza el fetch-y-stitch manual que se hacía contra
-  /// Supabase.
+  /// Jugadores inscritos en un torneo, resuelto con un join local —
+  /// reemplaza el fetch-y-stitch manual que se hacía contra Supabase.
   Future<List<(Player, Enrollment)>> getPlayersWithEnrollmentByTournament(
       String tournamentId) async {
     final query = select(players).join([
@@ -233,17 +195,13 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- Matches ----------
 
-  Future<List<MatchRow>> getMatchesByTournament(String tournamentId,
-      {String? categoryId}) {
-    final query = select(matches)
-      ..where((m) =>
-          m.tournamentId.equals(tournamentId) &
-          m.deletedLocally.equals(false))
-      ..orderBy([(m) => OrderingTerm.asc(m.matchNumber)]);
-    if (categoryId != null) {
-      query.where((m) => m.categoryId.equals(categoryId));
-    }
-    return query.get();
+  Future<List<MatchRow>> getMatchesByTournament(String tournamentId) {
+    return (select(matches)
+          ..where((m) =>
+              m.tournamentId.equals(tournamentId) &
+              m.deletedLocally.equals(false))
+          ..orderBy([(m) => OrderingTerm.asc(m.matchNumber)]))
+        .get();
   }
 
   Stream<List<MatchRow>> watchMatches(String tournamentId) {
@@ -259,12 +217,10 @@ class AppDatabase extends _$AppDatabase {
     return (select(matches)..where((m) => m.id.equals(id))).getSingleOrNull();
   }
 
-  Future<List<MatchRow>> getMatchesByRound(
-      String tournamentId, String categoryId, String round) {
+  Future<List<MatchRow>> getMatchesByRound(String tournamentId, String round) {
     return (select(matches)
           ..where((m) =>
               m.tournamentId.equals(tournamentId) &
-              m.categoryId.equals(categoryId) &
               m.round.equals(round) &
               m.deletedLocally.equals(false)))
         .get();
@@ -325,15 +281,11 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- Standings ----------
 
-  Future<List<Standing>> getStandingsByTournament(String tournamentId,
-      {String? categoryId}) {
-    final query = select(standings)
-      ..where((s) => s.tournamentId.equals(tournamentId))
-      ..orderBy([(s) => OrderingTerm.desc(s.points)]);
-    if (categoryId != null) {
-      query.where((s) => s.categoryId.equals(categoryId));
-    }
-    return query.get();
+  Future<List<Standing>> getStandingsByTournament(String tournamentId) {
+    return (select(standings)
+          ..where((s) => s.tournamentId.equals(tournamentId))
+          ..orderBy([(s) => OrderingTerm.desc(s.points)]))
+        .get();
   }
 
   Stream<List<Standing>> watchStandings(String tournamentId) {

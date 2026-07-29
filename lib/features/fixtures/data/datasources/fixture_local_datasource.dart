@@ -4,11 +4,9 @@ import '../../../../core/database/app_database.dart';
 import '../models/match_model.dart';
 
 abstract class FixtureLocalDataSource {
-  Future<List<MatchModel>> getMatchesByTournament(String tournamentId,
-      {String? categoryId});
+  Future<List<MatchModel>> getMatchesByTournament(String tournamentId);
   Future<MatchModel?> getMatchById(String id);
-  Future<List<MatchModel>> getMatchesByRound(
-      String tournamentId, String categoryId, String round);
+  Future<List<MatchModel>> getMatchesByRound(String tournamentId, String round);
   Future<List<MatchModel>> getAllMatches();
   Stream<List<MatchModel>> watchMatches(String tournamentId);
 
@@ -26,7 +24,6 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
   MatchModel _toModel(MatchRow row) => MatchModel(
         id: row.id,
         tournamentId: row.tournamentId,
-        categoryId: row.categoryId,
         homePlayerId: row.homePlayerId,
         awayPlayerId: row.awayPlayerId,
         homePlayerName: row.homePlayerName,
@@ -41,11 +38,8 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
       );
 
   @override
-  Future<List<MatchModel>> getMatchesByTournament(String tournamentId,
-          {String? categoryId}) async =>
-      (await _db.getMatchesByTournament(tournamentId, categoryId: categoryId))
-          .map(_toModel)
-          .toList();
+  Future<List<MatchModel>> getMatchesByTournament(String tournamentId) async =>
+      (await _db.getMatchesByTournament(tournamentId)).map(_toModel).toList();
 
   @override
   Future<MatchModel?> getMatchById(String id) async {
@@ -55,8 +49,8 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
 
   @override
   Future<List<MatchModel>> getMatchesByRound(
-          String tournamentId, String categoryId, String round) async =>
-      (await _db.getMatchesByRound(tournamentId, categoryId, round))
+          String tournamentId, String round) async =>
+      (await _db.getMatchesByRound(tournamentId, round))
           .map(_toModel)
           .toList();
 
@@ -73,7 +67,6 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
     return _db.upsertMatch(MatchesCompanion.insert(
       id: match.id,
       tournamentId: match.tournamentId,
-      categoryId: match.categoryId,
       homePlayerId: match.homePlayerId,
       awayPlayerId: match.awayPlayerId,
       homePlayerName: match.homePlayerName,

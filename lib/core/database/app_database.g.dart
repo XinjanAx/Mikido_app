@@ -557,529 +557,6 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   }
 }
 
-class $CategoriesTable extends Categories
-    with TableInfo<$CategoriesTable, Category> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $CategoriesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-      'name', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _tournamentIdMeta =
-      const VerificationMeta('tournamentId');
-  @override
-  late final GeneratedColumn<String> tournamentId = GeneratedColumn<String>(
-      'tournament_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _descriptionMeta =
-      const VerificationMeta('description');
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-      'description', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _minAgeMeta = const VerificationMeta('minAge');
-  @override
-  late final GeneratedColumn<int> minAge = GeneratedColumn<int>(
-      'min_age', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _maxAgeMeta = const VerificationMeta('maxAge');
-  @override
-  late final GeneratedColumn<int> maxAge = GeneratedColumn<int>(
-      'max_age', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _maxParticipantsMeta =
-      const VerificationMeta('maxParticipants');
-  @override
-  late final GeneratedColumn<int> maxParticipants = GeneratedColumn<int>(
-      'max_participants', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, true,
-      type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
-  @override
-  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
-      'dirty', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("dirty" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _deletedLocallyMeta =
-      const VerificationMeta('deletedLocally');
-  @override
-  late final GeneratedColumn<bool> deletedLocally = GeneratedColumn<bool>(
-      'deleted_locally', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("deleted_locally" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        name,
-        tournamentId,
-        description,
-        minAge,
-        maxAge,
-        maxParticipants,
-        createdAt,
-        dirty,
-        deletedLocally
-      ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'categories';
-  @override
-  VerificationContext validateIntegrity(Insertable<Category> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('tournament_id')) {
-      context.handle(
-          _tournamentIdMeta,
-          tournamentId.isAcceptableOrUnknown(
-              data['tournament_id']!, _tournamentIdMeta));
-    } else if (isInserting) {
-      context.missing(_tournamentIdMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-          _descriptionMeta,
-          description.isAcceptableOrUnknown(
-              data['description']!, _descriptionMeta));
-    }
-    if (data.containsKey('min_age')) {
-      context.handle(_minAgeMeta,
-          minAge.isAcceptableOrUnknown(data['min_age']!, _minAgeMeta));
-    }
-    if (data.containsKey('max_age')) {
-      context.handle(_maxAgeMeta,
-          maxAge.isAcceptableOrUnknown(data['max_age']!, _maxAgeMeta));
-    }
-    if (data.containsKey('max_participants')) {
-      context.handle(
-          _maxParticipantsMeta,
-          maxParticipants.isAcceptableOrUnknown(
-              data['max_participants']!, _maxParticipantsMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    if (data.containsKey('dirty')) {
-      context.handle(
-          _dirtyMeta, dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta));
-    }
-    if (data.containsKey('deleted_locally')) {
-      context.handle(
-          _deletedLocallyMeta,
-          deletedLocally.isAcceptableOrUnknown(
-              data['deleted_locally']!, _deletedLocallyMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Category map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Category(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      name: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      tournamentId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}tournament_id'])!,
-      description: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}description']),
-      minAge: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}min_age']),
-      maxAge: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}max_age']),
-      maxParticipants: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}max_participants']),
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
-      dirty: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}dirty'])!,
-      deletedLocally: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}deleted_locally'])!,
-    );
-  }
-
-  @override
-  $CategoriesTable createAlias(String alias) {
-    return $CategoriesTable(attachedDatabase, alias);
-  }
-}
-
-class Category extends DataClass implements Insertable<Category> {
-  final String id;
-  final String name;
-  final String tournamentId;
-  final String? description;
-  final int? minAge;
-  final int? maxAge;
-  final int? maxParticipants;
-  final DateTime? createdAt;
-  final bool dirty;
-  final bool deletedLocally;
-  const Category(
-      {required this.id,
-      required this.name,
-      required this.tournamentId,
-      this.description,
-      this.minAge,
-      this.maxAge,
-      this.maxParticipants,
-      this.createdAt,
-      required this.dirty,
-      required this.deletedLocally});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['name'] = Variable<String>(name);
-    map['tournament_id'] = Variable<String>(tournamentId);
-    if (!nullToAbsent || description != null) {
-      map['description'] = Variable<String>(description);
-    }
-    if (!nullToAbsent || minAge != null) {
-      map['min_age'] = Variable<int>(minAge);
-    }
-    if (!nullToAbsent || maxAge != null) {
-      map['max_age'] = Variable<int>(maxAge);
-    }
-    if (!nullToAbsent || maxParticipants != null) {
-      map['max_participants'] = Variable<int>(maxParticipants);
-    }
-    if (!nullToAbsent || createdAt != null) {
-      map['created_at'] = Variable<DateTime>(createdAt);
-    }
-    map['dirty'] = Variable<bool>(dirty);
-    map['deleted_locally'] = Variable<bool>(deletedLocally);
-    return map;
-  }
-
-  CategoriesCompanion toCompanion(bool nullToAbsent) {
-    return CategoriesCompanion(
-      id: Value(id),
-      name: Value(name),
-      tournamentId: Value(tournamentId),
-      description: description == null && nullToAbsent
-          ? const Value.absent()
-          : Value(description),
-      minAge:
-          minAge == null && nullToAbsent ? const Value.absent() : Value(minAge),
-      maxAge:
-          maxAge == null && nullToAbsent ? const Value.absent() : Value(maxAge),
-      maxParticipants: maxParticipants == null && nullToAbsent
-          ? const Value.absent()
-          : Value(maxParticipants),
-      createdAt: createdAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(createdAt),
-      dirty: Value(dirty),
-      deletedLocally: Value(deletedLocally),
-    );
-  }
-
-  factory Category.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Category(
-      id: serializer.fromJson<String>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      tournamentId: serializer.fromJson<String>(json['tournamentId']),
-      description: serializer.fromJson<String?>(json['description']),
-      minAge: serializer.fromJson<int?>(json['minAge']),
-      maxAge: serializer.fromJson<int?>(json['maxAge']),
-      maxParticipants: serializer.fromJson<int?>(json['maxParticipants']),
-      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
-      dirty: serializer.fromJson<bool>(json['dirty']),
-      deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'name': serializer.toJson<String>(name),
-      'tournamentId': serializer.toJson<String>(tournamentId),
-      'description': serializer.toJson<String?>(description),
-      'minAge': serializer.toJson<int?>(minAge),
-      'maxAge': serializer.toJson<int?>(maxAge),
-      'maxParticipants': serializer.toJson<int?>(maxParticipants),
-      'createdAt': serializer.toJson<DateTime?>(createdAt),
-      'dirty': serializer.toJson<bool>(dirty),
-      'deletedLocally': serializer.toJson<bool>(deletedLocally),
-    };
-  }
-
-  Category copyWith(
-          {String? id,
-          String? name,
-          String? tournamentId,
-          Value<String?> description = const Value.absent(),
-          Value<int?> minAge = const Value.absent(),
-          Value<int?> maxAge = const Value.absent(),
-          Value<int?> maxParticipants = const Value.absent(),
-          Value<DateTime?> createdAt = const Value.absent(),
-          bool? dirty,
-          bool? deletedLocally}) =>
-      Category(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        tournamentId: tournamentId ?? this.tournamentId,
-        description: description.present ? description.value : this.description,
-        minAge: minAge.present ? minAge.value : this.minAge,
-        maxAge: maxAge.present ? maxAge.value : this.maxAge,
-        maxParticipants: maxParticipants.present
-            ? maxParticipants.value
-            : this.maxParticipants,
-        createdAt: createdAt.present ? createdAt.value : this.createdAt,
-        dirty: dirty ?? this.dirty,
-        deletedLocally: deletedLocally ?? this.deletedLocally,
-      );
-  Category copyWithCompanion(CategoriesCompanion data) {
-    return Category(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      tournamentId: data.tournamentId.present
-          ? data.tournamentId.value
-          : this.tournamentId,
-      description:
-          data.description.present ? data.description.value : this.description,
-      minAge: data.minAge.present ? data.minAge.value : this.minAge,
-      maxAge: data.maxAge.present ? data.maxAge.value : this.maxAge,
-      maxParticipants: data.maxParticipants.present
-          ? data.maxParticipants.value
-          : this.maxParticipants,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      dirty: data.dirty.present ? data.dirty.value : this.dirty,
-      deletedLocally: data.deletedLocally.present
-          ? data.deletedLocally.value
-          : this.deletedLocally,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Category(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('tournamentId: $tournamentId, ')
-          ..write('description: $description, ')
-          ..write('minAge: $minAge, ')
-          ..write('maxAge: $maxAge, ')
-          ..write('maxParticipants: $maxParticipants, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('dirty: $dirty, ')
-          ..write('deletedLocally: $deletedLocally')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, name, tournamentId, description, minAge,
-      maxAge, maxParticipants, createdAt, dirty, deletedLocally);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Category &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.tournamentId == this.tournamentId &&
-          other.description == this.description &&
-          other.minAge == this.minAge &&
-          other.maxAge == this.maxAge &&
-          other.maxParticipants == this.maxParticipants &&
-          other.createdAt == this.createdAt &&
-          other.dirty == this.dirty &&
-          other.deletedLocally == this.deletedLocally);
-}
-
-class CategoriesCompanion extends UpdateCompanion<Category> {
-  final Value<String> id;
-  final Value<String> name;
-  final Value<String> tournamentId;
-  final Value<String?> description;
-  final Value<int?> minAge;
-  final Value<int?> maxAge;
-  final Value<int?> maxParticipants;
-  final Value<DateTime?> createdAt;
-  final Value<bool> dirty;
-  final Value<bool> deletedLocally;
-  final Value<int> rowid;
-  const CategoriesCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.tournamentId = const Value.absent(),
-    this.description = const Value.absent(),
-    this.minAge = const Value.absent(),
-    this.maxAge = const Value.absent(),
-    this.maxParticipants = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.dirty = const Value.absent(),
-    this.deletedLocally = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  CategoriesCompanion.insert({
-    required String id,
-    required String name,
-    required String tournamentId,
-    this.description = const Value.absent(),
-    this.minAge = const Value.absent(),
-    this.maxAge = const Value.absent(),
-    this.maxParticipants = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.dirty = const Value.absent(),
-    this.deletedLocally = const Value.absent(),
-    this.rowid = const Value.absent(),
-  })  : id = Value(id),
-        name = Value(name),
-        tournamentId = Value(tournamentId);
-  static Insertable<Category> custom({
-    Expression<String>? id,
-    Expression<String>? name,
-    Expression<String>? tournamentId,
-    Expression<String>? description,
-    Expression<int>? minAge,
-    Expression<int>? maxAge,
-    Expression<int>? maxParticipants,
-    Expression<DateTime>? createdAt,
-    Expression<bool>? dirty,
-    Expression<bool>? deletedLocally,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (tournamentId != null) 'tournament_id': tournamentId,
-      if (description != null) 'description': description,
-      if (minAge != null) 'min_age': minAge,
-      if (maxAge != null) 'max_age': maxAge,
-      if (maxParticipants != null) 'max_participants': maxParticipants,
-      if (createdAt != null) 'created_at': createdAt,
-      if (dirty != null) 'dirty': dirty,
-      if (deletedLocally != null) 'deleted_locally': deletedLocally,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  CategoriesCompanion copyWith(
-      {Value<String>? id,
-      Value<String>? name,
-      Value<String>? tournamentId,
-      Value<String?>? description,
-      Value<int?>? minAge,
-      Value<int?>? maxAge,
-      Value<int?>? maxParticipants,
-      Value<DateTime?>? createdAt,
-      Value<bool>? dirty,
-      Value<bool>? deletedLocally,
-      Value<int>? rowid}) {
-    return CategoriesCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      tournamentId: tournamentId ?? this.tournamentId,
-      description: description ?? this.description,
-      minAge: minAge ?? this.minAge,
-      maxAge: maxAge ?? this.maxAge,
-      maxParticipants: maxParticipants ?? this.maxParticipants,
-      createdAt: createdAt ?? this.createdAt,
-      dirty: dirty ?? this.dirty,
-      deletedLocally: deletedLocally ?? this.deletedLocally,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (tournamentId.present) {
-      map['tournament_id'] = Variable<String>(tournamentId.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (minAge.present) {
-      map['min_age'] = Variable<int>(minAge.value);
-    }
-    if (maxAge.present) {
-      map['max_age'] = Variable<int>(maxAge.value);
-    }
-    if (maxParticipants.present) {
-      map['max_participants'] = Variable<int>(maxParticipants.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (dirty.present) {
-      map['dirty'] = Variable<bool>(dirty.value);
-    }
-    if (deletedLocally.present) {
-      map['deleted_locally'] = Variable<bool>(deletedLocally.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CategoriesCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('tournamentId: $tournamentId, ')
-          ..write('description: $description, ')
-          ..write('minAge: $minAge, ')
-          ..write('maxAge: $maxAge, ')
-          ..write('maxParticipants: $maxParticipants, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('dirty: $dirty, ')
-          ..write('deletedLocally: $deletedLocally, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1568,12 +1045,6 @@ class $EnrollmentsTable extends Enrollments
   late final GeneratedColumn<String> tournamentId = GeneratedColumn<String>(
       'tournament_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
-  @override
-  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
-      'category_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _playerIdMeta =
       const VerificationMeta('playerId');
   @override
@@ -1601,7 +1072,7 @@ class $EnrollmentsTable extends Enrollments
       defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, tournamentId, categoryId, playerId, dirty, deletedLocally];
+      [id, tournamentId, playerId, dirty, deletedLocally];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1624,14 +1095,6 @@ class $EnrollmentsTable extends Enrollments
               data['tournament_id']!, _tournamentIdMeta));
     } else if (isInserting) {
       context.missing(_tournamentIdMeta);
-    }
-    if (data.containsKey('category_id')) {
-      context.handle(
-          _categoryIdMeta,
-          categoryId.isAcceptableOrUnknown(
-              data['category_id']!, _categoryIdMeta));
-    } else if (isInserting) {
-      context.missing(_categoryIdMeta);
     }
     if (data.containsKey('player_id')) {
       context.handle(_playerIdMeta,
@@ -1662,8 +1125,6 @@ class $EnrollmentsTable extends Enrollments
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       tournamentId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tournament_id'])!,
-      categoryId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
       playerId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}player_id'])!,
       dirty: attachedDatabase.typeMapping
@@ -1682,14 +1143,12 @@ class $EnrollmentsTable extends Enrollments
 class Enrollment extends DataClass implements Insertable<Enrollment> {
   final String id;
   final String tournamentId;
-  final String categoryId;
   final String playerId;
   final bool dirty;
   final bool deletedLocally;
   const Enrollment(
       {required this.id,
       required this.tournamentId,
-      required this.categoryId,
       required this.playerId,
       required this.dirty,
       required this.deletedLocally});
@@ -1698,7 +1157,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['tournament_id'] = Variable<String>(tournamentId);
-    map['category_id'] = Variable<String>(categoryId);
     map['player_id'] = Variable<String>(playerId);
     map['dirty'] = Variable<bool>(dirty);
     map['deleted_locally'] = Variable<bool>(deletedLocally);
@@ -1709,7 +1167,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return EnrollmentsCompanion(
       id: Value(id),
       tournamentId: Value(tournamentId),
-      categoryId: Value(categoryId),
       playerId: Value(playerId),
       dirty: Value(dirty),
       deletedLocally: Value(deletedLocally),
@@ -1722,7 +1179,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return Enrollment(
       id: serializer.fromJson<String>(json['id']),
       tournamentId: serializer.fromJson<String>(json['tournamentId']),
-      categoryId: serializer.fromJson<String>(json['categoryId']),
       playerId: serializer.fromJson<String>(json['playerId']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
@@ -1734,7 +1190,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'tournamentId': serializer.toJson<String>(tournamentId),
-      'categoryId': serializer.toJson<String>(categoryId),
       'playerId': serializer.toJson<String>(playerId),
       'dirty': serializer.toJson<bool>(dirty),
       'deletedLocally': serializer.toJson<bool>(deletedLocally),
@@ -1744,14 +1199,12 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   Enrollment copyWith(
           {String? id,
           String? tournamentId,
-          String? categoryId,
           String? playerId,
           bool? dirty,
           bool? deletedLocally}) =>
       Enrollment(
         id: id ?? this.id,
         tournamentId: tournamentId ?? this.tournamentId,
-        categoryId: categoryId ?? this.categoryId,
         playerId: playerId ?? this.playerId,
         dirty: dirty ?? this.dirty,
         deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -1762,8 +1215,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
       tournamentId: data.tournamentId.present
           ? data.tournamentId.value
           : this.tournamentId,
-      categoryId:
-          data.categoryId.present ? data.categoryId.value : this.categoryId,
       playerId: data.playerId.present ? data.playerId.value : this.playerId,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deletedLocally: data.deletedLocally.present
@@ -1777,7 +1228,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return (StringBuffer('Enrollment(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('playerId: $playerId, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally')
@@ -1786,15 +1236,14 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, tournamentId, categoryId, playerId, dirty, deletedLocally);
+  int get hashCode =>
+      Object.hash(id, tournamentId, playerId, dirty, deletedLocally);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Enrollment &&
           other.id == this.id &&
           other.tournamentId == this.tournamentId &&
-          other.categoryId == this.categoryId &&
           other.playerId == this.playerId &&
           other.dirty == this.dirty &&
           other.deletedLocally == this.deletedLocally);
@@ -1803,7 +1252,6 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
 class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   final Value<String> id;
   final Value<String> tournamentId;
-  final Value<String> categoryId;
   final Value<String> playerId;
   final Value<bool> dirty;
   final Value<bool> deletedLocally;
@@ -1811,7 +1259,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   const EnrollmentsCompanion({
     this.id = const Value.absent(),
     this.tournamentId = const Value.absent(),
-    this.categoryId = const Value.absent(),
     this.playerId = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
@@ -1820,19 +1267,16 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   EnrollmentsCompanion.insert({
     required String id,
     required String tournamentId,
-    required String categoryId,
     required String playerId,
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         tournamentId = Value(tournamentId),
-        categoryId = Value(categoryId),
         playerId = Value(playerId);
   static Insertable<Enrollment> custom({
     Expression<String>? id,
     Expression<String>? tournamentId,
-    Expression<String>? categoryId,
     Expression<String>? playerId,
     Expression<bool>? dirty,
     Expression<bool>? deletedLocally,
@@ -1841,7 +1285,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (tournamentId != null) 'tournament_id': tournamentId,
-      if (categoryId != null) 'category_id': categoryId,
       if (playerId != null) 'player_id': playerId,
       if (dirty != null) 'dirty': dirty,
       if (deletedLocally != null) 'deleted_locally': deletedLocally,
@@ -1852,7 +1295,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   EnrollmentsCompanion copyWith(
       {Value<String>? id,
       Value<String>? tournamentId,
-      Value<String>? categoryId,
       Value<String>? playerId,
       Value<bool>? dirty,
       Value<bool>? deletedLocally,
@@ -1860,7 +1302,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return EnrollmentsCompanion(
       id: id ?? this.id,
       tournamentId: tournamentId ?? this.tournamentId,
-      categoryId: categoryId ?? this.categoryId,
       playerId: playerId ?? this.playerId,
       dirty: dirty ?? this.dirty,
       deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -1876,9 +1317,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     }
     if (tournamentId.present) {
       map['tournament_id'] = Variable<String>(tournamentId.value);
-    }
-    if (categoryId.present) {
-      map['category_id'] = Variable<String>(categoryId.value);
     }
     if (playerId.present) {
       map['player_id'] = Variable<String>(playerId.value);
@@ -1900,7 +1338,6 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return (StringBuffer('EnrollmentsCompanion(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('playerId: $playerId, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally, ')
@@ -1925,12 +1362,6 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
   @override
   late final GeneratedColumn<String> tournamentId = GeneratedColumn<String>(
       'tournament_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
-  @override
-  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
-      'category_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _homePlayerIdMeta =
       const VerificationMeta('homePlayerId');
@@ -2019,7 +1450,6 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
   List<GeneratedColumn> get $columns => [
         id,
         tournamentId,
-        categoryId,
         homePlayerId,
         awayPlayerId,
         homePlayerName,
@@ -2056,14 +1486,6 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
               data['tournament_id']!, _tournamentIdMeta));
     } else if (isInserting) {
       context.missing(_tournamentIdMeta);
-    }
-    if (data.containsKey('category_id')) {
-      context.handle(
-          _categoryIdMeta,
-          categoryId.isAcceptableOrUnknown(
-              data['category_id']!, _categoryIdMeta));
-    } else if (isInserting) {
-      context.missing(_categoryIdMeta);
     }
     if (data.containsKey('home_player_id')) {
       context.handle(
@@ -2154,8 +1576,6 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       tournamentId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tournament_id'])!,
-      categoryId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
       homePlayerId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}home_player_id'])!,
       awayPlayerId: attachedDatabase.typeMapping
@@ -2194,7 +1614,6 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
 class MatchRow extends DataClass implements Insertable<MatchRow> {
   final String id;
   final String tournamentId;
-  final String categoryId;
   final String homePlayerId;
   final String awayPlayerId;
   final String homePlayerName;
@@ -2211,7 +1630,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
   const MatchRow(
       {required this.id,
       required this.tournamentId,
-      required this.categoryId,
       required this.homePlayerId,
       required this.awayPlayerId,
       required this.homePlayerName,
@@ -2230,7 +1648,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['tournament_id'] = Variable<String>(tournamentId);
-    map['category_id'] = Variable<String>(categoryId);
     map['home_player_id'] = Variable<String>(homePlayerId);
     map['away_player_id'] = Variable<String>(awayPlayerId);
     map['home_player_name'] = Variable<String>(homePlayerName);
@@ -2263,7 +1680,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     return MatchesCompanion(
       id: Value(id),
       tournamentId: Value(tournamentId),
-      categoryId: Value(categoryId),
       homePlayerId: Value(homePlayerId),
       awayPlayerId: Value(awayPlayerId),
       homePlayerName: Value(homePlayerName),
@@ -2297,7 +1713,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     return MatchRow(
       id: serializer.fromJson<String>(json['id']),
       tournamentId: serializer.fromJson<String>(json['tournamentId']),
-      categoryId: serializer.fromJson<String>(json['categoryId']),
       homePlayerId: serializer.fromJson<String>(json['homePlayerId']),
       awayPlayerId: serializer.fromJson<String>(json['awayPlayerId']),
       homePlayerName: serializer.fromJson<String>(json['homePlayerName']),
@@ -2319,7 +1734,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'tournamentId': serializer.toJson<String>(tournamentId),
-      'categoryId': serializer.toJson<String>(categoryId),
       'homePlayerId': serializer.toJson<String>(homePlayerId),
       'awayPlayerId': serializer.toJson<String>(awayPlayerId),
       'homePlayerName': serializer.toJson<String>(homePlayerName),
@@ -2339,7 +1753,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
   MatchRow copyWith(
           {String? id,
           String? tournamentId,
-          String? categoryId,
           String? homePlayerId,
           String? awayPlayerId,
           String? homePlayerName,
@@ -2356,7 +1769,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       MatchRow(
         id: id ?? this.id,
         tournamentId: tournamentId ?? this.tournamentId,
-        categoryId: categoryId ?? this.categoryId,
         homePlayerId: homePlayerId ?? this.homePlayerId,
         awayPlayerId: awayPlayerId ?? this.awayPlayerId,
         homePlayerName: homePlayerName ?? this.homePlayerName,
@@ -2377,8 +1789,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       tournamentId: data.tournamentId.present
           ? data.tournamentId.value
           : this.tournamentId,
-      categoryId:
-          data.categoryId.present ? data.categoryId.value : this.categoryId,
       homePlayerId: data.homePlayerId.present
           ? data.homePlayerId.value
           : this.homePlayerId,
@@ -2412,7 +1822,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     return (StringBuffer('MatchRow(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('homePlayerId: $homePlayerId, ')
           ..write('awayPlayerId: $awayPlayerId, ')
           ..write('homePlayerName: $homePlayerName, ')
@@ -2434,7 +1843,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
   int get hashCode => Object.hash(
       id,
       tournamentId,
-      categoryId,
       homePlayerId,
       awayPlayerId,
       homePlayerName,
@@ -2454,7 +1862,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       (other is MatchRow &&
           other.id == this.id &&
           other.tournamentId == this.tournamentId &&
-          other.categoryId == this.categoryId &&
           other.homePlayerId == this.homePlayerId &&
           other.awayPlayerId == this.awayPlayerId &&
           other.homePlayerName == this.homePlayerName &&
@@ -2473,7 +1880,6 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
 class MatchesCompanion extends UpdateCompanion<MatchRow> {
   final Value<String> id;
   final Value<String> tournamentId;
-  final Value<String> categoryId;
   final Value<String> homePlayerId;
   final Value<String> awayPlayerId;
   final Value<String> homePlayerName;
@@ -2491,7 +1897,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
   const MatchesCompanion({
     this.id = const Value.absent(),
     this.tournamentId = const Value.absent(),
-    this.categoryId = const Value.absent(),
     this.homePlayerId = const Value.absent(),
     this.awayPlayerId = const Value.absent(),
     this.homePlayerName = const Value.absent(),
@@ -2510,7 +1915,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
   MatchesCompanion.insert({
     required String id,
     required String tournamentId,
-    required String categoryId,
     required String homePlayerId,
     required String awayPlayerId,
     required String homePlayerName,
@@ -2527,7 +1931,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         tournamentId = Value(tournamentId),
-        categoryId = Value(categoryId),
         homePlayerId = Value(homePlayerId),
         awayPlayerId = Value(awayPlayerId),
         homePlayerName = Value(homePlayerName),
@@ -2536,7 +1939,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
   static Insertable<MatchRow> custom({
     Expression<String>? id,
     Expression<String>? tournamentId,
-    Expression<String>? categoryId,
     Expression<String>? homePlayerId,
     Expression<String>? awayPlayerId,
     Expression<String>? homePlayerName,
@@ -2555,7 +1957,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (tournamentId != null) 'tournament_id': tournamentId,
-      if (categoryId != null) 'category_id': categoryId,
       if (homePlayerId != null) 'home_player_id': homePlayerId,
       if (awayPlayerId != null) 'away_player_id': awayPlayerId,
       if (homePlayerName != null) 'home_player_name': homePlayerName,
@@ -2576,7 +1977,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
   MatchesCompanion copyWith(
       {Value<String>? id,
       Value<String>? tournamentId,
-      Value<String>? categoryId,
       Value<String>? homePlayerId,
       Value<String>? awayPlayerId,
       Value<String>? homePlayerName,
@@ -2594,7 +1994,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     return MatchesCompanion(
       id: id ?? this.id,
       tournamentId: tournamentId ?? this.tournamentId,
-      categoryId: categoryId ?? this.categoryId,
       homePlayerId: homePlayerId ?? this.homePlayerId,
       awayPlayerId: awayPlayerId ?? this.awayPlayerId,
       homePlayerName: homePlayerName ?? this.homePlayerName,
@@ -2620,9 +2019,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     }
     if (tournamentId.present) {
       map['tournament_id'] = Variable<String>(tournamentId.value);
-    }
-    if (categoryId.present) {
-      map['category_id'] = Variable<String>(categoryId.value);
     }
     if (homePlayerId.present) {
       map['home_player_id'] = Variable<String>(homePlayerId.value);
@@ -2674,7 +2070,6 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     return (StringBuffer('MatchesCompanion(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('homePlayerId: $homePlayerId, ')
           ..write('awayPlayerId: $awayPlayerId, ')
           ..write('homePlayerName: $homePlayerName, ')
@@ -3282,12 +2677,6 @@ class $StandingsTable extends Standings
   late final GeneratedColumn<String> tournamentId = GeneratedColumn<String>(
       'tournament_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
-  @override
-  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
-      'category_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _playerIdMeta =
       const VerificationMeta('playerId');
   @override
@@ -3364,7 +2753,6 @@ class $StandingsTable extends Standings
   List<GeneratedColumn> get $columns => [
         id,
         tournamentId,
-        categoryId,
         playerId,
         playerName,
         played,
@@ -3398,14 +2786,6 @@ class $StandingsTable extends Standings
               data['tournament_id']!, _tournamentIdMeta));
     } else if (isInserting) {
       context.missing(_tournamentIdMeta);
-    }
-    if (data.containsKey('category_id')) {
-      context.handle(
-          _categoryIdMeta,
-          categoryId.isAcceptableOrUnknown(
-              data['category_id']!, _categoryIdMeta));
-    } else if (isInserting) {
-      context.missing(_categoryIdMeta);
     }
     if (data.containsKey('player_id')) {
       context.handle(_playerIdMeta,
@@ -3468,8 +2848,6 @@ class $StandingsTable extends Standings
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       tournamentId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tournament_id'])!,
-      categoryId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
       playerId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}player_id'])!,
       playerName: attachedDatabase.typeMapping
@@ -3502,7 +2880,6 @@ class $StandingsTable extends Standings
 class Standing extends DataClass implements Insertable<Standing> {
   final String id;
   final String tournamentId;
-  final String categoryId;
   final String playerId;
   final String playerName;
   final int played;
@@ -3516,7 +2893,6 @@ class Standing extends DataClass implements Insertable<Standing> {
   const Standing(
       {required this.id,
       required this.tournamentId,
-      required this.categoryId,
       required this.playerId,
       required this.playerName,
       required this.played,
@@ -3532,7 +2908,6 @@ class Standing extends DataClass implements Insertable<Standing> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['tournament_id'] = Variable<String>(tournamentId);
-    map['category_id'] = Variable<String>(categoryId);
     map['player_id'] = Variable<String>(playerId);
     map['player_name'] = Variable<String>(playerName);
     map['played'] = Variable<int>(played);
@@ -3550,7 +2925,6 @@ class Standing extends DataClass implements Insertable<Standing> {
     return StandingsCompanion(
       id: Value(id),
       tournamentId: Value(tournamentId),
-      categoryId: Value(categoryId),
       playerId: Value(playerId),
       playerName: Value(playerName),
       played: Value(played),
@@ -3570,7 +2944,6 @@ class Standing extends DataClass implements Insertable<Standing> {
     return Standing(
       id: serializer.fromJson<String>(json['id']),
       tournamentId: serializer.fromJson<String>(json['tournamentId']),
-      categoryId: serializer.fromJson<String>(json['categoryId']),
       playerId: serializer.fromJson<String>(json['playerId']),
       playerName: serializer.fromJson<String>(json['playerName']),
       played: serializer.fromJson<int>(json['played']),
@@ -3589,7 +2962,6 @@ class Standing extends DataClass implements Insertable<Standing> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'tournamentId': serializer.toJson<String>(tournamentId),
-      'categoryId': serializer.toJson<String>(categoryId),
       'playerId': serializer.toJson<String>(playerId),
       'playerName': serializer.toJson<String>(playerName),
       'played': serializer.toJson<int>(played),
@@ -3606,7 +2978,6 @@ class Standing extends DataClass implements Insertable<Standing> {
   Standing copyWith(
           {String? id,
           String? tournamentId,
-          String? categoryId,
           String? playerId,
           String? playerName,
           int? played,
@@ -3620,7 +2991,6 @@ class Standing extends DataClass implements Insertable<Standing> {
       Standing(
         id: id ?? this.id,
         tournamentId: tournamentId ?? this.tournamentId,
-        categoryId: categoryId ?? this.categoryId,
         playerId: playerId ?? this.playerId,
         playerName: playerName ?? this.playerName,
         played: played ?? this.played,
@@ -3638,8 +3008,6 @@ class Standing extends DataClass implements Insertable<Standing> {
       tournamentId: data.tournamentId.present
           ? data.tournamentId.value
           : this.tournamentId,
-      categoryId:
-          data.categoryId.present ? data.categoryId.value : this.categoryId,
       playerId: data.playerId.present ? data.playerId.value : this.playerId,
       playerName:
           data.playerName.present ? data.playerName.value : this.playerName,
@@ -3661,7 +3029,6 @@ class Standing extends DataClass implements Insertable<Standing> {
     return (StringBuffer('Standing(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('playerId: $playerId, ')
           ..write('playerName: $playerName, ')
           ..write('played: $played, ')
@@ -3677,27 +3044,14 @@ class Standing extends DataClass implements Insertable<Standing> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      tournamentId,
-      categoryId,
-      playerId,
-      playerName,
-      played,
-      won,
-      drawn,
-      lost,
-      goalsFor,
-      goalsAgainst,
-      points,
-      dirty);
+  int get hashCode => Object.hash(id, tournamentId, playerId, playerName,
+      played, won, drawn, lost, goalsFor, goalsAgainst, points, dirty);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Standing &&
           other.id == this.id &&
           other.tournamentId == this.tournamentId &&
-          other.categoryId == this.categoryId &&
           other.playerId == this.playerId &&
           other.playerName == this.playerName &&
           other.played == this.played &&
@@ -3713,7 +3067,6 @@ class Standing extends DataClass implements Insertable<Standing> {
 class StandingsCompanion extends UpdateCompanion<Standing> {
   final Value<String> id;
   final Value<String> tournamentId;
-  final Value<String> categoryId;
   final Value<String> playerId;
   final Value<String> playerName;
   final Value<int> played;
@@ -3728,7 +3081,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
   const StandingsCompanion({
     this.id = const Value.absent(),
     this.tournamentId = const Value.absent(),
-    this.categoryId = const Value.absent(),
     this.playerId = const Value.absent(),
     this.playerName = const Value.absent(),
     this.played = const Value.absent(),
@@ -3744,7 +3096,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
   StandingsCompanion.insert({
     required String id,
     required String tournamentId,
-    required String categoryId,
     required String playerId,
     required String playerName,
     this.played = const Value.absent(),
@@ -3758,13 +3109,11 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         tournamentId = Value(tournamentId),
-        categoryId = Value(categoryId),
         playerId = Value(playerId),
         playerName = Value(playerName);
   static Insertable<Standing> custom({
     Expression<String>? id,
     Expression<String>? tournamentId,
-    Expression<String>? categoryId,
     Expression<String>? playerId,
     Expression<String>? playerName,
     Expression<int>? played,
@@ -3780,7 +3129,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (tournamentId != null) 'tournament_id': tournamentId,
-      if (categoryId != null) 'category_id': categoryId,
       if (playerId != null) 'player_id': playerId,
       if (playerName != null) 'player_name': playerName,
       if (played != null) 'played': played,
@@ -3798,7 +3146,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
   StandingsCompanion copyWith(
       {Value<String>? id,
       Value<String>? tournamentId,
-      Value<String>? categoryId,
       Value<String>? playerId,
       Value<String>? playerName,
       Value<int>? played,
@@ -3813,7 +3160,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     return StandingsCompanion(
       id: id ?? this.id,
       tournamentId: tournamentId ?? this.tournamentId,
-      categoryId: categoryId ?? this.categoryId,
       playerId: playerId ?? this.playerId,
       playerName: playerName ?? this.playerName,
       played: played ?? this.played,
@@ -3836,9 +3182,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     }
     if (tournamentId.present) {
       map['tournament_id'] = Variable<String>(tournamentId.value);
-    }
-    if (categoryId.present) {
-      map['category_id'] = Variable<String>(categoryId.value);
     }
     if (playerId.present) {
       map['player_id'] = Variable<String>(playerId.value);
@@ -3881,7 +3224,6 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     return (StringBuffer('StandingsCompanion(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
-          ..write('categoryId: $categoryId, ')
           ..write('playerId: $playerId, ')
           ..write('playerName: $playerName, ')
           ..write('played: $played, ')
@@ -4340,7 +3682,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TournamentsTable tournaments = $TournamentsTable(this);
-  late final $CategoriesTable categories = $CategoriesTable(this);
   late final $PlayersTable players = $PlayersTable(this);
   late final $EnrollmentsTable enrollments = $EnrollmentsTable(this);
   late final $MatchesTable matches = $MatchesTable(this);
@@ -4354,7 +3695,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
         tournaments,
-        categories,
         players,
         enrollments,
         matches,
@@ -4623,251 +3963,6 @@ typedef $$TournamentsTableProcessedTableManager = ProcessedTableManager<
     (Tournament, BaseReferences<_$AppDatabase, $TournamentsTable, Tournament>),
     Tournament,
     PrefetchHooks Function()>;
-typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
-  required String id,
-  required String name,
-  required String tournamentId,
-  Value<String?> description,
-  Value<int?> minAge,
-  Value<int?> maxAge,
-  Value<int?> maxParticipants,
-  Value<DateTime?> createdAt,
-  Value<bool> dirty,
-  Value<bool> deletedLocally,
-  Value<int> rowid,
-});
-typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
-  Value<String> id,
-  Value<String> name,
-  Value<String> tournamentId,
-  Value<String?> description,
-  Value<int?> minAge,
-  Value<int?> maxAge,
-  Value<int?> maxParticipants,
-  Value<DateTime?> createdAt,
-  Value<bool> dirty,
-  Value<bool> deletedLocally,
-  Value<int> rowid,
-});
-
-class $$CategoriesTableFilterComposer
-    extends Composer<_$AppDatabase, $CategoriesTable> {
-  $$CategoriesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get tournamentId => $composableBuilder(
-      column: $table.tournamentId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get description => $composableBuilder(
-      column: $table.description, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get minAge => $composableBuilder(
-      column: $table.minAge, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get maxAge => $composableBuilder(
-      column: $table.maxAge, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get maxParticipants => $composableBuilder(
-      column: $table.maxParticipants,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get dirty => $composableBuilder(
-      column: $table.dirty, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get deletedLocally => $composableBuilder(
-      column: $table.deletedLocally,
-      builder: (column) => ColumnFilters(column));
-}
-
-class $$CategoriesTableOrderingComposer
-    extends Composer<_$AppDatabase, $CategoriesTable> {
-  $$CategoriesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get tournamentId => $composableBuilder(
-      column: $table.tournamentId,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get description => $composableBuilder(
-      column: $table.description, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get minAge => $composableBuilder(
-      column: $table.minAge, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get maxAge => $composableBuilder(
-      column: $table.maxAge, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get maxParticipants => $composableBuilder(
-      column: $table.maxParticipants,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get dirty => $composableBuilder(
-      column: $table.dirty, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get deletedLocally => $composableBuilder(
-      column: $table.deletedLocally,
-      builder: (column) => ColumnOrderings(column));
-}
-
-class $$CategoriesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CategoriesTable> {
-  $$CategoriesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get tournamentId => $composableBuilder(
-      column: $table.tournamentId, builder: (column) => column);
-
-  GeneratedColumn<String> get description => $composableBuilder(
-      column: $table.description, builder: (column) => column);
-
-  GeneratedColumn<int> get minAge =>
-      $composableBuilder(column: $table.minAge, builder: (column) => column);
-
-  GeneratedColumn<int> get maxAge =>
-      $composableBuilder(column: $table.maxAge, builder: (column) => column);
-
-  GeneratedColumn<int> get maxParticipants => $composableBuilder(
-      column: $table.maxParticipants, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<bool> get dirty =>
-      $composableBuilder(column: $table.dirty, builder: (column) => column);
-
-  GeneratedColumn<bool> get deletedLocally => $composableBuilder(
-      column: $table.deletedLocally, builder: (column) => column);
-}
-
-class $$CategoriesTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $CategoriesTable,
-    Category,
-    $$CategoriesTableFilterComposer,
-    $$CategoriesTableOrderingComposer,
-    $$CategoriesTableAnnotationComposer,
-    $$CategoriesTableCreateCompanionBuilder,
-    $$CategoriesTableUpdateCompanionBuilder,
-    (Category, BaseReferences<_$AppDatabase, $CategoriesTable, Category>),
-    Category,
-    PrefetchHooks Function()> {
-  $$CategoriesTableTableManager(_$AppDatabase db, $CategoriesTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$CategoriesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$CategoriesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$CategoriesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<String> tournamentId = const Value.absent(),
-            Value<String?> description = const Value.absent(),
-            Value<int?> minAge = const Value.absent(),
-            Value<int?> maxAge = const Value.absent(),
-            Value<int?> maxParticipants = const Value.absent(),
-            Value<DateTime?> createdAt = const Value.absent(),
-            Value<bool> dirty = const Value.absent(),
-            Value<bool> deletedLocally = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              CategoriesCompanion(
-            id: id,
-            name: name,
-            tournamentId: tournamentId,
-            description: description,
-            minAge: minAge,
-            maxAge: maxAge,
-            maxParticipants: maxParticipants,
-            createdAt: createdAt,
-            dirty: dirty,
-            deletedLocally: deletedLocally,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String name,
-            required String tournamentId,
-            Value<String?> description = const Value.absent(),
-            Value<int?> minAge = const Value.absent(),
-            Value<int?> maxAge = const Value.absent(),
-            Value<int?> maxParticipants = const Value.absent(),
-            Value<DateTime?> createdAt = const Value.absent(),
-            Value<bool> dirty = const Value.absent(),
-            Value<bool> deletedLocally = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              CategoriesCompanion.insert(
-            id: id,
-            name: name,
-            tournamentId: tournamentId,
-            description: description,
-            minAge: minAge,
-            maxAge: maxAge,
-            maxParticipants: maxParticipants,
-            createdAt: createdAt,
-            dirty: dirty,
-            deletedLocally: deletedLocally,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$CategoriesTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $CategoriesTable,
-    Category,
-    $$CategoriesTableFilterComposer,
-    $$CategoriesTableOrderingComposer,
-    $$CategoriesTableAnnotationComposer,
-    $$CategoriesTableCreateCompanionBuilder,
-    $$CategoriesTableUpdateCompanionBuilder,
-    (Category, BaseReferences<_$AppDatabase, $CategoriesTable, Category>),
-    Category,
-    PrefetchHooks Function()>;
 typedef $$PlayersTableCreateCompanionBuilder = PlayersCompanion Function({
   required String id,
   required String name,
@@ -5099,7 +4194,6 @@ typedef $$EnrollmentsTableCreateCompanionBuilder = EnrollmentsCompanion
     Function({
   required String id,
   required String tournamentId,
-  required String categoryId,
   required String playerId,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -5109,7 +4203,6 @@ typedef $$EnrollmentsTableUpdateCompanionBuilder = EnrollmentsCompanion
     Function({
   Value<String> id,
   Value<String> tournamentId,
-  Value<String> categoryId,
   Value<String> playerId,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -5130,9 +4223,6 @@ class $$EnrollmentsTableFilterComposer
 
   ColumnFilters<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get playerId => $composableBuilder(
       column: $table.playerId, builder: (column) => ColumnFilters(column));
@@ -5161,9 +4251,6 @@ class $$EnrollmentsTableOrderingComposer
       column: $table.tournamentId,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get playerId => $composableBuilder(
       column: $table.playerId, builder: (column) => ColumnOrderings(column));
 
@@ -5189,9 +4276,6 @@ class $$EnrollmentsTableAnnotationComposer
 
   GeneratedColumn<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => column);
-
-  GeneratedColumn<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => column);
 
   GeneratedColumn<String> get playerId =>
       $composableBuilder(column: $table.playerId, builder: (column) => column);
@@ -5228,7 +4312,6 @@ class $$EnrollmentsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> tournamentId = const Value.absent(),
-            Value<String> categoryId = const Value.absent(),
             Value<String> playerId = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -5237,7 +4320,6 @@ class $$EnrollmentsTableTableManager extends RootTableManager<
               EnrollmentsCompanion(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             playerId: playerId,
             dirty: dirty,
             deletedLocally: deletedLocally,
@@ -5246,7 +4328,6 @@ class $$EnrollmentsTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required String tournamentId,
-            required String categoryId,
             required String playerId,
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -5255,7 +4336,6 @@ class $$EnrollmentsTableTableManager extends RootTableManager<
               EnrollmentsCompanion.insert(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             playerId: playerId,
             dirty: dirty,
             deletedLocally: deletedLocally,
@@ -5283,7 +4363,6 @@ typedef $$EnrollmentsTableProcessedTableManager = ProcessedTableManager<
 typedef $$MatchesTableCreateCompanionBuilder = MatchesCompanion Function({
   required String id,
   required String tournamentId,
-  required String categoryId,
   required String homePlayerId,
   required String awayPlayerId,
   required String homePlayerName,
@@ -5302,7 +4381,6 @@ typedef $$MatchesTableCreateCompanionBuilder = MatchesCompanion Function({
 typedef $$MatchesTableUpdateCompanionBuilder = MatchesCompanion Function({
   Value<String> id,
   Value<String> tournamentId,
-  Value<String> categoryId,
   Value<String> homePlayerId,
   Value<String> awayPlayerId,
   Value<String> homePlayerName,
@@ -5333,9 +4411,6 @@ class $$MatchesTableFilterComposer
 
   ColumnFilters<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get homePlayerId => $composableBuilder(
       column: $table.homePlayerId, builder: (column) => ColumnFilters(column));
@@ -5396,9 +4471,6 @@ class $$MatchesTableOrderingComposer
       column: $table.tournamentId,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get homePlayerId => $composableBuilder(
       column: $table.homePlayerId,
       builder: (column) => ColumnOrderings(column));
@@ -5458,9 +4530,6 @@ class $$MatchesTableAnnotationComposer
 
   GeneratedColumn<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => column);
-
-  GeneratedColumn<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => column);
 
   GeneratedColumn<String> get homePlayerId => $composableBuilder(
       column: $table.homePlayerId, builder: (column) => column);
@@ -5527,7 +4596,6 @@ class $$MatchesTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> tournamentId = const Value.absent(),
-            Value<String> categoryId = const Value.absent(),
             Value<String> homePlayerId = const Value.absent(),
             Value<String> awayPlayerId = const Value.absent(),
             Value<String> homePlayerName = const Value.absent(),
@@ -5546,7 +4614,6 @@ class $$MatchesTableTableManager extends RootTableManager<
               MatchesCompanion(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             homePlayerId: homePlayerId,
             awayPlayerId: awayPlayerId,
             homePlayerName: homePlayerName,
@@ -5565,7 +4632,6 @@ class $$MatchesTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required String tournamentId,
-            required String categoryId,
             required String homePlayerId,
             required String awayPlayerId,
             required String homePlayerName,
@@ -5584,7 +4650,6 @@ class $$MatchesTableTableManager extends RootTableManager<
               MatchesCompanion.insert(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             homePlayerId: homePlayerId,
             awayPlayerId: awayPlayerId,
             homePlayerName: homePlayerName,
@@ -5882,7 +4947,6 @@ typedef $$ResultsTableProcessedTableManager = ProcessedTableManager<
 typedef $$StandingsTableCreateCompanionBuilder = StandingsCompanion Function({
   required String id,
   required String tournamentId,
-  required String categoryId,
   required String playerId,
   required String playerName,
   Value<int> played,
@@ -5898,7 +4962,6 @@ typedef $$StandingsTableCreateCompanionBuilder = StandingsCompanion Function({
 typedef $$StandingsTableUpdateCompanionBuilder = StandingsCompanion Function({
   Value<String> id,
   Value<String> tournamentId,
-  Value<String> categoryId,
   Value<String> playerId,
   Value<String> playerName,
   Value<int> played,
@@ -5926,9 +4989,6 @@ class $$StandingsTableFilterComposer
 
   ColumnFilters<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get playerId => $composableBuilder(
       column: $table.playerId, builder: (column) => ColumnFilters(column));
@@ -5977,9 +5037,6 @@ class $$StandingsTableOrderingComposer
       column: $table.tournamentId,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get playerId => $composableBuilder(
       column: $table.playerId, builder: (column) => ColumnOrderings(column));
 
@@ -6026,9 +5083,6 @@ class $$StandingsTableAnnotationComposer
 
   GeneratedColumn<String> get tournamentId => $composableBuilder(
       column: $table.tournamentId, builder: (column) => column);
-
-  GeneratedColumn<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => column);
 
   GeneratedColumn<String> get playerId =>
       $composableBuilder(column: $table.playerId, builder: (column) => column);
@@ -6086,7 +5140,6 @@ class $$StandingsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> tournamentId = const Value.absent(),
-            Value<String> categoryId = const Value.absent(),
             Value<String> playerId = const Value.absent(),
             Value<String> playerName = const Value.absent(),
             Value<int> played = const Value.absent(),
@@ -6102,7 +5155,6 @@ class $$StandingsTableTableManager extends RootTableManager<
               StandingsCompanion(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             playerId: playerId,
             playerName: playerName,
             played: played,
@@ -6118,7 +5170,6 @@ class $$StandingsTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required String tournamentId,
-            required String categoryId,
             required String playerId,
             required String playerName,
             Value<int> played = const Value.absent(),
@@ -6134,7 +5185,6 @@ class $$StandingsTableTableManager extends RootTableManager<
               StandingsCompanion.insert(
             id: id,
             tournamentId: tournamentId,
-            categoryId: categoryId,
             playerId: playerId,
             playerName: playerName,
             played: played,
@@ -6391,8 +5441,6 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$TournamentsTableTableManager get tournaments =>
       $$TournamentsTableTableManager(_db, _db.tournaments);
-  $$CategoriesTableTableManager get categories =>
-      $$CategoriesTableTableManager(_db, _db.categories);
   $$PlayersTableTableManager get players =>
       $$PlayersTableTableManager(_db, _db.players);
   $$EnrollmentsTableTableManager get enrollments =>

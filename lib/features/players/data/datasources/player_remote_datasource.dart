@@ -12,7 +12,6 @@ abstract class PlayerRemoteDataSource {
   Future<void> enrollPlayer({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   });
   Future<void> unenrollPlayer({
     required String playerId,
@@ -101,13 +100,11 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   Future<void> enrollPlayer({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   }) async {
     try {
       await _client.from(SupabaseConstants.enrollmentsTable).upsert({
         'player_id': playerId,
         'tournament_id': tournamentId,
-        'category_id': categoryId,
       });
     } catch (e) {
       throw ServerException(message: 'Error al inscribir participante: $e');
@@ -160,7 +157,7 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
     try {
       final enrollments = await _client
           .from(SupabaseConstants.enrollmentsTable)
-          .select('player_id, category_id')
+          .select('player_id')
           .eq('tournament_id', tournamentId);
 
       if ((enrollments as List).isEmpty) return [];
@@ -173,17 +170,7 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
           .select()
           .inFilter('id', playerIds);
 
-      return (players as List).map((e) {
-        // Encontrar el category_id de este jugador
-        final enrollment = enrollments.firstWhere(
-          (en) => en['player_id'] == e['id'],
-          orElse: () => {'category_id': null},
-        );
-        return PlayerModel.fromJson({
-          ...e,
-          'category_id': enrollment['category_id'],
-        });
-      }).toList();
+      return (players as List).map((e) => PlayerModel.fromJson(e)).toList();
     } catch (e) {
       throw ServerException(
           message: 'Error al obtener participantes del torneo: $e');

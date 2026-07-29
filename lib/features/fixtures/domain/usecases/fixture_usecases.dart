@@ -7,11 +7,8 @@ import '../repositories/fixture_repository.dart';
 class GetMatchesUseCase {
   final FixtureRepository repository;
   const GetMatchesUseCase(this.repository);
-  Future<Either<Failure, List<MatchEntity>>> call(
-    String tournamentId, {
-    String? categoryId,
-  }) =>
-      repository.getMatchesByTournament(tournamentId, categoryId: categoryId);
+  Future<Either<Failure, List<MatchEntity>>> call(String tournamentId) =>
+      repository.getMatchesByTournament(tournamentId);
 }
 
 class GenerateFixtureUseCase {
@@ -24,7 +21,6 @@ class GenerateFixtureUseCase {
   /// - league: todos contra todos (round-robin completo)
   Future<Either<Failure, List<MatchEntity>>> call({
     required String tournamentId,
-    required String categoryId,
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
@@ -37,7 +33,6 @@ class GenerateFixtureUseCase {
         manualBracketOrder);
     return repository.generateFixture(
       tournamentId: tournamentId,
-      categoryId: categoryId,
       mode: mode,
       playerIds: playerIds,
       playerNames: playerNames,

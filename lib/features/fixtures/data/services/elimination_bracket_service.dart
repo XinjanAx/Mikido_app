@@ -17,12 +17,11 @@ class EliminationBracketService {
 
   Future<void> advance({
     required String tournamentId,
-    required String categoryId,
     required String completedRound,
   }) async {
     // 1. Partidos de la ronda que se acaba de completar
-    final roundMatches = await _local.getMatchesByRound(
-        tournamentId, categoryId, completedRound);
+    final roundMatches =
+        await _local.getMatchesByRound(tournamentId, completedRound);
 
     // 2. Verificar que TODOS estén finalizados
     final allFinished = roundMatches.every((m) => m.isFinished);
@@ -47,16 +46,16 @@ class EliminationBracketService {
 
     // 6. Verificar que la siguiente ronda no exista ya (idempotencia)
     final existingNext =
-        await _local.getMatchesByRound(tournamentId, categoryId, nextRound);
+        await _local.getMatchesByRound(tournamentId, nextRound);
     if (existingNext.isNotEmpty) return;
 
     // 7. Generar partidos de la siguiente ronda.
-    // El número sigue la numeración de TODA la categoría (no solo de la
+    // El número sigue la numeración de todo el torneo (no solo de la
     // ronda que se completó), para no repetir números ya usados en rondas
     // anteriores y mantener el orden correcto en la lista de partidos.
-    final categoryMatches =
-        await _local.getMatchesByTournament(tournamentId, categoryId: categoryId);
-    int matchNumber = categoryMatches.fold<int>(
+    final tournamentMatches =
+        await _local.getMatchesByTournament(tournamentId);
+    int matchNumber = tournamentMatches.fold<int>(
             0, (max, m) => (m.matchNumber ?? 0) > max ? m.matchNumber! : max) +
         1;
     final newMatches = <MatchModel>[];
@@ -65,7 +64,6 @@ class EliminationBracketService {
       newMatches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
-        categoryId: categoryId,
         homePlayerId: winners[i].id,
         awayPlayerId: winners[i + 1].id,
         homePlayerName: winners[i].name,
@@ -82,7 +80,6 @@ class EliminationBracketService {
       newMatches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
-        categoryId: categoryId,
         homePlayerId: lastWinner.id,
         awayPlayerId: lastWinner.id, // mismo jugador = bye
         homePlayerName: lastWinner.name,

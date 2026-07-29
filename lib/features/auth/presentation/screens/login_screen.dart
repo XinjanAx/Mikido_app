@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import '../providers/auth_provider.dart';
 
@@ -39,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState.status == AuthStatus.loading;
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       if (next.status == AuthStatus.authenticated) {
@@ -67,11 +69,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: Column(
                   children: [
-                    // Logo sin fondo
+                    // Logo sin fondo: positivo en tema oscuro, negativo en tema claro
                     Image.asset(
-                      'assets/images/logo_negativo.png',
-                      width: 200, // Ajusta este valor según necesites
-                      height: 200, // Ajusta este valor según necesites
+                      isDark
+                          ? 'assets/images/logo_positivo.png'
+                          : 'assets/images/logo_negativo.png',
+                      width: 300, // Ajusta este valor según necesites
+                      height: 300, // Ajusta este valor según necesites
                       fit: BoxFit.contain,
                     ),
 

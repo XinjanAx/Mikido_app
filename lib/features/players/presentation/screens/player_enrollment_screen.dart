@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:torneo_app/core/constants/route_constants.dart';
 import 'package:torneo_app/core/theme/app_colors.dart';
-import 'package:torneo_app/features/categories/presentation/providers/category_provider.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
 
 class PlayerEnrollmentScreen extends ConsumerStatefulWidget {
@@ -19,7 +18,6 @@ class PlayerEnrollmentScreenState
     extends ConsumerState<PlayerEnrollmentScreen> {
   String _searchQuery = '';
   final _searchController = TextEditingController();
-  bool _creatingDefaultCategory = false;
 
   @override
   void dispose() {
@@ -42,11 +40,10 @@ class PlayerEnrollmentScreenState
     }
   }
 
-  Future<void> _enroll(String playerId, String categoryId) async {
+  Future<void> _enroll(String playerId) async {
     final success = await ref.read(playersProvider.notifier).enrollPlayer(
           playerId: playerId,
           tournamentId: widget.tournamentId,
-          categoryId: categoryId,
         );
     if (success) {
       ref.invalidate(playersByTournamentProvider(widget.tournamentId));
@@ -58,21 +55,6 @@ class PlayerEnrollmentScreenState
     final allPlayers = ref.watch(playersProvider).players;
     final enrolledAsync =
         ref.watch(playersByTournamentProvider(widget.tournamentId));
-    final categoriesState = ref.watch(categoriesProvider(widget.tournamentId));
-
-    // Torneos creados antes de este cambio pueden no tener la categoría
-    // automática todavía: se crea sola la primera vez que hace falta.
-    if (categoriesState.categories.isEmpty && !_creatingDefaultCategory) {
-      _creatingDefaultCategory = true;
-      Future.microtask(() async {
-        await ref
-            .read(categoriesProvider(widget.tournamentId).notifier)
-            .createCategory(name: 'General');
-        _creatingDefaultCategory = false;
-      });
-    }
-    final categoryId =
-        categoriesState.categories.isNotEmpty ? categoriesState.categories.first.id : null;
 
     // Filtrar jugadores disponibles por búsqueda
     final availablePlayers = allPlayers.where((p) {
@@ -215,17 +197,10 @@ class PlayerEnrollmentScreenState
                           ),
                           title: Text(p.name),
                           subtitle: p.email != null ? Text(p.email!) : null,
-                          trailing: categoryId != null
-                              ? TextButton(
-                                  onPressed: () => _enroll(p.id, categoryId),
-                                  child: const Text('Inscribir'),
-                                )
-                              : const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2),
-                                ),
+                          trailing: TextButton(
+                            onPressed: () => _enroll(p.id),
+                            child: const Text('Inscribir'),
+                          ),
                         )),
 
                     if (disponibles.isEmpty)

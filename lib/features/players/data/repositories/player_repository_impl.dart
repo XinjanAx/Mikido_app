@@ -121,14 +121,12 @@ class PlayerRepositoryImpl implements PlayerRepository {
   Future<Either<Failure, void>> enrollPlayer({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   }) async {
     try {
       final id = PlayerLocalDataSourceImpl.enrollmentId(tournamentId, playerId);
       await _local.upsertEnrollment(
         id: id,
         tournamentId: tournamentId,
-        categoryId: categoryId,
         playerId: playerId,
         dirty: true,
       );
@@ -139,7 +137,6 @@ class PlayerRepositoryImpl implements PlayerRepository {
         payload: {
           'player_id': playerId,
           'tournament_id': tournamentId,
-          'category_id': categoryId,
         },
       );
       unawaited(_syncEngine.trySync());

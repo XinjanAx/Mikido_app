@@ -4,7 +4,6 @@ import '../../../../core/constants/app_constants.dart';
 class MatchEntity extends Equatable {
   final String id;
   final String tournamentId;
-  final String categoryId;
   final String homePlayerId;
   final String awayPlayerId;
   final String homePlayerName;
@@ -20,7 +19,6 @@ class MatchEntity extends Equatable {
   const MatchEntity({
     required this.id,
     required this.tournamentId,
-    required this.categoryId,
     required this.homePlayerId,
     required this.awayPlayerId,
     required this.homePlayerName,
@@ -47,7 +45,7 @@ class MatchEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, tournamentId, categoryId, homePlayerId, awayPlayerId,
+        id, tournamentId, homePlayerId, awayPlayerId,
         homeScore, awayScore, status, scheduledAt, round, matchNumber
       ];
 }

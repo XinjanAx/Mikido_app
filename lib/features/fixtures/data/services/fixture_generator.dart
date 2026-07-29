@@ -11,7 +11,6 @@ class FixtureGenerator {
 
   static List<MatchModel> generate({
     required String tournamentId,
-    required String categoryId,
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
@@ -22,20 +21,18 @@ class FixtureGenerator {
   }) {
     switch (mode) {
       case AppConstants.tournamentModeLeague:
-        return _generateLeague(tournamentId, categoryId, playerIds, playerNames,
+        return _generateLeague(tournamentId, playerIds, playerNames,
             timesPlayed: timesPlayed < 1 ? 1 : timesPlayed);
       case AppConstants.tournamentModeElimination:
-        return _generateElimination(
-            tournamentId, categoryId, playerIds, playerNames,
+        return _generateElimination(tournamentId, playerIds, playerNames,
             manualOrder: manualBracketOrder);
       case AppConstants.tournamentModeGroups:
       default:
         if (manualGroups != null) {
           return _generateManualGroups(
-              tournamentId, categoryId, manualGroups, playerIds, playerNames);
+              tournamentId, manualGroups, playerIds, playerNames);
         }
-        return _generateGroups(
-            tournamentId, categoryId, playerIds, playerNames,
+        return _generateGroups(tournamentId, playerIds, playerNames,
             numberOfGroups: numberOfGroups);
     }
   }
@@ -43,8 +40,8 @@ class FixtureGenerator {
   /// Liga: round-robin, todos contra todos.
   /// [timesPlayed] indica cuántas veces se enfrenta cada par de jugadores
   /// (1 = una vuelta, 2 = ida y vuelta, etc.).
-  static List<MatchModel> _generateLeague(String tournamentId,
-      String categoryId, List<String> playerIds, List<String> playerNames,
+  static List<MatchModel> _generateLeague(
+      String tournamentId, List<String> playerIds, List<String> playerNames,
       {int timesPlayed = 1}) {
     final matches = <MatchModel>[];
     int matchNumber = 1;
@@ -88,7 +85,6 @@ class FixtureGenerator {
           matches.add(MatchModel(
             id: const Uuid().v4(),
             tournamentId: tournamentId,
-            categoryId: categoryId,
             homePlayerId: home,
             awayPlayerId: away,
             homePlayerName: homeIdx >= 0 ? playerNames[homeIdx] : home,
@@ -108,8 +104,8 @@ class FixtureGenerator {
   /// Eliminación simple: cuadro directo. Empareja de a dos en el orden
   /// dado (posiciones 1-2, 3-4, ...); si sobra uno, pasa directo con "bye".
   /// Si no se da [manualOrder], se sortea al azar.
-  static List<MatchModel> _generateElimination(String tournamentId,
-      String categoryId, List<String> playerIds, List<String> playerNames,
+  static List<MatchModel> _generateElimination(
+      String tournamentId, List<String> playerIds, List<String> playerNames,
       {List<String>? manualOrder}) {
     final matches = <MatchModel>[];
     int matchNumber = 1;
@@ -130,7 +126,6 @@ class FixtureGenerator {
       matches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
-        categoryId: categoryId,
         homePlayerId: homeId,
         awayPlayerId: awayId,
         homePlayerName: nameOf(homeId),
@@ -146,7 +141,6 @@ class FixtureGenerator {
       matches.add(MatchModel(
         id: const Uuid().v4(),
         tournamentId: tournamentId,
-        categoryId: categoryId,
         homePlayerId: byeId,
         awayPlayerId: byeId, // mismo jugador = bye
         homePlayerName: nameOf(byeId),
@@ -175,8 +169,8 @@ class FixtureGenerator {
   /// de cada grupo. Si no se especifica un número de grupos (<= 0), se
   /// calcula automáticamente para que cada grupo tenga como máximo 4
   /// jugadores.
-  static List<MatchModel> _generateGroups(String tournamentId,
-      String categoryId, List<String> playerIds, List<String> playerNames,
+  static List<MatchModel> _generateGroups(
+      String tournamentId, List<String> playerIds, List<String> playerNames,
       {int numberOfGroups = 0}) {
     final n = playerIds.length;
 
@@ -205,7 +199,7 @@ class FixtureGenerator {
     }
 
     return _generateManualGroups(
-        tournamentId, categoryId, manualGroups, shuffledIds, shuffledNames);
+        tournamentId, manualGroups, shuffledIds, shuffledNames);
   }
 
   /// Por grupos (modo manual): usa exactamente la agrupación indicada por
@@ -213,7 +207,6 @@ class FixtureGenerator {
   /// asignación) en vez de calcularla automáticamente.
   static List<MatchModel> _generateManualGroups(
       String tournamentId,
-      String categoryId,
       List<List<String>> manualGroups,
       List<String> playerIds,
       List<String> playerNames) {
@@ -233,7 +226,6 @@ class FixtureGenerator {
           matches.add(MatchModel(
             id: const Uuid().v4(),
             tournamentId: tournamentId,
-            categoryId: categoryId,
             homePlayerId: homeId,
             awayPlayerId: awayId,
             homePlayerName: homeIdx >= 0 ? playerNames[homeIdx] : homeId,

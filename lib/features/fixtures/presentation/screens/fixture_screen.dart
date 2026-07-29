@@ -9,7 +9,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../standings/domain/entities/standing_entity.dart';
 import '../../../standings/presentation/providers/standing_provider.dart';
@@ -32,7 +31,7 @@ class FixtureScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Eliminar fixture'),
+        title: const Text('Eliminar encuentros'),
         content: const Text(
             '¿Eliminar todos los partidos? Esta acción no se puede deshacer.'),
         actions: [
@@ -70,18 +69,18 @@ class FixtureScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fixture'),
+        title: const Text('Encuentros'),
         actions: [
           if (isAdmin) ...[
             if (fixtureState.matches.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.delete_outline),
-                tooltip: 'Eliminar fixture',
+                tooltip: 'Eliminar encuentros',
                 onPressed: () => _confirmDeleteFixture(context, ref),
               ),
             IconButton(
               icon: const Icon(Icons.auto_awesome),
-              tooltip: 'Generar fixture',
+              tooltip: 'Generar encuentros',
               onPressed: fixtureState.isGenerating
                   ? null
                   : () => _showGenerateDialog(context, ref),
@@ -116,7 +115,7 @@ class FixtureScreen extends ConsumerWidget {
                     : const Icon(Icons.auto_awesome),
                 label: Text(fixtureState.isGenerating
                     ? 'Generando...'
-                    : 'Generar fixture'),
+                    : 'Generar encuentros'),
               ),
             ),
 
@@ -291,10 +290,10 @@ class FixtureScreen extends ConsumerWidget {
     if (state.matches.isEmpty) {
       return EmptyStateWidget(
         icon: Icons.account_tree_outlined,
-        title: 'Sin fixture generado',
+        title: 'Sin encuentros generados',
         subtitle: isAdmin
-            ? 'Genera el fixture para comenzar el torneo'
-            : 'El administrador aún no ha generado el fixture',
+            ? 'Genera los encuentros para comenzar el torneo'
+            : 'El administrador aún no ha generado los encuentros',
       );
     }
 
@@ -334,33 +333,11 @@ class FixtureScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showGenerateDialog(BuildContext context, WidgetRef ref) async {
-    var categories = ref.read(categoriesProvider(tournamentId)).categories;
-    if (categories.isEmpty) {
-      // Torneos creados antes de este cambio pueden no tener todavía la
-      // categoría automática: se crea sola aquí.
-      await ref
-          .read(categoriesProvider(tournamentId).notifier)
-          .createCategory(name: 'General');
-      categories = ref.read(categoriesProvider(tournamentId)).categories;
-    }
-    if (categories.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo preparar el torneo, intenta de nuevo'),
-            backgroundColor: AppColors.warning,
-          ),
-        );
-      }
-      return;
-    }
-    if (!context.mounted) return;
+  void _showGenerateDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (_) => _GenerateFixtureDialog(
         tournamentId: tournamentId,
-        categoryId: categories.first.id,
         ref: ref,
       ),
     );
@@ -386,12 +363,10 @@ enum _ArrangementMode { random, manual }
 
 class _GenerateFixtureDialog extends StatefulWidget {
   final String tournamentId;
-  final String categoryId;
   final WidgetRef ref;
 
   const _GenerateFixtureDialog({
     required this.tournamentId,
-    required this.categoryId,
     required this.ref,
   });
 
@@ -423,7 +398,7 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
     final isGroups = _mode == AppConstants.tournamentModeGroups;
     final isElimination = _mode == AppConstants.tournamentModeElimination;
     return AlertDialog(
-      title: const Text('Generar fixture'),
+      title: const Text('Generar encuentros'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,7 +493,7 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
           ],
           const SizedBox(height: 8),
           Text(
-            'El fixture se generará automáticamente según la modalidad del torneo.',
+            'Los encuentros se generarán automáticamente según la modalidad del torneo.',
             style: AppTextStyles.bodySmall,
           ),
         ],
@@ -552,13 +527,9 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
     final mode = _mode;
     final navigator = Navigator.of(context);
 
-    // Obtener solo jugadores de la categoría seleccionada
     try {
-      final tournamentPlayers = await widget.ref
+      final enrolled = await widget.ref
           .read(playersByTournamentProvider(widget.tournamentId).future);
-      final enrolled = tournamentPlayers
-          .where((p) => p.categoryId == widget.categoryId)
-          .toList();
 
       if (enrolled.isEmpty) {
         setState(() => _isLoading = false);
@@ -585,7 +556,6 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
           navigator.push(MaterialPageRoute(
             builder: (_) => GroupAssignmentScreen(
               tournamentId: widget.tournamentId,
-              categoryId: widget.categoryId,
               players: enrolled,
               initialGroupCount: _numberOfGroups,
             ),
@@ -596,7 +566,6 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
             barrierDismissible: false,
             builder: (_) => RandomGroupsPreviewDialog(
               tournamentId: widget.tournamentId,
-              categoryId: widget.categoryId,
               players: enrolled,
               numberOfGroups: _numberOfGroups,
             ),
@@ -615,7 +584,6 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
         navigator.push(MaterialPageRoute(
           builder: (_) => BracketAssignmentScreen(
             tournamentId: widget.tournamentId,
-            categoryId: widget.categoryId,
             players: enrolled,
           ),
         ));
@@ -628,7 +596,6 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
       final success = await widget.ref
           .read(fixtureProvider(widget.tournamentId).notifier)
           .generateFixture(
-            categoryId: widget.categoryId,
             mode: mode,
             playerIds: playerIds,
             playerNames: playerNames,
@@ -644,7 +611,7 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
         if (!success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Error al generar el fixture'),
+              content: Text('Error al generar los encuentros'),
               backgroundColor: Colors.red,
             ),
           );

@@ -12,14 +12,12 @@ import '../providers/fixture_provider.dart';
 /// usando exactamente esa agrupación (en vez de una automática/aleatoria).
 class GroupAssignmentScreen extends ConsumerStatefulWidget {
   final String tournamentId;
-  final String categoryId;
   final List<PlayerEntity> players;
   final int initialGroupCount;
 
   const GroupAssignmentScreen({
     super.key,
     required this.tournamentId,
-    required this.categoryId,
     required this.players,
     required this.initialGroupCount,
   });
@@ -110,7 +108,6 @@ class _GroupAssignmentScreenState
     final success = await ref
         .read(fixtureProvider(widget.tournamentId).notifier)
         .generateFixture(
-          categoryId: widget.categoryId,
           mode: AppConstants.tournamentModeGroups,
           playerIds: playerIds,
           playerNames: playerNames,
@@ -124,7 +121,7 @@ class _GroupAssignmentScreenState
     } else {
       final error = ref.read(fixtureProvider(widget.tournamentId)).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error ?? 'Error al generar el fixture')),
+        SnackBar(content: Text(error ?? 'Error al generar los encuentros')),
       );
     }
   }
@@ -194,7 +191,7 @@ class _GroupAssignmentScreenState
                     strokeWidth: 2, color: AppColors.white),
               )
             : const Icon(Icons.auto_awesome),
-        label: Text(_isGenerating ? 'Generando...' : 'Generar fixture'),
+        label: Text(_isGenerating ? 'Generando...' : 'Generar encuentros'),
       ),
     );
   }

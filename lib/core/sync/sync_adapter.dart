@@ -1,5 +1,5 @@
 /// Puente entre el outbox genérico y una entidad concreta (torneos,
-/// categorías, etc.). Cada feature offline-first implementa uno.
+/// partidos, etc.). Cada feature offline-first implementa uno.
 abstract class SyncAdapter {
   /// Debe coincidir con el nombre de tabla usado en `SyncQueueEntries.entityTable`
   /// (normalmente `SupabaseConstants.xxxTable`).

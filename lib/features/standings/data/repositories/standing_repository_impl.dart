@@ -19,10 +19,9 @@ class StandingRepositoryImpl implements StandingRepository {
 
   @override
   Future<Either<Failure, List<StandingEntity>>> getStandings(
-      String tournamentId, {String? categoryId}) async {
+      String tournamentId) async {
     try {
-      return Right(
-          await _local.getStandings(tournamentId, categoryId: categoryId));
+      return Right(await _local.getStandings(tournamentId));
     } catch (e) {
       return Left(
           CacheFailure(message: 'Error al leer posiciones locales: $e'));

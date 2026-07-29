@@ -129,9 +129,9 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
     loadMatches();
   }
 
-  Future<void> loadMatches({String? categoryId}) async {
+  Future<void> loadMatches() async {
     state = state.copyWith(isLoading: true);
-    final result = await _getMatches(tournamentId, categoryId: categoryId);
+    final result = await _getMatches(tournamentId);
     result.fold(
       (f) => state = state.copyWith(isLoading: false, errorMessage: f.message),
       (list) => state = state.copyWith(isLoading: false, matches: list),
@@ -139,7 +139,6 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
   }
 
   Future<bool> generateFixture({
-    required String categoryId,
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
@@ -151,7 +150,6 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
     state = state.copyWith(isGenerating: true);
     final result = await _generate(
       tournamentId: tournamentId,
-      categoryId: categoryId,
       mode: mode,
       playerIds: playerIds,
       playerNames: playerNames,
@@ -166,13 +164,7 @@ class FixtureNotifier extends StateNotifier<FixtureState> {
         return false;
       },
       (newMatches) {
-        // Mantener partidos de otras categorías y agregar los nuevos
-        final otherMatches =
-            state.matches.where((m) => m.categoryId != categoryId).toList();
-        state = state.copyWith(
-          isGenerating: false,
-          matches: [...otherMatches, ...newMatches],
-        );
+        state = state.copyWith(isGenerating: false, matches: newMatches);
         return true;
       },
     );

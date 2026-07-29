@@ -7,7 +7,6 @@ class SupabaseConstants {
 
   // Nombres de tablas
   static const String tournamentsTable = 'tournaments';
-  static const String categoriesTable = 'categories';
   static const String playersTable = 'players';
   static const String matchesTable = 'matches';
   static const String resultsTable = 'results';

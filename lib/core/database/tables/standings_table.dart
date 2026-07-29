@@ -3,7 +3,6 @@ import 'package:drift/drift.dart';
 class Standings extends Table {
   TextColumn get id => text()();
   TextColumn get tournamentId => text()();
-  TextColumn get categoryId => text()();
   TextColumn get playerId => text()();
   TextColumn get playerName => text()();
   IntColumn get played => integer().withDefault(const Constant(0))();

@@ -4,7 +4,6 @@ class MatchModel extends MatchEntity {
   const MatchModel({
     required super.id,
     required super.tournamentId,
-    required super.categoryId,
     required super.homePlayerId,
     required super.awayPlayerId,
     required super.homePlayerName,
@@ -21,7 +20,6 @@ class MatchModel extends MatchEntity {
   factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
         id: json['id'] as String,
         tournamentId: json['tournament_id'] as String,
-        categoryId: json['category_id'] as String,
         homePlayerId: json['home_player_id'] as String,
         awayPlayerId: json['away_player_id'] as String,
         homePlayerName: json['home_player_name'] as String? ?? '',
@@ -42,7 +40,6 @@ class MatchModel extends MatchEntity {
   Map<String, dynamic> toJson() => {
         'id': id,
         'tournament_id': tournamentId,
-        'category_id': categoryId,
         'home_player_id': homePlayerId,
         'away_player_id': awayPlayerId,
         'home_player_name': homePlayerName,

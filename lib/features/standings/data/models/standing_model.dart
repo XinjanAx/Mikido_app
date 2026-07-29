@@ -4,7 +4,6 @@ class StandingModel extends StandingEntity {
   const StandingModel({
     required super.id,
     required super.tournamentId,
-    required super.categoryId,
     required super.playerId,
     required super.playerName,
     required super.played,
@@ -19,7 +18,6 @@ class StandingModel extends StandingEntity {
   factory StandingModel.fromJson(Map<String, dynamic> json) => StandingModel(
         id: json['id'] as String,
         tournamentId: json['tournament_id'] as String,
-        categoryId: json['category_id'] as String,
         playerId: json['player_id'] as String,
         playerName: json['player_name'] as String? ?? '',
         played: json['played'] as int? ?? 0,
@@ -34,7 +32,6 @@ class StandingModel extends StandingEntity {
   Map<String, dynamic> toJson() => {
         'id': id,
         'tournament_id': tournamentId,
-        'category_id': categoryId,
         'player_id': playerId,
         'player_name': playerName,
         'played': played,

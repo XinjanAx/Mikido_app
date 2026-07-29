@@ -53,14 +53,14 @@ class BracketScreen extends ConsumerWidget {
 
   Widget _buildBody(FixtureState state, String mode) {
     if (state.isLoading) {
-      return const LoadingWidget(message: 'Cargando fixture...');
+      return const LoadingWidget(message: 'Cargando encuentros...');
     }
 
     if (state.matches.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.account_tree_outlined,
-        title: 'Sin fixture generado',
-        subtitle: 'Ve a la pantalla de Fixture para generarlo',
+        title: 'Sin encuentros generados',
+        subtitle: 'Ve a la pantalla de Encuentros para generarlos',
       );
     }
 

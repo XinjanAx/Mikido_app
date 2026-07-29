@@ -17,7 +17,6 @@ class EnrollmentSyncAdapter implements SyncAdapter {
     await _remote.enrollPlayer(
       playerId: payload['player_id'] as String,
       tournamentId: payload['tournament_id'] as String,
-      categoryId: payload['category_id'] as String,
     );
   }
 
@@ -45,7 +44,6 @@ class EnrollmentSyncAdapter implements SyncAdapter {
     for (final row in remoteRows) {
       final tournamentId = row['tournament_id'] as String;
       final playerId = row['player_id'] as String;
-      final categoryId = row['category_id'] as String;
       final id = '$tournamentId:$playerId';
       remoteIds.add(id);
 
@@ -53,7 +51,6 @@ class EnrollmentSyncAdapter implements SyncAdapter {
       await _local.upsertEnrollment(
         id: id,
         tournamentId: tournamentId,
-        categoryId: categoryId,
         playerId: playerId,
         dirty: false,
       );

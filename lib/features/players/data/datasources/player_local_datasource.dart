@@ -18,7 +18,6 @@ abstract class PlayerLocalDataSource {
   Future<void> upsertEnrollment({
     required String id,
     required String tournamentId,
-    required String categoryId,
     required String playerId,
     required bool dirty,
   });
@@ -26,7 +25,7 @@ abstract class PlayerLocalDataSource {
   Future<void> markEnrollmentSynced(String id);
   Future<void> softDeleteEnrollment(String id);
   Future<void> hardDeleteEnrollment(String id);
-  Future<List<({String id, String tournamentId, String categoryId, String playerId})>>
+  Future<List<({String id, String tournamentId, String playerId})>>
       getAllEnrollments();
 }
 
@@ -37,14 +36,13 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
   static String enrollmentId(String tournamentId, String playerId) =>
       '$tournamentId:$playerId';
 
-  PlayerModel _toModel(Player row, {String? categoryId}) => PlayerModel(
+  PlayerModel _toModel(Player row) => PlayerModel(
         id: row.id,
         name: row.name,
         email: row.email,
         phone: row.phone,
         birthDate: row.birthDate,
         photoUrl: row.photoUrl,
-        categoryId: categoryId,
         createdAt: row.createdAt,
       );
 
@@ -90,23 +88,19 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
   @override
   Future<List<PlayerModel>> getPlayersByTournament(String tournamentId) async {
     final rows = await _db.getPlayersWithEnrollmentByTournament(tournamentId);
-    return rows
-        .map((r) => _toModel(r.$1, categoryId: r.$2.categoryId))
-        .toList();
+    return rows.map((r) => _toModel(r.$1)).toList();
   }
 
   @override
   Future<void> upsertEnrollment({
     required String id,
     required String tournamentId,
-    required String categoryId,
     required String playerId,
     required bool dirty,
   }) {
     return _db.upsertEnrollment(EnrollmentsCompanion.insert(
       id: id,
       tournamentId: tournamentId,
-      categoryId: categoryId,
       playerId: playerId,
       dirty: Value(dirty),
     ));
@@ -131,14 +125,13 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
       _db.hardDeleteEnrollment(id);
 
   @override
-  Future<List<({String id, String tournamentId, String categoryId, String playerId})>>
+  Future<List<({String id, String tournamentId, String playerId})>>
       getAllEnrollments() async {
     final rows = await _db.getAllEnrollmentsLocal();
     return rows
         .map((r) => (
               id: r.id,
               tournamentId: r.tournamentId,
-              categoryId: r.categoryId,
               playerId: r.playerId,
             ))
         .toList();

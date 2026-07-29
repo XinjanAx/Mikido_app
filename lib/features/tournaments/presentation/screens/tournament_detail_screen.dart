@@ -90,7 +90,7 @@ class TournamentDetailScreen extends ConsumerWidget {
         ),
       _QuickAction(
         icon: Icons.account_tree_outlined,
-        label: 'Fixture',
+        label: 'Encuentros',
         color: AppColors.warning,
         onTap: () => context.push(
           RouteConstants.fixtures.replaceAll(':id', tournamentId),

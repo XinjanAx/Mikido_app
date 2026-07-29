@@ -4,7 +4,6 @@ import 'package:drift/drift.dart';
 class Matches extends Table {
   TextColumn get id => text()();
   TextColumn get tournamentId => text()();
-  TextColumn get categoryId => text()();
   TextColumn get homePlayerId => text()();
   TextColumn get awayPlayerId => text()();
   TextColumn get homePlayerName => text()();

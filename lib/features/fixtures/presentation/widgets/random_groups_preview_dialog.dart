@@ -15,14 +15,12 @@ import '../providers/fixture_provider.dart';
 /// para evitar que se confirme sin mirar los grupos.
 class RandomGroupsPreviewDialog extends ConsumerStatefulWidget {
   final String tournamentId;
-  final String categoryId;
   final List<PlayerEntity> players;
   final int numberOfGroups;
 
   const RandomGroupsPreviewDialog({
     super.key,
     required this.tournamentId,
-    required this.categoryId,
     required this.players,
     required this.numberOfGroups,
   });
@@ -103,7 +101,6 @@ class _RandomGroupsPreviewDialogState
     final success = await ref
         .read(fixtureProvider(widget.tournamentId).notifier)
         .generateFixture(
-          categoryId: widget.categoryId,
           mode: AppConstants.tournamentModeGroups,
           playerIds: playerIds,
           playerNames: playerNames,
@@ -116,7 +113,7 @@ class _RandomGroupsPreviewDialogState
     Navigator.of(context).pop();
     if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage ?? 'Error al generar el fixture')),
+        SnackBar(content: Text(errorMessage ?? 'Error al generar los encuentros')),
       );
     }
   }

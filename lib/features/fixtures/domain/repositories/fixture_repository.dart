@@ -4,10 +4,9 @@ import '../entities/match_entity.dart';
 
 abstract class FixtureRepository {
   Future<Either<Failure, List<MatchEntity>>> getMatchesByTournament(
-      String tournamentId, {String? categoryId});
+      String tournamentId);
   Future<Either<Failure, List<MatchEntity>>> generateFixture({
     required String tournamentId,
-    required String categoryId,
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,

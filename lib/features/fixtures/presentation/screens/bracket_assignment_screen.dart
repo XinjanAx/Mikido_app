@@ -13,13 +13,11 @@ import '../providers/fixture_provider.dart';
 /// si sobra uno al final, pasa con bye.
 class BracketAssignmentScreen extends ConsumerStatefulWidget {
   final String tournamentId;
-  final String categoryId;
   final List<PlayerEntity> players;
 
   const BracketAssignmentScreen({
     super.key,
     required this.tournamentId,
-    required this.categoryId,
     required this.players,
   });
 
@@ -72,7 +70,6 @@ class _BracketAssignmentScreenState
     final success = await ref
         .read(fixtureProvider(widget.tournamentId).notifier)
         .generateFixture(
-          categoryId: widget.categoryId,
           mode: AppConstants.tournamentModeElimination,
           playerIds: playerIds,
           playerNames: playerNames,
@@ -86,7 +83,7 @@ class _BracketAssignmentScreenState
     } else {
       final error = ref.read(fixtureProvider(widget.tournamentId)).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error ?? 'Error al generar el fixture')),
+        SnackBar(content: Text(error ?? 'Error al generar los encuentros')),
       );
     }
   }
@@ -191,7 +188,7 @@ class _BracketAssignmentScreenState
                     strokeWidth: 2, color: AppColors.white),
               )
             : const Icon(Icons.auto_awesome),
-        label: Text(_isGenerating ? 'Generando...' : 'Generar fixture'),
+        label: Text(_isGenerating ? 'Generando...' : 'Generar encuentros'),
       ),
     );
   }

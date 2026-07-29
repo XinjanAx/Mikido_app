@@ -8,8 +8,7 @@ import '../models/match_model.dart';
 /// FixtureGenerator, EliminationBracketService y MatchResultService) — este
 /// datasource solo lo usa el motor de sincronización para subir/bajar filas.
 abstract class FixtureRemoteDataSource {
-  Future<List<MatchModel>> getMatchesByTournament(String tournamentId,
-      {String? categoryId});
+  Future<List<MatchModel>> getMatchesByTournament(String tournamentId);
 
   /// Todos los partidos (todos los torneos), usado por el motor de
   /// sincronización para reconciliar la base local.
@@ -28,17 +27,13 @@ class FixtureRemoteDataSourceImpl implements FixtureRemoteDataSource {
   const FixtureRemoteDataSourceImpl(this._client);
 
   @override
-  Future<List<MatchModel>> getMatchesByTournament(String tournamentId,
-      {String? categoryId}) async {
+  Future<List<MatchModel>> getMatchesByTournament(String tournamentId) async {
     try {
-      var query = _client
+      final data = await _client
           .from(SupabaseConstants.matchesTable)
           .select()
-          .eq('tournament_id', tournamentId);
-      if (categoryId != null) {
-        query = query.eq('category_id', categoryId);
-      }
-      final data = await query.order('match_number');
+          .eq('tournament_id', tournamentId)
+          .order('match_number');
       return (data as List).map((e) => MatchModel.fromJson(e)).toList();
     } catch (e) {
       throw ServerException(message: 'Error al obtener partidos: $e');

@@ -44,7 +44,6 @@ class MatchResultService {
     final updated = MatchModel(
       id: existing.id,
       tournamentId: existing.tournamentId,
-      categoryId: existing.categoryId,
       homePlayerId: existing.homePlayerId,
       awayPlayerId: existing.awayPlayerId,
       homePlayerName: existing.homePlayerName,
@@ -75,7 +74,6 @@ class MatchResultService {
       if (tournament?.mode == AppConstants.tournamentModeElimination) {
         await _bracket.advance(
           tournamentId: updated.tournamentId,
-          categoryId: updated.categoryId,
           completedRound: updated.round ?? '',
         );
       }

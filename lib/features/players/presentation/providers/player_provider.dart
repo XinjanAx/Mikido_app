@@ -186,12 +186,10 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
   Future<bool> enrollPlayer({
     required String playerId,
     required String tournamentId,
-    required String categoryId,
   }) async {
     final result = await _enroll(
       playerId: playerId,
       tournamentId: tournamentId,
-      categoryId: categoryId,
     );
     return result.fold((f) {
       state = state.copyWith(errorMessage: f.message);

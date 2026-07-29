@@ -27,10 +27,9 @@ class FixtureRepositoryImpl implements FixtureRepository {
 
   @override
   Future<Either<Failure, List<MatchEntity>>> getMatchesByTournament(
-      String tournamentId, {String? categoryId}) async {
+      String tournamentId) async {
     try {
-      return Right(await _local.getMatchesByTournament(tournamentId,
-          categoryId: categoryId));
+      return Right(await _local.getMatchesByTournament(tournamentId));
     } catch (e) {
       return Left(CacheFailure(message: 'Error al leer partidos locales: $e'));
     }
@@ -39,7 +38,6 @@ class FixtureRepositoryImpl implements FixtureRepository {
   @override
   Future<Either<Failure, List<MatchEntity>>> generateFixture({
     required String tournamentId,
-    required String categoryId,
     required String mode,
     required List<String> playerIds,
     required List<String> playerNames,
@@ -49,9 +47,8 @@ class FixtureRepositoryImpl implements FixtureRepository {
     List<String>? manualBracketOrder,
   }) async {
     try {
-      // 1. Eliminar fixture anterior de esta categoría (local + encolar borrado)
-      final old = await _local.getMatchesByTournament(tournamentId,
-          categoryId: categoryId);
+      // 1. Eliminar fixture anterior del torneo (local + encolar borrado)
+      final old = await _local.getMatchesByTournament(tournamentId);
       for (final m in old) {
         await _local.softDelete(m.id);
         await _db.enqueueDelete(SupabaseConstants.matchesTable, m.id);
@@ -60,7 +57,6 @@ class FixtureRepositoryImpl implements FixtureRepository {
       // 2. Generar los partidos nuevos (función pura, sin red)
       final newMatches = FixtureGenerator.generate(
         tournamentId: tournamentId,
-        categoryId: categoryId,
         mode: mode,
         playerIds: playerIds,
         playerNames: playerNames,
@@ -80,7 +76,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
       unawaited(_syncEngine.trySync());
       return Right(newMatches);
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al generar el fixture local: $e'));
+      return Left(CacheFailure(message: 'Error al generar los encuentros localmente: $e'));
     }
   }
 
@@ -115,7 +111,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
       unawaited(_syncEngine.trySync());
       return const Right(null);
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al eliminar el fixture local: $e'));
+      return Left(CacheFailure(message: 'Error al eliminar los encuentros localmente: $e'));
     }
   }
 

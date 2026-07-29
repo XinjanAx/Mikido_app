@@ -39,10 +39,29 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('¡Bienvenido!'),
-        content: const Text(
-          'La primera vez inicia sesión con internet para verificar tu cuenta.\n\n'
-          'Luego podrás usar la aplicación sin conexión y los cambios se '
-          'sincronizarán automáticamente cuando haya internet.',
+        scrollable: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset(
+                'assets/images/mikido_wordmark.png',
+                height: 48,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'La primera vez inicia sesión con internet para verificar tu cuenta.\n\n'
+              'Luego podrás usar la aplicación sin conexión y los cambios se '
+              'sincronizarán automáticamente cuando haya internet.',
+            ),
+          ],
         ),
         actions: [
           TextButton(

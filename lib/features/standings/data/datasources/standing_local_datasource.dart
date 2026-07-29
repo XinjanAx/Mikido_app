@@ -4,8 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../models/standing_model.dart';
 
 abstract class StandingLocalDataSource {
-  Future<List<StandingModel>> getStandings(String tournamentId,
-      {String? categoryId});
+  Future<List<StandingModel>> getStandings(String tournamentId);
   Future<List<StandingModel>> getAllStandings();
   Stream<List<StandingModel>> watchStandings(String tournamentId);
 
@@ -21,7 +20,6 @@ class StandingLocalDataSourceImpl implements StandingLocalDataSource {
   StandingModel _toModel(Standing row) => StandingModel(
         id: row.id,
         tournamentId: row.tournamentId,
-        categoryId: row.categoryId,
         playerId: row.playerId,
         playerName: row.playerName,
         played: row.played,
@@ -34,9 +32,8 @@ class StandingLocalDataSourceImpl implements StandingLocalDataSource {
       );
 
   @override
-  Future<List<StandingModel>> getStandings(String tournamentId,
-          {String? categoryId}) async =>
-      (await _db.getStandingsByTournament(tournamentId, categoryId: categoryId))
+  Future<List<StandingModel>> getStandings(String tournamentId) async =>
+      (await _db.getStandingsByTournament(tournamentId))
           .map(_toModel)
           .toList();
 
@@ -53,7 +50,6 @@ class StandingLocalDataSourceImpl implements StandingLocalDataSource {
     return _db.upsertStanding(StandingsCompanion.insert(
       id: standing.id,
       tournamentId: standing.tournamentId,
-      categoryId: standing.categoryId,
       playerId: standing.playerId,
       playerName: standing.playerName,
       played: Value(standing.played),

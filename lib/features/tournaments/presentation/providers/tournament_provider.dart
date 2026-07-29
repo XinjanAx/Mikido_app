@@ -13,10 +13,6 @@ import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../../domain/usecases/tournament_usecases.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../categories/domain/entities/category_entity.dart';
-import '../../../categories/domain/usecases/category_usecases.dart';
-import '../../../categories/presentation/providers/category_provider.dart'
-    show createCategoryUseCaseProvider;
 import '../../../../core/constants/app_constants.dart';
 import '../../../notifications/domain/usecases/schedule_notifications_usecase.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart'
@@ -93,7 +89,6 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
   final CreateTournamentUseCase _create;
   final UpdateTournamentUseCase _update;
   final DeleteTournamentUseCase _delete;
-  final CreateCategoryUseCase _createCategory;
   final ScheduleNotificationsUseCase _scheduleNotifications;
   final String _userId;
 
@@ -102,14 +97,12 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
     required CreateTournamentUseCase create,
     required UpdateTournamentUseCase update,
     required DeleteTournamentUseCase delete,
-    required CreateCategoryUseCase createCategory,
     required ScheduleNotificationsUseCase scheduleNotifications,
     required String userId,
   })  : _getAll = getAll,
         _create = create,
         _update = update,
         _delete = delete,
-        _createCategory = createCategory,
         _scheduleNotifications = scheduleNotifications,
         _userId = userId,
         super(const TournamentsState()) {
@@ -156,14 +149,6 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
         return false;
       },
       (created) {
-        // Ya no se pide elegir/crear categoría en la app: cada torneo
-        // recibe una única categoría "General" automática por dentro, que
-        // sigue usando toda la lógica existente de inscripciones/fixture.
-        unawaited(_createCategory(CategoryEntity(
-          id: const Uuid().v4(),
-          name: 'General',
-          tournamentId: created.id,
-        )));
         unawaited(_scheduleNotifications.schedule(
           tournamentId: created.id,
           tournamentName: created.name,
@@ -232,7 +217,6 @@ final tournamentsProvider =
       create: ref.watch(createTournamentUseCaseProvider),
       update: ref.watch(updateTournamentUseCaseProvider),
       delete: ref.watch(deleteTournamentUseCaseProvider),
-      createCategory: ref.watch(createCategoryUseCaseProvider),
       scheduleNotifications: ref.watch(scheduleNotificationsUseCaseProvider),
       userId: userId,
     );

@@ -8,7 +8,6 @@ class PlayerModel extends PlayerEntity {
     super.phone,
     super.birthDate,
     super.photoUrl,
-    super.categoryId,
     super.createdAt,
   });
 
@@ -21,7 +20,6 @@ class PlayerModel extends PlayerEntity {
             ? DateTime.tryParse(json['birth_date'] as String)
             : null,
         photoUrl: json['photo_url'] as String?,
-        categoryId: json['category_id'] as String?,
         createdAt: json['created_at'] != null
             ? DateTime.tryParse(json['created_at'] as String)
             : null,

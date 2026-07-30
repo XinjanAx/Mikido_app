@@ -6,6 +6,24 @@ import '../../../../core/database/app_database.dart';
 import '../datasources/fixture_local_datasource.dart';
 import '../models/match_model.dart';
 
+/// Ronda de eliminación ya terminada, con la siguiente ronda calculada
+/// (nombre + ganadores que pasan) pero TODAVÍA sin generar en la base —
+/// pensado para mostrarle esto al admin y pedirle que confirme antes de
+/// llamar a [EliminationBracketService.generateNextRound].
+class PendingRoundAdvance {
+  final String tournamentId;
+  final String completedRound;
+  final String nextRound;
+  final List<({String id, String name})> winners;
+
+  const PendingRoundAdvance({
+    required this.tournamentId,
+    required this.completedRound,
+    required this.nextRound,
+    required this.winners,
+  });
+}
+
 /// Verifica si todos los partidos de una ronda de eliminación están
 /// finalizados y, si es así, genera automáticamente la siguiente ronda con
 /// los ganadores. Opera 100% sobre la base local.
@@ -15,17 +33,21 @@ class EliminationBracketService {
 
   const EliminationBracketService(this._local, this._db);
 
-  Future<void> advance({
+  /// Solo consulta si la ronda ya está lista para avanzar — no escribe
+  /// nada. La UI usa esto para pedir confirmación antes de llamar a
+  /// [generateNextRound].
+  Future<PendingRoundAdvance?> checkRoundComplete({
     required String tournamentId,
     required String completedRound,
   }) async {
     // 1. Partidos de la ronda que se acaba de completar
     final roundMatches =
         await _local.getMatchesByRound(tournamentId, completedRound);
+    if (roundMatches.isEmpty) return null;
 
     // 2. Verificar que TODOS estén finalizados
     final allFinished = roundMatches.every((m) => m.isFinished);
-    if (!allFinished) return; // aún faltan resultados
+    if (!allFinished) return null; // aún faltan resultados
 
     // 3. Obtener ganadores
     final winners = roundMatches.where((m) {
@@ -39,7 +61,7 @@ class EliminationBracketService {
     }).toList();
 
     // 4. Si solo queda 1 ganador, el torneo terminó
-    if (winners.length <= 1) return;
+    if (winners.length <= 1) return null;
 
     // 5. Nombre de la siguiente ronda
     final nextRound = _nextRoundName(completedRound, winners.length);
@@ -47,9 +69,24 @@ class EliminationBracketService {
     // 6. Verificar que la siguiente ronda no exista ya (idempotencia)
     final existingNext =
         await _local.getMatchesByRound(tournamentId, nextRound);
-    if (existingNext.isNotEmpty) return;
+    if (existingNext.isNotEmpty) return null;
 
-    // 7. Generar partidos de la siguiente ronda.
+    return PendingRoundAdvance(
+      tournamentId: tournamentId,
+      completedRound: completedRound,
+      nextRound: nextRound,
+      winners: winners,
+    );
+  }
+
+  /// Genera los partidos de la siguiente ronda a partir de un
+  /// [PendingRoundAdvance] ya confirmado por el admin (ver
+  /// [checkRoundComplete]).
+  Future<void> generateNextRound(PendingRoundAdvance pending) async {
+    final tournamentId = pending.tournamentId;
+    final nextRound = pending.nextRound;
+    final winners = pending.winners;
+
     // El número sigue la numeración de todo el torneo (no solo de la
     // ronda que se completó), para no repetir números ya usados en rondas
     // anteriores y mantener el orden correcto en la lista de partidos.
@@ -98,9 +135,30 @@ class EliminationBracketService {
     }
   }
 
+  /// Comprueba y genera en un solo paso, sin pedir confirmación — pensado
+  /// para la sincronización en segundo plano (ver fixture_sync_adapter.dart),
+  /// donde no hay nadie frente a la pantalla para confirmar (p. ej. cuando
+  /// dos admins en dispositivos distintos completan la misma ronda entre
+  /// los dos). La UI interactiva usa [checkRoundComplete] +
+  /// [generateNextRound] por separado para poder mostrar el diálogo de
+  /// confirmación en el medio.
+  Future<void> advance({
+    required String tournamentId,
+    required String completedRound,
+  }) async {
+    final pending = await checkRoundComplete(
+      tournamentId: tournamentId,
+      completedRound: completedRound,
+    );
+    if (pending == null) return;
+    await generateNextRound(pending);
+  }
+
   /// Nombres de ronda en orden — deben coincidir con los que usa
   /// fixture_generator.dart (_eliminationRoundName) para la ronda inicial.
-  static const _roundOrder = [
+  /// Público para que la UI pueda saber si una ronda ya tiene la
+  /// siguiente generada (y por lo tanto debe bloquear su edición).
+  static const roundOrder = [
     'Treintaidosavos de final',
     'Dieciseisavos de final',
     'Octavos de final',
@@ -120,9 +178,9 @@ class EliminationBracketService {
   /// creyera que la siguiente ya existía — dejando el cuadro
   /// congelado ahí para siempre sin generar nada más.
   String _nextRoundName(String completedRound, int winners) {
-    final idx = _roundOrder.indexOf(completedRound);
-    if (idx != -1 && idx < _roundOrder.length - 1) {
-      return _roundOrder[idx + 1];
+    final idx = roundOrder.indexOf(completedRound);
+    if (idx != -1 && idx < roundOrder.length - 1) {
+      return roundOrder[idx + 1];
     }
     // Ronda no reconocida (no debería pasar): usar el conteo como respaldo.
     if (winners > 32) return 'Treintaidosavos de final';

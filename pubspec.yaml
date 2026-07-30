@@ -39,6 +39,7 @@ dependencies:
   uuid: ^4.4.0
   drift: ^2.34.3
   sqlite3: ^3.5.0
+  sqlite3_flutter_libs: ^0.5.24
   path_provider: ^2.1.6
   path: ^1.9.1
   connectivity_plus: ^7.3.1

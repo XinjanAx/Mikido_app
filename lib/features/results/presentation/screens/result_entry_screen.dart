@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart';
+import '../../../fixtures/presentation/widgets/round_advance_confirm_dialog.dart';
+import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../providers/result_provider.dart';
 import '../widgets/result_form_widget.dart';
 
@@ -29,15 +32,9 @@ class ResultEntryScreen extends ConsumerWidget {
         .firstOrNull;
 
     ref.listen<ResultState>(resultProvider(tournamentId), (_, next) {
-      if (next.successMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.successMessage!),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        context.pop();
-      }
+      // El éxito se maneja manualmente en onSave (más abajo): ahí se
+      // encadena la confirmación de avance de ronda antes de salir de la
+      // pantalla, en vez de salir apenas se guarda el marcador.
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -89,8 +86,10 @@ class ResultEntryScreen extends ConsumerWidget {
               initialAwayScore: match.awayScore,
               isSaving: resultState.isSaving,
               onCancel: () => context.pop(),
-              onSave: (homeScore, awayScore, notes) {
-                ref.read(resultProvider(tournamentId).notifier).registerResult(
+              onSave: (homeScore, awayScore, notes) async {
+                final ok = await ref
+                    .read(resultProvider(tournamentId).notifier)
+                    .registerResult(
                       matchId: matchId,
                       homePlayerId: match.homePlayerId,
                       awayPlayerId: match.awayPlayerId,
@@ -98,6 +97,39 @@ class ResultEntryScreen extends ConsumerWidget {
                       awayScore: awayScore,
                       notes: notes,
                     );
+                if (!ok || !context.mounted) return;
+
+                final tournament =
+                    ref.read(tournamentByIdProvider(tournamentId));
+                if (tournament?.mode ==
+                        AppConstants.tournamentModeElimination &&
+                    match.round != null) {
+                  final bracket = ref.read(eliminationBracketServiceProvider);
+                  final pending = await bracket.checkRoundComplete(
+                    tournamentId: tournamentId,
+                    completedRound: match.round!,
+                  );
+                  if (pending != null && context.mounted) {
+                    final confirmed =
+                        await showRoundAdvanceConfirmDialog(context, pending);
+                    if (confirmed) {
+                      await bracket.generateNextRound(pending);
+                      ref
+                          .read(fixtureProvider(tournamentId).notifier)
+                          .loadMatches();
+                    }
+                  }
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Resultado registrado correctamente'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                  context.pop();
+                }
               },
             ),
           ],

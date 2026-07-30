@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:torneo_app/core/constants/route_constants.dart';
 import 'package:torneo_app/core/sync/sync_engine_provider.dart';
 import 'package:torneo_app/core/theme/app_colors.dart';
+import 'package:torneo_app/features/fixtures/presentation/providers/fixture_provider.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
 
 class PlayerEnrollmentScreen extends ConsumerStatefulWidget {
@@ -26,7 +27,38 @@ class PlayerEnrollmentScreenState
     super.dispose();
   }
 
-  Future<void> _unenroll(String playerId) async {
+  Future<void> _unenroll(String playerId, String playerName) async {
+    // No se puede quitar la inscripción de alguien que ya tiene
+    // encuentros generados en este torneo — desinscribirlo dejaría esos
+    // partidos con un jugador que ya no está inscrito.
+    final matches = await ref
+        .read(fixtureLocalDataSourceProvider)
+        .getMatchesByTournament(widget.tournamentId);
+    final hasMatches = matches
+        .any((m) => m.homePlayerId == playerId || m.awayPlayerId == playerId);
+
+    if (hasMatches) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('No se puede desinscribir'),
+            content: Text(
+              '"$playerName" ya tiene encuentros generados en este torneo. '
+              'No se puede quitar su inscripción.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     final success = await ref.read(playersProvider.notifier).unenrollPlayer(
           playerId: playerId,
           tournamentId: widget.tournamentId,
@@ -181,7 +213,7 @@ class PlayerEnrollmentScreenState
                               icon: const Icon(Icons.remove_circle_outline,
                                   color: Colors.red, size: 20),
                               tooltip: 'Desinscribir',
-                              onPressed: () => _unenroll(p.id),
+                              onPressed: () => _unenroll(p.id, p.name),
                             ),
                           )),
                     const Divider(height: 1),

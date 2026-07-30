@@ -1,23 +1,16 @@
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/sync/sync_adapter.dart';
-import '../../../tournaments/data/datasources/tournament_local_datasource.dart';
 import '../datasources/fixture_local_datasource.dart';
 import '../datasources/fixture_remote_datasource.dart';
 import '../models/match_model.dart';
-import '../services/elimination_bracket_service.dart';
 
 class FixtureSyncAdapter implements SyncAdapter {
   final FixtureRemoteDataSource _remote;
   final FixtureLocalDataSource _local;
-  final EliminationBracketService _bracket;
-  final TournamentLocalDataSource _tournaments;
 
   const FixtureSyncAdapter(
     this._remote,
     this._local,
-    this._bracket,
-    this._tournaments,
   );
 
   @override
@@ -55,35 +48,17 @@ class FixtureSyncAdapter implements SyncAdapter {
       await _local.upsert(m, dirty: false);
     }
 
-    await _advanceEliminationBrackets(remoteList);
-  }
-
-  /// `advance()` también se llama al guardar un resultado localmente
-  /// (ver MatchResultService), pero ese dispositivo solo ve sus propios
-  /// partidos: si dos admins juegan rondas distintas del mismo cuadro en
-  /// dispositivos distintos, ninguno de los dos observa nunca "toda la
-  /// ronda terminada" en el momento de guardar. Al traer los resultados
-  /// del otro dispositivo por sync, reintentamos avanzar aquí — así la
-  /// ronda no se queda atascada esperando a que alguien vuelva a tocar
-  /// un resultado de esa ronda.
-  Future<void> _advanceEliminationBrackets(List<MatchModel> remoteList) async {
-    final roundsByTournament = <String, Set<String>>{};
-    for (final m in remoteList) {
-      final round = m.round;
-      if (round == null) continue;
-      roundsByTournament.putIfAbsent(m.tournamentId, () => {}).add(round);
-    }
-
-    for (final entry in roundsByTournament.entries) {
-      final tournament = await _tournaments.getTournamentById(entry.key);
-      if (tournament?.mode != AppConstants.tournamentModeElimination) continue;
-      for (final round in entry.value) {
-        try {
-          await _bracket.advance(tournamentId: entry.key, completedRound: round);
-        } catch (_) {
-          // No interrumpir el resto de la sincronización.
-        }
-      }
-    }
+    // El avance de ronda de eliminación YA NO se dispara nunca en
+    // segundo plano — solo lo hace la UI (ver EliminationBracketService
+    // + match_result_service.dart), y siempre con confirmación explícita
+    // del admin. Antes esto reintentaba avanzar aquí en cada sync para
+    // cubrir el caso de dos admins completando la misma ronda en
+    // dispositivos distintos, pero eso también podía disparar el avance
+    // usando un resultado que un admin recién había corregido en su
+    // propio dispositivo mientras esperaba confirmar — pasando al
+    // competidor equivocado sin preguntar. En el caso multi-dispositivo,
+    // la ronda queda pendiente hasta que alguien la confirme desde
+    // cualquier dispositivo (al guardar/corregir cualquier resultado de
+    // esa ronda, ya con los datos sincronizados).
   }
 }

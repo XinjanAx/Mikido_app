@@ -2,13 +2,11 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../standings/data/services/standings_recalculation_service.dart';
-import '../../../tournaments/data/datasources/tournament_local_datasource.dart';
 import '../datasources/fixture_local_datasource.dart';
 import '../models/match_model.dart';
-import 'elimination_bracket_service.dart';
 
-/// Aplica el resultado de un partido: guarda el marcador, recalcula la
-/// tabla de posiciones y avanza el bracket si el torneo es de eliminación.
+/// Aplica el resultado de un partido: guarda el marcador y recalcula la
+/// tabla de posiciones.
 ///
 /// Antes esto vivía duplicado (y de forma inconsistente) en dos lugares:
 /// el datasource de Fixtures avanzaba el bracket pero no recalculaba
@@ -16,18 +14,21 @@ import 'elimination_bracket_service.dart';
 /// recalculaba posiciones pero nunca avanzaba el bracket. Ahora ambos
 /// caminos (editar resultado rápido desde Fixtures, o el formulario
 /// dedicado de Results) pasan por aquí y quedan consistentes.
+///
+/// El avance de ronda en modo eliminación YA NO ocurre aquí de forma
+/// automática: la UI (fixture_screen.dart / result_entry_screen.dart)
+/// llama a `EliminationBracketService.checkRoundComplete` después de
+/// guardar y le pide confirmación al admin (con la lista de jugadores que
+/// pasan) antes de generar la siguiente ronda — así puede corregir un
+/// marcador mal cargado sin que ya se haya generado la ronda siguiente.
 class MatchResultService {
   final FixtureLocalDataSource _matches;
-  final TournamentLocalDataSource _tournaments;
   final StandingsRecalculationService _standingsRecalc;
-  final EliminationBracketService _bracket;
   final AppDatabase _db;
 
   const MatchResultService(
     this._matches,
-    this._tournaments,
     this._standingsRecalc,
-    this._bracket,
     this._db,
   );
 
@@ -67,18 +68,6 @@ class MatchResultService {
       // No interrumpir el guardado del resultado si falla el recálculo
       // ignore: avoid_print
       print('STANDINGS: error al recalcular: $e');
-    }
-
-    try {
-      final tournament = await _tournaments.getTournamentById(updated.tournamentId);
-      if (tournament?.mode == AppConstants.tournamentModeElimination) {
-        await _bracket.advance(
-          tournamentId: updated.tournamentId,
-          completedRound: updated.round ?? '',
-        );
-      }
-    } catch (_) {
-      // No interrumpir si falla el avance del bracket
     }
 
     return updated;

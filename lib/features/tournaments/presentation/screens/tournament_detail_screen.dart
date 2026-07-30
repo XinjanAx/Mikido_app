@@ -7,6 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../fixtures/presentation/providers/fixture_provider.dart'
+    show matchesStreamProvider;
 import '../providers/tournament_provider.dart';
 
 class TournamentDetailScreen extends ConsumerWidget {
@@ -18,6 +20,11 @@ class TournamentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tournament = ref.watch(tournamentByIdProvider(tournamentId));
     final isAdmin = ref.watch(isAdminProvider);
+    final hasMatches = ref
+            .watch(matchesStreamProvider(tournamentId))
+            .valueOrNull
+            ?.isNotEmpty ??
+        false;
 
     if (tournament == null) {
       final isLoading = ref.watch(tournamentsProvider).isLoading;
@@ -38,10 +45,36 @@ class TournamentDetailScreen extends ConsumerWidget {
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push(
-                RouteConstants.tournamentEdit.replaceAll(':id', tournamentId),
-                extra: tournament,
-              ),
+              tooltip: hasMatches
+                  ? 'No se puede editar: ya hay encuentros generados'
+                  : 'Editar torneo',
+              onPressed: () {
+                if (hasMatches) {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('No se puede editar'),
+                      content: const Text(
+                        'Este torneo ya tiene encuentros generados. Para '
+                        'editarlo (por ejemplo, cambiar la modalidad), '
+                        'primero elimina los encuentros desde la pantalla '
+                        'de Encuentros.',
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Entendido'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
+                context.push(
+                  RouteConstants.tournamentEdit.replaceAll(':id', tournamentId),
+                  extra: tournament,
+                );
+              },
             ),
         ],
       ),

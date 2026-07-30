@@ -12,10 +12,12 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../standings/domain/entities/standing_entity.dart';
 import '../../../standings/presentation/providers/standing_provider.dart';
+import '../../data/services/elimination_bracket_service.dart';
 import '../../domain/entities/match_entity.dart';
 import '../providers/fixture_provider.dart';
 import '../widgets/match_card_widget.dart';
 import '../widgets/random_groups_preview_dialog.dart';
+import '../widgets/round_advance_confirm_dialog.dart';
 import 'bracket_assignment_screen.dart';
 import 'group_assignment_screen.dart';
 
@@ -85,8 +87,11 @@ class FixtureScreen extends ConsumerWidget {
               ),
             IconButton(
               icon: const Icon(Icons.auto_awesome),
-              tooltip: 'Generar encuentros',
-              onPressed: fixtureState.isGenerating
+              tooltip: fixtureState.matches.isNotEmpty
+                  ? 'Ya hay encuentros generados — elimínalos primero para volver a generar'
+                  : 'Generar encuentros',
+              onPressed: fixtureState.isGenerating ||
+                      fixtureState.matches.isNotEmpty
                   ? null
                   : () => _showGenerateDialog(context, ref),
             ),
@@ -313,6 +318,7 @@ class FixtureScreen extends ConsumerWidget {
       itemBuilder: (_, i) {
         final round = roundKeys[i];
         final matches = byRound[round]!;
+        final locked = isElimination && _isRoundLocked(round, byRound);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -326,7 +332,8 @@ class FixtureScreen extends ConsumerWidget {
             ...matches.map((m) => MatchCard(
                   match: m,
                   isAdmin: isAdmin,
-                  onTap: isAdmin && !isTournamentFinished
+                  locked: locked,
+                  onTap: isAdmin && !isTournamentFinished && !locked
                       ? () => _showResultDialog(context, ref, m)
                       : null,
                 )),
@@ -334,6 +341,20 @@ class FixtureScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  /// Una ronda de eliminación queda bloqueada (no editable) en cuanto el
+  /// admin confirma el pase a la siguiente ronda y esta ya se generó —
+  /// evita corregir un resultado después de que ya se decidió, con esos
+  /// jugadores, quién avanza.
+  bool _isRoundLocked(String round, Map<String, List<MatchEntity>> byRound) {
+    final idx = EliminationBracketService.roundOrder.indexOf(round);
+    if (idx == -1 || idx >= EliminationBracketService.roundOrder.length - 1) {
+      return false;
+    }
+    final nextRound = EliminationBracketService.roundOrder[idx + 1];
+    final nextMatches = byRound[nextRound];
+    return nextMatches != null && nextMatches.isNotEmpty;
   }
 
   void _showGenerateDialog(BuildContext context, WidgetRef ref) {
@@ -356,6 +377,7 @@ class FixtureScreen extends ConsumerWidget {
         initialHomeScore: match.homeScore,
         initialAwayScore: match.awayScore,
         tournamentId: tournamentId,
+        round: match.round,
         ref: ref,
       ),
     );
@@ -642,6 +664,7 @@ class _ResultDialog extends StatefulWidget {
   final int? initialHomeScore;
   final int? initialAwayScore;
   final String tournamentId;
+  final String? round;
   final WidgetRef ref;
 
   const _ResultDialog({
@@ -651,6 +674,7 @@ class _ResultDialog extends StatefulWidget {
     this.initialHomeScore,
     this.initialAwayScore,
     required this.tournamentId,
+    this.round,
     required this.ref,
   });
 
@@ -759,13 +783,36 @@ class _ResultDialogState extends State<_ResultDialog> {
     final home = int.tryParse(_homeController.text) ?? 0;
     final away = int.tryParse(_awayController.text) ?? 0;
     setState(() => _isSaving = true);
-    await widget.ref
+    final ok = await widget.ref
         .read(fixtureProvider(widget.tournamentId).notifier)
         .updateResult(
           matchId: widget.matchId,
           homeScore: home,
           awayScore: away,
         );
+
+    if (ok && widget.round != null && mounted) {
+      final tournament =
+          widget.ref.read(tournamentByIdProvider(widget.tournamentId));
+      if (tournament?.mode == AppConstants.tournamentModeElimination) {
+        final bracket = widget.ref.read(eliminationBracketServiceProvider);
+        final pending = await bracket.checkRoundComplete(
+          tournamentId: widget.tournamentId,
+          completedRound: widget.round!,
+        );
+        if (pending != null && mounted) {
+          final confirmed =
+              await showRoundAdvanceConfirmDialog(context, pending);
+          if (confirmed) {
+            await bracket.generateNextRound(pending);
+            widget.ref
+                .read(fixtureProvider(widget.tournamentId).notifier)
+                .loadMatches();
+          }
+        }
+      }
+    }
+
     setState(() => _isSaving = false);
     if (mounted) Navigator.pop(context);
   }

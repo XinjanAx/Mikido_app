@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -9,6 +10,9 @@ import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../fixtures/presentation/providers/fixture_provider.dart'
+    show matchesStreamProvider;
+import '../../domain/entities/tournament_entity.dart';
 import '../providers/tournament_provider.dart';
 import '../widgets/tournament_card_widget.dart';
 
@@ -182,6 +186,11 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
         itemCount: state.tournaments.length,
         itemBuilder: (_, i) {
           final t = state.tournaments[i];
+          final hasMatches = ref
+                  .watch(matchesStreamProvider(t.id))
+                  .valueOrNull
+                  ?.isNotEmpty ??
+              false;
           return TournamentCard(
             tournament: t,
             isAdmin: isAdmin,
@@ -189,12 +198,41 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
               RouteConstants.tournamentDetail.replaceAll(':id', t.id),
             ),
             onDelete: isAdmin
-                ? () => _confirmDelete(context, ref, t.id, t.name)
+                ? () => _handleDeleteTap(context, ref, t, hasMatches)
                 : null,
           );
         },
       ),
     );
+  }
+
+  void _handleDeleteTap(BuildContext context, WidgetRef ref,
+      TournamentEntity t, bool hasMatches) {
+    final isFinished = t.status == AppConstants.statusFinished;
+    final canDelete = isFinished || !hasMatches;
+
+    if (!canDelete) {
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('No se puede eliminar'),
+          content: const Text(
+            'Este torneo ya tiene encuentros generados y todavía no ha '
+            'finalizado. Solo se puede eliminar si ya finalizó o si no '
+            'tiene encuentros generados.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _confirmDelete(context, ref, t.id, t.name);
   }
 
   void _confirmDelete(

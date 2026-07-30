@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/player_card_widget.dart';
 
@@ -152,36 +153,73 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
               RouteConstants.playerDetail.replaceAll(':id', p.id),
             ),
             onDelete: isAdmin
-                ? () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Eliminar participante'),
-                        content: Text('¿Eliminar a "${p.name}"?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancelar'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.error),
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Eliminar'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true) {
-                      await ref
-                          .read(playersProvider.notifier)
-                          .deletePlayer(p.id);
-                    }
-                  }
+                ? () => _confirmDelete(context, ref, p.id, p.name)
                 : null,
           );
         },
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, String playerId, String playerName) async {
+    // No se puede eliminar a alguien que sigue inscrito en un torneo —
+    // primero hay que desinscribirlo (eso a su vez está bloqueado si ya
+    // tiene encuentros generados, ver player_enrollment_screen.dart).
+    final enrollments =
+        await ref.read(playerLocalDataSourceProvider).getAllEnrollments();
+    final playerEnrollments =
+        enrollments.where((e) => e.playerId == playerId).toList();
+
+    if (playerEnrollments.isNotEmpty) {
+      final tournamentNames = playerEnrollments
+          .map((e) =>
+              ref.read(tournamentByIdProvider(e.tournamentId))?.name ??
+              'un torneo')
+          .join(', ');
+      if (context.mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('No se puede eliminar'),
+            content: Text(
+              '"$playerName" está inscrito en: $tournamentNames.\n\n'
+              'Debes quitar su inscripción de esos torneos antes de poder '
+              'eliminarlo.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar participante'),
+        content: Text('¿Eliminar a "$playerName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(playersProvider.notifier).deletePlayer(playerId);
+    }
   }
 }

@@ -95,15 +95,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _checkCurrentUser();
   }
   Future<void> _checkCurrentUser() async {
-    print('AUTH: checking current user...');
     final result = await _getCurrentUserUseCase();
     result.fold(
       (_) {
-        print('AUTH: no user found -> unauthenticated');
         state = const AuthState(status: AuthStatus.unauthenticated);
       },
       (user) {
-        print('AUTH: user found -> ${user?.email} role: ${user?.role}');
         state = user != null
             ? AuthState(status: AuthStatus.authenticated, user: user)
             : const AuthState(status: AuthStatus.unauthenticated);
@@ -112,19 +109,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> login({required String email, required String password}) async {
-    print('AUTH: login attempt for $email');
     state = state.copyWith(status: AuthStatus.loading);
     final result = await _loginUseCase(email: email, password: password);
     result.fold(
       (failure) {
-        print('AUTH: login FAILED: ${failure.message}');
         state = AuthState(
           status: AuthStatus.error,
           errorMessage: failure.message,
         );
       },
       (user) {
-        print('AUTH: login SUCCESS: ${user.email} role: ${user.role}');
         state = AuthState(
           status: AuthStatus.authenticated,
           user: user,

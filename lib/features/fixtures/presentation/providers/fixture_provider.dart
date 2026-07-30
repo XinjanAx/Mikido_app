@@ -35,17 +35,13 @@ final fixtureSyncAdapterProvider = Provider<FixtureSyncAdapter>(
   (ref) => FixtureSyncAdapter(
     ref.watch(fixtureRemoteDataSourceProvider),
     ref.watch(fixtureLocalDataSourceProvider),
-    ref.watch(eliminationBracketServiceProvider),
-    ref.watch(tournamentLocalDataSourceProvider),
   ),
 );
 
 final matchResultServiceProvider = Provider<MatchResultService>(
   (ref) => MatchResultService(
     ref.watch(fixtureLocalDataSourceProvider),
-    ref.watch(tournamentLocalDataSourceProvider),
     ref.watch(standingsRecalculationServiceProvider),
-    ref.watch(eliminationBracketServiceProvider),
     ref.watch(appDatabaseProvider),
   ),
 );

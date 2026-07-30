@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../../../../core/constants/app_constants.dart';
@@ -11,7 +12,13 @@ class NotificationLocalDataSource {
   static const List<int> _startOffsetsMin = [30, 10, 5];
   static const List<int> _endOffsetsMin = [60, 30, 10, 5];
 
+  // flutter_local_notifications no tiene implementación para Windows/Linux
+  // (solo Android, iOS, macOS) — sin este check, cualquier llamada al
+  // plugin en la build de escritorio Windows lanza MissingPluginException.
+  bool get _isSupported => !Platform.isWindows && !Platform.isLinux;
+
   Future<void> initialize() async {
+    if (!_isSupported) return;
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -27,6 +34,7 @@ class NotificationLocalDataSource {
   }
 
   Future<void> requestPermissions() async {
+    if (!_isSupported) return;
     await _plugin
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
@@ -90,6 +98,7 @@ class NotificationLocalDataSource {
   }
 
   Future<void> cancelTournamentNotifications(String tournamentId) async {
+    if (!_isSupported) return;
     final baseStartId = tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
     final baseEndId = tournamentId.hashCode.abs() + AppConstants.notifIdEndBase;
 
@@ -102,6 +111,7 @@ class NotificationLocalDataSource {
   }
 
   Future<void> cancelAll() async {
+    if (!_isSupported) return;
     await _plugin.cancelAll();
   }
 
@@ -111,6 +121,7 @@ class NotificationLocalDataSource {
     required String body,
     required DateTime scheduledDate,
   }) async {
+    if (!_isSupported) return;
     await _plugin.zonedSchedule(
       id,
       title,

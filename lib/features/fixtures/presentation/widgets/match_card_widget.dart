@@ -7,12 +7,14 @@ class MatchCard extends StatelessWidget {
   final MatchEntity match;
   final VoidCallback? onTap;
   final bool isAdmin;
+  final bool locked;
 
   const MatchCard({
     super.key,
     required this.match,
     this.onTap,
     this.isAdmin = false,
+    this.locked = false,
   });
 
   @override
@@ -69,7 +71,21 @@ class MatchCard extends StatelessWidget {
                               color: AppColors.primary,
                             ),
                           ),
-                          if (isAdmin && onTap != null)
+                          if (locked)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.lock_outline,
+                                    size: 10, color: AppColors.grey400),
+                                const SizedBox(width: 2),
+                                Text('Ronda cerrada',
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.grey400,
+                                      fontSize: 9,
+                                    )),
+                              ],
+                            )
+                          else if (isAdmin && onTap != null)
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

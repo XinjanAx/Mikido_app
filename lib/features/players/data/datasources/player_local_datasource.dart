@@ -5,6 +5,7 @@ import '../models/player_model.dart';
 
 abstract class PlayerLocalDataSource {
   Future<List<PlayerModel>> getPlayers();
+  Stream<List<PlayerModel>> watchPlayers();
   Future<PlayerModel?> getPlayerById(String id);
   Future<void> upsertPlayer(PlayerModel player, {required bool dirty});
   Future<bool> isPlayerDirty(String id);
@@ -49,6 +50,11 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
   @override
   Future<List<PlayerModel>> getPlayers() async =>
       (await _db.getAllPlayersLocal()).map((r) => _toModel(r)).toList();
+
+  @override
+  Stream<List<PlayerModel>> watchPlayers() => _db
+      .watchAllPlayersLocal()
+      .map((rows) => rows.map((r) => _toModel(r)).toList());
 
   @override
   Future<PlayerModel?> getPlayerById(String id) async {

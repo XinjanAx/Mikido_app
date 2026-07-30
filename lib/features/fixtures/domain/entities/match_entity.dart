@@ -35,6 +35,13 @@ class MatchEntity extends Equatable {
   bool get isFinished => status == AppConstants.matchStatusFinished;
   bool get isPending => status == AppConstants.matchStatusPending;
 
+  /// Partido "bye": el jugador avanza automáticamente porque el número de
+  /// participantes de la ronda era impar (mismo jugador en ambos lados, o
+  /// rival marcado como 'BYE').
+  bool get isBye =>
+      awayPlayerName.toUpperCase() == 'BYE' ||
+      (homePlayerId.isNotEmpty && homePlayerId == awayPlayerId);
+
   String? get winner {
     if (!isFinished) return null;
     if (homeScore == null || awayScore == null) return null;

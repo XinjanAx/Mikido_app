@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:torneo_app/core/constants/route_constants.dart';
+import 'package:torneo_app/core/sync/sync_engine_provider.dart';
 import 'package:torneo_app/core/theme/app_colors.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
 
@@ -65,7 +66,19 @@ class PlayerEnrollmentScreenState
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Participantes del torneo')),
+      appBar: AppBar(
+        title: const Text('Participantes del torneo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar',
+            onPressed: () async {
+              await ref.read(syncEngineProvider).trySync();
+              ref.invalidate(playersByTournamentProvider(widget.tournamentId));
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           const SizedBox(height: 8),
@@ -207,7 +220,11 @@ class PlayerEnrollmentScreenState
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          'Todos los participantes están inscritos',
+                          allPlayers.isEmpty
+                              ? 'Todavía no hay jugadores registrados en el club'
+                              : _searchQuery.isNotEmpty
+                                  ? 'Ningún jugador coincide con la búsqueda'
+                                  : 'Todos los participantes están inscritos',
                           style:
                               TextStyle(color: AppColors.grey600, fontSize: 13),
                           textAlign: TextAlign.center,

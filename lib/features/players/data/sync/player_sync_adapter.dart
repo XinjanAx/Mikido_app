@@ -34,20 +34,15 @@ class PlayerSyncAdapter implements SyncAdapter {
 
   @override
   Future<void> pull() async {
+    // Solo agrega/actualiza desde lo remoto — nunca borra localmente por
+    // "no aparece en esta traída" (una traída vacía o parcial por
+    // timing/red inestable borraba jugadores reales sin excepción ni
+    // aviso, y no se recuperaban solos). Ver mismo comentario en
+    // TournamentSyncAdapter.pull().
     final remoteList = await _remote.getPlayers();
-    final remoteIds = remoteList.map((p) => p.id).toSet();
-
     for (final p in remoteList) {
       if (await _local.isPlayerDirty(p.id)) continue;
       await _local.upsertPlayer(p, dirty: false);
-    }
-
-    final localList = await _local.getPlayers();
-    for (final local in localList) {
-      if (!remoteIds.contains(local.id) &&
-          !(await _local.isPlayerDirty(local.id))) {
-        await _local.hardDeletePlayer(local.id);
-      }
     }
   }
 }

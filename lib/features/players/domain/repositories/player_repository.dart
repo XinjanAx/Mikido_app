@@ -4,6 +4,7 @@ import '../entities/player_entity.dart';
 
 abstract class PlayerRepository {
   Future<Either<Failure, List<PlayerEntity>>> getPlayers();
+  Stream<List<PlayerEntity>> watchPlayers();
   Future<Either<Failure, PlayerEntity>> getPlayerById(String id);
   Future<Either<Failure, PlayerEntity>> createPlayer(PlayerEntity player);
   Future<Either<Failure, PlayerEntity>> updatePlayer(PlayerEntity player);

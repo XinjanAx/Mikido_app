@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -90,30 +92,53 @@ class PlayersState {
 }
 
 class PlayersNotifier extends StateNotifier<PlayersState> {
+  final PlayerRepository _repository;
   final GetPlayersUseCase _getAll;
   final CreatePlayerUseCase _create;
   final UpdatePlayerUseCase _update;
   final DeletePlayerUseCase _delete;
   final EnrollPlayerUseCase _enroll;
   final UnenrollPlayerUseCase _unenroll;
+  late final StreamSubscription<List<PlayerEntity>> _playersSub;
 
   PlayersNotifier({
+    required PlayerRepository repository,
     required GetPlayersUseCase getAll,
     required CreatePlayerUseCase create,
     required UpdatePlayerUseCase update,
     required DeletePlayerUseCase delete,
     required EnrollPlayerUseCase enroll,
     required UnenrollPlayerUseCase unenroll,
-  })  : _getAll = getAll,
+  })  : _repository = repository,
+        _getAll = getAll,
         _create = create,
         _update = update,
         _delete = delete,
         _enroll = enroll,
         _unenroll = unenroll,
         super(const PlayersState()) {
-    loadPlayers();
+    // Reactivo en vez de una sola carga al crearse: si la sincronización
+    // trae jugadores (u otro dispositivo/pantalla crea uno) después de
+    // este momento, este stream lo refleja solo — antes, con un único
+    // `loadPlayers()` al construirse, la lista se quedaba obsoleta para
+    // siempre si eso pasaba después del primer fetch.
+    state = state.copyWith(isLoading: true);
+    _playersSub = _repository.watchPlayers().listen(
+      (list) => state = state.copyWith(isLoading: false, players: list),
+      onError: (Object e) =>
+          state = state.copyWith(isLoading: false, errorMessage: e.toString()),
+    );
   }
 
+  @override
+  void dispose() {
+    _playersSub.cancel();
+    super.dispose();
+  }
+
+  /// Refresco manual puntual (p. ej. pull-to-refresh) — el stream del
+  /// constructor ya mantiene la lista al día solo, así que en general no
+  /// hace falta llamarlo.
   Future<void> loadPlayers() async {
     state = state.copyWith(isLoading: true);
     final result = await _getAll();
@@ -212,6 +237,7 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
 
 final playersProvider = StateNotifierProvider<PlayersNotifier, PlayersState>(
   (ref) => PlayersNotifier(
+    repository: ref.watch(playerRepositoryProvider),
     getAll: ref.watch(getPlayersUseCaseProvider),
     create: ref.watch(createPlayerUseCaseProvider),
     update: ref.watch(updatePlayerUseCaseProvider),

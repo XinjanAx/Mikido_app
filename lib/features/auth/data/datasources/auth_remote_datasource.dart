@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/user_model.dart';
 import 'auth_local_datasource.dart';
+
+const _noInternetMessage =
+    'No tienes conexión a internet. Verifica tu red e intenta de nuevo.';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> login({required String email, required String password});
@@ -49,6 +54,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return profile;
     } on AuthException {
       rethrow;
+    } on SocketException {
+      throw const AuthException(message: _noInternetMessage);
+    } on AuthRetryableFetchException {
+      // Gotrue envuelve así los fallos de red (DNS/conexión) al llamar a
+      // Supabase — no es un SocketException directo, así que necesita su
+      // propio catch antes de caer en el genérico de abajo.
+      throw const AuthException(message: _noInternetMessage);
     } on AuthApiException catch (e) {
       throw AuthException(message: e.message);
     } catch (e) {
@@ -86,6 +98,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } on AuthException {
       rethrow;
+    } on SocketException {
+      throw const AuthException(message: _noInternetMessage);
+    } on AuthRetryableFetchException {
+      // Gotrue envuelve así los fallos de red (DNS/conexión) al llamar a
+      // Supabase — no es un SocketException directo, así que necesita su
+      // propio catch antes de caer en el genérico de abajo.
+      throw const AuthException(message: _noInternetMessage);
     } on AuthApiException catch (e) {
       throw AuthException(message: e.message);
     } catch (e) {

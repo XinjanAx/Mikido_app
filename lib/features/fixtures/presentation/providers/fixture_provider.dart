@@ -24,17 +24,19 @@ final fixtureLocalDataSourceProvider = Provider<FixtureLocalDataSource>(
   (ref) => FixtureLocalDataSourceImpl(ref.watch(appDatabaseProvider)),
 );
 
-final fixtureSyncAdapterProvider = Provider<FixtureSyncAdapter>(
-  (ref) => FixtureSyncAdapter(
-    ref.watch(fixtureRemoteDataSourceProvider),
-    ref.watch(fixtureLocalDataSourceProvider),
-  ),
-);
-
 final eliminationBracketServiceProvider = Provider<EliminationBracketService>(
   (ref) => EliminationBracketService(
     ref.watch(fixtureLocalDataSourceProvider),
     ref.watch(appDatabaseProvider),
+  ),
+);
+
+final fixtureSyncAdapterProvider = Provider<FixtureSyncAdapter>(
+  (ref) => FixtureSyncAdapter(
+    ref.watch(fixtureRemoteDataSourceProvider),
+    ref.watch(fixtureLocalDataSourceProvider),
+    ref.watch(eliminationBracketServiceProvider),
+    ref.watch(tournamentLocalDataSourceProvider),
   ),
 );
 
@@ -54,6 +56,7 @@ final fixtureRepositoryProvider = Provider<FixtureRepository>(
     ref.watch(appDatabaseProvider),
     ref.watch(syncEngineProvider),
     ref.watch(matchResultServiceProvider),
+    ref.watch(tournamentLocalDataSourceProvider),
   ),
 );
 

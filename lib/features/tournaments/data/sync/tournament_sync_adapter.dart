@@ -34,21 +34,18 @@ class TournamentSyncAdapter implements SyncAdapter {
 
   @override
   Future<void> pull() async {
+    // Solo agrega/actualiza desde lo remoto — nunca borra localmente por
+    // "no aparece en esta traída". Antes borraba los torneos locales que
+    // no estuvieran en `remoteList`, pero una traída remota vacía o
+    // parcial (red inestable, timing en el arranque, etc.) borraba datos
+    // reales igual: sin excepción, sin aviso, y sin volver nunca solo.
+    // Un torneo borrado de verdad en otro dispositivo se sigue viendo acá
+    // hasta que se borre explícitamente también en este — mejor eso que
+    // perder datos activos por una lectura incompleta.
     final remoteList = await _remote.getTournaments();
-    final remoteIds = remoteList.map((t) => t.id).toSet();
-
     for (final t in remoteList) {
       if (await _local.isDirty(t.id)) continue;
       await _local.upsert(t, dirty: false);
-    }
-
-    // Reflejar localmente los torneos borrados en remoto (por otro
-    // dispositivo/admin), salvo que tengan cambios locales pendientes.
-    final localList = await _local.getTournaments();
-    for (final local in localList) {
-      if (!remoteIds.contains(local.id) && !(await _local.isDirty(local.id))) {
-        await _local.hardDelete(local.id);
-      }
     }
   }
 }

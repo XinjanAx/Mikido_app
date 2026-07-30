@@ -85,30 +85,53 @@ class TournamentsState {
 }
 
 class TournamentsNotifier extends StateNotifier<TournamentsState> {
+  final TournamentRepository _repository;
   final GetTournamentsUseCase _getAll;
   final CreateTournamentUseCase _create;
   final UpdateTournamentUseCase _update;
   final DeleteTournamentUseCase _delete;
   final ScheduleNotificationsUseCase _scheduleNotifications;
   final String _userId;
+  late final StreamSubscription<List<TournamentEntity>> _tournamentsSub;
 
   TournamentsNotifier({
+    required TournamentRepository repository,
     required GetTournamentsUseCase getAll,
     required CreateTournamentUseCase create,
     required UpdateTournamentUseCase update,
     required DeleteTournamentUseCase delete,
     required ScheduleNotificationsUseCase scheduleNotifications,
     required String userId,
-  })  : _getAll = getAll,
+  })  : _repository = repository,
+        _getAll = getAll,
         _create = create,
         _update = update,
         _delete = delete,
         _scheduleNotifications = scheduleNotifications,
         _userId = userId,
         super(const TournamentsState()) {
-    loadTournaments();
+    // Reactivo en vez de una sola carga al crearse: si algo cambia el
+    // torneo por fuera de esta misma pantalla (p. ej. generar encuentros
+    // pasa el torneo de Borrador a Activo desde la pantalla de Fixtures),
+    // esto lo refleja solo en vez de quedarse con el valor viejo hasta
+    // que se vuelva a crear el provider.
+    state = state.copyWith(isLoading: true);
+    _tournamentsSub = _repository.watchTournaments().listen(
+      (list) => state = state.copyWith(isLoading: false, tournaments: list),
+      onError: (Object e) =>
+          state = state.copyWith(isLoading: false, errorMessage: e.toString()),
+    );
   }
 
+  @override
+  void dispose() {
+    _tournamentsSub.cancel();
+    super.dispose();
+  }
+
+  /// Refresco manual puntual (p. ej. pull-to-refresh) — el stream del
+  /// constructor ya mantiene la lista al día solo, así que en general no
+  /// hace falta llamarlo.
   Future<void> loadTournaments() async {
     state = state.copyWith(isLoading: true);
     final result = await _getAll();
@@ -213,6 +236,7 @@ final tournamentsProvider =
   (ref) {
     final userId = ref.watch(currentUserProvider)?.id ?? '';
     return TournamentsNotifier(
+      repository: ref.watch(tournamentRepositoryProvider),
       getAll: ref.watch(getTournamentsUseCaseProvider),
       create: ref.watch(createTournamentUseCaseProvider),
       update: ref.watch(updateTournamentUseCaseProvider),
@@ -223,10 +247,16 @@ final tournamentsProvider =
   },
 );
 
-// Torneo individual por ID
-final tournamentByIdProvider =
-    FutureProvider.family<TournamentEntity?, String>((ref, id) async {
-  final useCase = ref.watch(getTournamentByIdUseCaseProvider);
-  final result = await useCase(id);
-  return result.fold((_) => null, (t) => t);
-});
+// Torneo individual por ID — derivado de la misma lista reactiva de
+// tournamentsProvider en vez de una carga propia (que se quedaba
+// obsoleta): así refleja solo cualquier cambio, venga de esta pantalla
+// o de otra (p. ej. el estado que cambia solo al generar encuentros).
+final tournamentByIdProvider = Provider.family<TournamentEntity?, String>(
+  (ref, id) {
+    final tournaments = ref.watch(tournamentsProvider).tournaments;
+    for (final t in tournaments) {
+      if (t.id == id) return t;
+    }
+    return null;
+  },
+);

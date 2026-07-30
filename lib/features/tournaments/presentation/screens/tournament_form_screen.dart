@@ -60,6 +60,9 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
   DateTime _combine(DateTime date, TimeOfDay time) =>
       DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
   Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
       context: context,
@@ -108,16 +111,19 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
     }
     setState(() => _isSaving = true);
 
+    final name = _capitalize(_nameController.text.trim());
+    final description = _descController.text.trim().isEmpty
+        ? null
+        : _capitalize(_descController.text.trim());
+
     bool success;
     if (_isEdit) {
       final updated = TournamentEntity(
         id: widget.tournament!.id,
-        name: _nameController.text.trim(),
+        name: name,
         mode: _selectedMode,
         status: widget.tournament!.status,
-        description: _descController.text.trim().isEmpty
-            ? null
-            : _descController.text.trim(),
+        description: description,
         startDate: startDateTime,
         endDate: endDateTime,
         createdBy: widget.tournament!.createdBy,
@@ -127,13 +133,11 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
           await ref.read(tournamentsProvider.notifier).updateTournament(updated);
     } else {
       success = await ref.read(tournamentsProvider.notifier).createTournament(
-            name: _nameController.text.trim(),
+            name: name,
             mode: _selectedMode,
             startDate: startDateTime,
             endDate: endDateTime,
-            description: _descController.text.trim().isEmpty
-                ? null
-                : _descController.text.trim(),
+            description: description,
           );
     }
 

@@ -16,63 +16,59 @@ class TournamentDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncTournament = ref.watch(tournamentByIdProvider(tournamentId));
+    final tournament = ref.watch(tournamentByIdProvider(tournamentId));
     final isAdmin = ref.watch(isAdminProvider);
 
-    return asyncTournament.when(
-      loading: () => const Scaffold(body: LoadingWidget()),
-      error: (e, _) => Scaffold(
+    if (tournament == null) {
+      final isLoading = ref.watch(tournamentsProvider).isLoading;
+      return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text('Error: $e')),
-      ),
-      data: (tournament) {
-        if (tournament == null) {
-          return Scaffold(
-            appBar: AppBar(),
-            body: const Center(child: Text('Torneo no encontrado')),
-          );
-        }
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(tournament.name),
-            actions: [
-              if (isAdmin)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.push(
-                    RouteConstants.tournamentEdit
-                        .replaceAll(':id', tournamentId),
-                    extra: tournament,
-                  ),
-                ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // Info general
-              _SectionCard(
-                title: 'Información',
-                child: Column(
-                  children: [
-                    _InfoRow(label: 'Modalidad', value: tournament.modeLabel),
-                    _InfoRow(label: 'Estado', value: tournament.statusLabel),
-                    if (tournament.description != null)
-                      _InfoRow(
-                          label: 'Descripción', value: tournament.description!),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
+        body: Center(
+          child: isLoading
+              ? const LoadingWidget()
+              : const Text('Torneo no encontrado'),
+        ),
+      );
+    }
 
-              // Acciones rápidas
-              Text('Módulos', style: AppTextStyles.titleMedium),
-              const SizedBox(height: 12),
-              _buildActionGrid(context, isAdmin, tournament.mode),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(tournament.name),
+        actions: [
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => context.push(
+                RouteConstants.tournamentEdit.replaceAll(':id', tournamentId),
+                extra: tournament,
+              ),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // Info general
+          _SectionCard(
+            title: 'Información',
+            child: Column(
+              children: [
+                _InfoRow(label: 'Modalidad', value: tournament.modeLabel),
+                _InfoRow(label: 'Estado', value: tournament.statusLabel),
+                if (tournament.description != null)
+                  _InfoRow(
+                      label: 'Descripción', value: tournament.description!),
+              ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 12),
+
+          // Acciones rápidas
+          Text('Módulos', style: AppTextStyles.titleMedium),
+          const SizedBox(height: 12),
+          _buildActionGrid(context, isAdmin, tournament.mode),
+        ],
+      ),
     );
   }
 

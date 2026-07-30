@@ -20,8 +20,8 @@ class BracketScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fixtureState = ref.watch(fixtureProvider(tournamentId));
-    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
-    final mode = tournamentAsync.valueOrNull?.mode;
+    final tournament = ref.watch(tournamentByIdProvider(tournamentId));
+    final mode = tournament?.mode;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,7 +66,7 @@ class BracketScreen extends ConsumerWidget {
 
     switch (mode) {
       case AppConstants.tournamentModeElimination:
-        return BracketWidget(matchesByRound: state.matchesByRound);
+        return BracketWidget(matches: state.matches);
 
       case AppConstants.tournamentModeGroups:
         return _GroupsView(matchesByRound: state.matchesByRound);
@@ -75,7 +75,7 @@ class BracketScreen extends ConsumerWidget {
         return _LeagueView(matchesByRound: state.matchesByRound);
 
       default:
-        return BracketWidget(matchesByRound: state.matchesByRound);
+        return BracketWidget(matches: state.matches);
     }
   }
 }

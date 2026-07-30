@@ -121,6 +121,13 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  Stream<List<Player>> watchAllPlayersLocal() {
+    return (select(players)
+          ..where((p) => p.deletedLocally.equals(false))
+          ..orderBy([(p) => OrderingTerm.asc(p.name)]))
+        .watch();
+  }
+
   Future<Player?> getPlayerById(String id) {
     return (select(players)..where((p) => p.id.equals(id)))
         .getSingleOrNull();

@@ -42,7 +42,7 @@ class EliminationBracketService {
     if (winners.length <= 1) return;
 
     // 5. Nombre de la siguiente ronda
-    final nextRound = _nextRoundName(winners.length);
+    final nextRound = _nextRoundName(completedRound, winners.length);
 
     // 6. Verificar que la siguiente ronda no exista ya (idempotencia)
     final existingNext =
@@ -98,11 +98,38 @@ class EliminationBracketService {
     }
   }
 
-  String _nextRoundName(int winners) {
+  /// Nombres de ronda en orden — deben coincidir con los que usa
+  /// fixture_generator.dart (_eliminationRoundName) para la ronda inicial.
+  static const _roundOrder = [
+    'Treintaidosavos de final',
+    'Dieciseisavos de final',
+    'Octavos de final',
+    'Cuartos de final',
+    'Semifinal',
+    'Final',
+  ];
+
+  /// Avanza al SIGUIENTE nombre de la secuencia a partir de la ronda que
+  /// se acaba de completar, en vez de re-derivarlo solo del número de
+  /// ganadores. Con conteos que no son potencia de 2 (p. ej. 12
+  /// jugadores → 6 partidos de "Cuartos de final" → 6 ganadores),
+  /// derivarlo solo del conteo podía devolver el MISMO nombre de la
+  /// ronda que se acaba de completar (6 caía otra vez en "Cuartos de
+  /// final"), lo que hacía que el chequeo de idempotencia de más arriba
+  /// (`existingNext.isNotEmpty`) encontrara la ronda ya completada y
+  /// creyera que la siguiente ya existía — dejando el cuadro
+  /// congelado ahí para siempre sin generar nada más.
+  String _nextRoundName(String completedRound, int winners) {
+    final idx = _roundOrder.indexOf(completedRound);
+    if (idx != -1 && idx < _roundOrder.length - 1) {
+      return _roundOrder[idx + 1];
+    }
+    // Ronda no reconocida (no debería pasar): usar el conteo como respaldo.
+    if (winners > 32) return 'Treintaidosavos de final';
+    if (winners > 16) return 'Dieciseisavos de final';
     if (winners > 8) return 'Octavos de final';
     if (winners > 4) return 'Cuartos de final';
     if (winners > 2) return 'Semifinal';
-    if (winners == 2) return 'Final';
-    return 'Campeón';
+    return 'Final';
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/brand_footer.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/widgets/tournament_phase_header.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart'
     show matchesStreamProvider;
@@ -22,8 +24,7 @@ class StandingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Usar stream para tiempo real
     final standingsAsync = ref.watch(standingsStreamProvider(tournamentId));
-    final tournament =
-        ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull;
+    final tournament = ref.watch(tournamentByIdProvider(tournamentId));
     final isGroups = tournament?.mode == AppConstants.tournamentModeGroups;
     final matches = isGroups
         ? ref.watch(matchesStreamProvider(tournamentId)).valueOrNull ?? []
@@ -55,22 +56,34 @@ class StandingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: standingsAsync.when(
-        loading: () => const LoadingWidget(message: 'Cargando posiciones...'),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (standings) {
-          if (standings.isEmpty) {
-            return const EmptyStateWidget(
-              icon: Icons.leaderboard_outlined,
-              title: 'Sin clasificaciones',
-              subtitle: 'Las posiciones se actualizarán al registrar resultados',
-            );
-          }
-          if (isGroups) {
-            return _buildGroupedTables(standings, matches);
-          }
-          return _buildTable(standings);
-        },
+      body: Column(
+        children: [
+          TournamentPhaseHeader(
+            tournamentName: tournament?.name ?? '',
+            phaseLabel: isGroups ? 'Fase de grupos' : 'Liga - Todos contra todos',
+          ),
+          Expanded(
+            child: standingsAsync.when(
+              loading: () =>
+                  const LoadingWidget(message: 'Cargando posiciones...'),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (standings) {
+                if (standings.isEmpty) {
+                  return const EmptyStateWidget(
+                    icon: Icons.leaderboard_outlined,
+                    title: 'Sin clasificaciones',
+                    subtitle:
+                        'Las posiciones se actualizarán al registrar resultados',
+                  );
+                }
+                if (isGroups) {
+                  return _buildGroupedTables(standings, matches);
+                }
+                return _buildTable(standings);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -96,81 +109,107 @@ class StandingsScreen extends ConsumerWidget {
     final groupNames = byGroup.keys.toList()..sort();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
         for (final groupName in groupNames) ...[
+          _StandingsCard(
+            title: groupName.toUpperCase(),
+            standings: byGroup[groupName]!,
+          ),
+          const SizedBox(height: 20),
+        ],
+        const _Legend(),
+        const SizedBox(height: 20),
+        const BrandFooter(),
+      ],
+    );
+  }
+
+  Widget _buildTable(List<StandingEntity> standings) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        _StandingsCard(title: 'TABLA DE POSICIONES', standings: standings),
+        const SizedBox(height: 20),
+        const _Legend(),
+        const SizedBox(height: 20),
+        const BrandFooter(),
+      ],
+    );
+  }
+}
+
+/// Tarjeta con título (trofeo + nombre), encabezado de columnas y filas de
+/// datos — mismo bloque visual para la tabla única (liga) o cada grupo.
+class _StandingsCard extends StatelessWidget {
+  final String title;
+  final List<StandingEntity> standings;
+
+  const _StandingsCard({required this.title, required this.standings});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Row(
               children: [
-                Icon(Icons.groups, size: 18, color: AppColors.accent),
-                const SizedBox(width: 8),
-                Text(
-                  groupName,
-                  style: AppTextStyles.titleMedium
-                      .copyWith(color: AppColors.accent, fontWeight: FontWeight.w700),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.emoji_events,
+                      size: 16, color: AppColors.white),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: AppTextStyles.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
           ),
           _buildHeaderRow(),
           const Divider(height: 1),
-          for (final entry in byGroup[groupName]!.asMap().entries) ...[
+          for (final entry in standings.asMap().entries) ...[
             _buildDataRow(entry.value, entry.key + 1),
-            if (entry.key < byGroup[groupName]!.length - 1)
-              const Divider(height: 1),
+            if (entry.key < standings.length - 1) const Divider(height: 1),
           ],
         ],
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'PJ: Jugados  PG: Ganados  PP: Perdidos  GF: Goles a favor  GC: Goles en contra  DG: Diferencia  PTS: Puntos',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTable(List<StandingEntity> standings) {
-    return Column(
-      children: [
-        _buildHeaderRow(),
-        const Divider(height: 1),
-        // Filas de datos
-        Expanded(
-          child: ListView.separated(
-            itemCount: standings.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (_, i) => _buildDataRow(standings[i], i + 1),
-          ),
-        ),
-        // Leyenda
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'PJ: Jugados  PG: Ganados  PP: Perdidos  GF: Goles a favor  GC: Goles en contra  DG: Diferencia  PTS: Puntos',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildHeaderRow() {
     return Container(
-      color: AppColors.surfaceVariant,
+      color: AppColors.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const SizedBox(width: 32),
+          const SizedBox(width: 28),
           Expanded(
-            child: Text('PARTICIPANTE', style: AppTextStyles.tableHeader),
+            child: Text('EQUIPO', style: AppTextStyles.tableHeader),
           ),
           _HeaderCell('PJ'),
           _HeaderCell('PG'),
+          _HeaderCell('PE'),
           _HeaderCell('PP'),
           _HeaderCell('GF'),
           _HeaderCell('GC'),
@@ -184,11 +223,11 @@ class StandingsScreen extends ConsumerWidget {
   Widget _buildDataRow(StandingEntity s, int position) {
     return Container(
       color: position <= 3 ? _podiumColor(position).withOpacity(0.05) : null,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           SizedBox(
-            width: 32,
+            width: 28,
             child: _PositionBadge(position: position),
           ),
           Expanded(
@@ -204,6 +243,7 @@ class StandingsScreen extends ConsumerWidget {
           ),
           _DataCell('${s.played}'),
           _DataCell('${s.won}'),
+          _DataCell('${s.drawn}'),
           _DataCell('${s.lost}'),
           _DataCell('${s.goalsFor}'),
           _DataCell('${s.goalsAgainst}'),
@@ -250,7 +290,7 @@ class _HeaderCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: isLast ? 40 : 30,
+      width: isLast ? 36 : 26,
       child: Text(
         label,
         style: AppTextStyles.tableHeader,
@@ -275,7 +315,7 @@ class _DataCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: isLast ? 40 : 30,
+      width: isLast ? 36 : 26,
       child: Text(
         value,
         style: AppTextStyles.tableCell.copyWith(
@@ -302,6 +342,23 @@ class _PositionBadge extends StatelessWidget {
       '$position',
       style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
       textAlign: TextAlign.center,
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        'PJ: Jugados  PG: Ganados  PE: Empatados  PP: Perdidos  '
+        'GF: Goles a favor  GC: Goles en contra  DG: Diferencia  PTS: Puntos',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

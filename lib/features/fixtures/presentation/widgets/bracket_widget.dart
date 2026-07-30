@@ -1,191 +1,534 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/brand_footer.dart';
 import '../../domain/entities/match_entity.dart';
 
-/// Widget que dibuja el cuadro eliminatorio de forma visual.
-/// Agrupa los partidos por ronda y los conecta con líneas.
-class BracketWidget extends StatelessWidget {
-  final Map<String, List<MatchEntity>> matchesByRound;
+/// Nombres de ronda de eliminación, en orden — igual a los que usa
+/// torneo_web (bracket_view.dart) para que ambos se vean idénticos.
+const kEliminationRoundOrder = [
+  'Treintaidosavos de final',
+  'Dieciseisavos de final',
+  'Octavos de final',
+  'Cuartos de final',
+  'Semifinal',
+  'Final',
+];
 
-  const BracketWidget({super.key, required this.matchesByRound});
+/// Cuadro de eliminatorias ("llave"): una columna por ronda, de izquierda
+/// a derecha, con líneas conectando cada partido con el siguiente del que
+/// sale su clasificado. El número de jugadores es variable, así que el
+/// número de partidos por ronda no siempre es una potencia de dos (los
+/// "bye" —número impar de clasificados— reducen en 1 el total); el layout
+/// soporta cualquier combinación de conteos, no solo brackets
+/// perfectamente balanceados. Las rondas que todavía no se generaron se
+/// muestran como casillas vacías ("Por definir"), para que se vea la
+/// llave completa desde el inicio del torneo. Mismo diseño que
+/// torneo_web (bracket_view.dart), portado para que ambos coincidan.
+class BracketWidget extends StatelessWidget {
+  final List<MatchEntity> matches;
+
+  const BracketWidget({super.key, required this.matches});
+
+  static const double _boxHeight = 30;
+  static const double _boxGap = 6;
+  static const double _slotHeight = 100;
+  static const double _colWidth = 190;
+  static const double _colGap = 48;
 
   @override
   Widget build(BuildContext context) {
-    if (matchesByRound.isEmpty) {
-      return const Center(
-        child: Text('Sin partidos generados'),
-      );
+    final byRound = <String, List<MatchEntity>>{};
+    for (final m in matches) {
+      byRound.putIfAbsent(m.round ?? '', () => []).add(m);
+    }
+    for (final list in byRound.values) {
+      list.sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
+    }
+
+    final presentRounds =
+        kEliminationRoundOrder.where(byRound.containsKey).toList();
+    if (presentRounds.isEmpty) {
+      return const Center(child: Text('Sin encuentros generados'));
+    }
+    final startIndex = kEliminationRoundOrder.indexOf(presentRounds.first);
+    final roundNames = kEliminationRoundOrder.sublist(startIndex);
+
+    // Rondas reales + rondas futuras (todavía no generadas) como
+    // casillas vacías, para completar la forma de la llave.
+    final rounds = <List<MatchEntity?>>[];
+    List<MatchEntity?>? previous;
+    for (final name in roundNames) {
+      if (byRound.containsKey(name)) {
+        final list = byRound[name]!;
+        rounds.add(list);
+        previous = list;
+      } else {
+        final prevCount = previous?.length ?? 1;
+        final count = (prevCount / 2).ceil().clamp(1, prevCount);
+        rounds.add(List<MatchEntity?>.filled(count, null));
+        previous = rounds.last;
+      }
     }
 
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.all(20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: matchesByRound.entries.map((entry) {
-          return _RoundColumn(
-            roundName: entry.key,
-            matches: entry.value,
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _RoundColumn extends StatelessWidget {
-  final String roundName;
-  final List<MatchEntity> matches;
-
-  const _RoundColumn({
-    required this.roundName,
-    required this.matches,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      margin: const EdgeInsets.only(right: 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Encabezado de ronda (fijo)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: AppColors.primary.withOpacity(0.3)),
-            ),
-            child: Text(
-              roundName,
-              style: AppTextStyles.titleMedium.copyWith(
-                color: AppColors.primary,
+          if (rounds.length == 1)
+            Center(
+              child: SizedBox(
+                width: 220,
+                height: _boxHeight * 2 + _boxGap,
+                child: _MatchPair(match: rounds.first.first),
               ),
-              textAlign: TextAlign.center,
+            )
+          else
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: _BracketCanvas(rounds: rounds, roundNames: roundNames),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Tarjetas de partidos: si no caben todas en la pantalla,
-          // esta columna se desplaza verticalmente por su cuenta
-          // (en vez de desbordarse por debajo).
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children:
-                    matches.map((m) => _BracketMatchCard(match: m)).toList(),
-              ),
-            ),
-          ),
+          const SizedBox(height: 24),
+          const _Legend(),
+          const SizedBox(height: 20),
+          const BrandFooter(),
         ],
       ),
     );
   }
 }
 
-class _BracketMatchCard extends StatelessWidget {
-  final MatchEntity match;
+/// Dibuja la llave como columnas por ronda (una por debajo de otra, de
+/// izquierda a derecha), en vez de dos mitades espejadas. Con jugadores
+/// variables, el número de partidos por ronda no siempre es una potencia
+/// de dos (cada bye reduce en 1 el número de "clasificados" de esa
+/// ronda), así que no siempre es posible partir la llave en dos mitades
+/// simétricas que converjan en el centro. Este layout es correcto para
+/// cualquier combinación de conteos por ronda: cada partido de la ronda
+/// r se conecta con el/los partido(s) de la ronda r-1 de los que salen
+/// sus dos participantes (o uno solo, si ese participante ya venía de
+/// un bye).
+class _BracketCanvas extends StatelessWidget {
+  const _BracketCanvas({required this.rounds, required this.roundNames});
 
-  const _BracketMatchCard({required this.match});
+  final List<List<MatchEntity?>> rounds;
+  final List<String> roundNames;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: match.isFinished
-              ? AppColors.primary.withOpacity(0.4)
-              : AppColors.border,
+    const boxHeight = BracketWidget._boxHeight;
+    const boxGap = BracketWidget._boxGap;
+    const slotHeight = BracketWidget._slotHeight;
+    const colWidth = BracketWidget._colWidth;
+    const colGap = BracketWidget._colGap;
+    final matchHeight = boxHeight * 2 + boxGap;
+
+    final height = rounds.first.length * slotHeight;
+    final finalCol = rounds.length - 1;
+    final width = rounds.length * colWidth + finalCol * colGap;
+
+    double colX(int col) => col * (colWidth + colGap);
+
+    // Posición vertical de cada partido: la primera ronda se reparte de
+    // forma pareja; cada ronda siguiente ubica su partido k en el punto
+    // medio de los partidos 2k y 2k+1 de la ronda anterior (o alineado
+    // con el único partido 2k si 2k+1 no existe, es decir, si ese cupo
+    // llegó por bye).
+    final yPositions = <List<double>>[
+      List<double>.generate(
+          rounds.first.length, (i) => (i + 0.5) * slotHeight),
+    ];
+    for (var r = 1; r < rounds.length; r++) {
+      final prevY = yPositions[r - 1];
+      final prevCount = rounds[r - 1].length;
+      yPositions.add(List<double>.generate(rounds[r].length, (k) {
+        final c0 = 2 * k;
+        final c1 = 2 * k + 1;
+        return c1 < prevCount ? (prevY[c0] + prevY[c1]) / 2 : prevY[c0];
+      }));
+    }
+
+    final boxes = <Widget>[];
+    final linePaths = <Path>[];
+    final dots = <_Dot>[];
+    final lineColor = AppColors.grey600;
+
+    for (var r = 0; r < rounds.length; r++) {
+      final round = rounds[r];
+      final joinX = colX(r) + colWidth;
+      for (var i = 0; i < round.length; i++) {
+        final y = yPositions[r][i];
+        boxes.add(Positioned(
+          left: colX(r),
+          top: y - matchHeight / 2,
+          width: colWidth,
+          height: matchHeight,
+          child: _MatchPair(match: round[i]),
+        ));
+        // Unión visual entre los dos equipos del mismo partido.
+        linePaths.add(Path()
+          ..moveTo(joinX, y - matchHeight / 2 + boxHeight / 2)
+          ..lineTo(joinX, y + matchHeight / 2 - boxHeight / 2));
+        dots.add(_Dot(Offset(joinX, y), round[i]?.isFinished ?? false));
+      }
+    }
+
+    for (var r = 1; r < rounds.length; r++) {
+      final prevCount = rounds[r - 1].length;
+      final childX = colX(r - 1) + colWidth;
+      final parentX = colX(r);
+      final midX = (childX + parentX) / 2;
+      for (var k = 0; k < rounds[r].length; k++) {
+        final c0 = 2 * k;
+        final c1 = 2 * k + 1;
+        final yP = yPositions[r][k];
+        if (c1 < prevCount) {
+          final y1 = yPositions[r - 1][c0];
+          final y2 = yPositions[r - 1][c1];
+          linePaths.add(Path()
+            ..moveTo(childX, y1)
+            ..lineTo(midX, y1)
+            ..moveTo(childX, y2)
+            ..lineTo(midX, y2)
+            ..moveTo(midX, y1)
+            ..lineTo(midX, y2)
+            ..moveTo(midX, yP)
+            ..lineTo(parentX, yP));
+        } else {
+          // El cupo llegó directo (bye en la ronda anterior): una sola
+          // línea recta, sin unión en "V".
+          linePaths.add(Path()
+            ..moveTo(childX, yP)
+            ..lineTo(parentX, yP));
+        }
+        dots.add(_Dot(Offset(parentX, yP), rounds[r][k]?.isFinished ?? false));
+      }
+    }
+
+    final labels = <Widget>[
+      for (var r = 0; r < rounds.length; r++)
+        _roundLabel(context, roundNames[r], colX(r), colWidth,
+            isFinal: r == finalCol),
+    ];
+
+    final emblemSize = (height * 0.5).clamp(100.0, 220.0);
+
+    return SizedBox(
+      width: width,
+      height: height + 40,
+      child: Stack(
+        children: [
+          Positioned(
+            left: colX(finalCol) + colWidth / 2 - emblemSize / 2,
+            top: 40 + height / 2 - emblemSize / 2,
+            width: emblemSize,
+            height: emblemSize,
+            child: Opacity(
+              opacity: 0.15,
+              child: Image.asset(
+                AppColors.isDark
+                    ? 'assets/images/logo_positivo.png'
+                    : 'assets/images/logo_negativo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          ...labels,
+          Positioned(
+            left: 0,
+            top: 40,
+            width: width,
+            height: height,
+            child: CustomPaint(
+              painter: _ConnectorPainter(linePaths, lineColor, dots),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 40,
+            width: width,
+            height: height,
+            child: Stack(children: boxes),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roundLabel(BuildContext context, String name, double x, double w,
+      {bool isFinal = false}) {
+    return Positioned(
+      left: x,
+      top: 0,
+      width: w,
+      child: Text(
+        name.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+          color: isFinal ? AppColors.primary : AppColors.textPrimary,
         ),
       ),
-      child: Column(
-        children: [
-          _PlayerRow(
-            name: match.homePlayerName,
-            score: match.homeScore,
-            isWinner: _isHomeWinner,
-          ),
-          const Divider(height: 1),
-          _PlayerRow(
-            name: match.awayPlayerName,
-            score: match.awayScore,
-            isWinner: _isAwayWinner,
-          ),
-        ],
-      ),
     );
   }
-
-  bool get _isHomeWinner =>
-      match.isFinished &&
-      match.homeScore != null &&
-      match.awayScore != null &&
-      match.homeScore! > match.awayScore!;
-
-  bool get _isAwayWinner =>
-      match.isFinished &&
-      match.homeScore != null &&
-      match.awayScore != null &&
-      match.awayScore! > match.homeScore!;
 }
 
-class _PlayerRow extends StatelessWidget {
-  final String name;
-  final int? score;
-  final bool isWinner;
+class _Dot {
+  const _Dot(this.position, this.determined);
 
-  const _PlayerRow({
+  final Offset position;
+  final bool determined;
+}
+
+class _ConnectorPainter extends CustomPainter {
+  _ConnectorPainter(this.paths, this.color, this.dots);
+
+  final List<Path> paths;
+  final Color color;
+  final List<_Dot> dots;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final path in paths) {
+      canvas.drawPath(path, linePaint);
+    }
+
+    final filledDot = Paint()..color = AppColors.primary;
+    final hollowDot = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (final dot in dots) {
+      if (dot.determined) {
+        canvas.drawCircle(dot.position, 3.5, filledDot);
+      } else {
+        canvas.drawCircle(dot.position, 3, hollowDot);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) =>
+      oldDelegate.paths != paths ||
+      oldDelegate.color != color ||
+      oldDelegate.dots != dots;
+}
+
+/// Los dos equipos de un mismo partido, como casillas separadas (igual
+/// que en el diseño de referencia del club).
+class _MatchPair extends StatelessWidget {
+  const _MatchPair({required this.match});
+
+  final MatchEntity? match;
+
+  bool get _homeWon =>
+      match != null &&
+      match!.homeScore != null &&
+      match!.awayScore != null &&
+      match!.homeScore! > match!.awayScore!;
+
+  bool get _awayWon =>
+      match != null &&
+      match!.homeScore != null &&
+      match!.awayScore != null &&
+      match!.awayScore! > match!.homeScore!;
+
+  bool get _isBye => match?.isBye ?? false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _TeamBox(
+          name: match?.homePlayerName,
+          score: match?.homeScore,
+          isWinner: _homeWon,
+          isFinished: match?.isFinished ?? false,
+        ),
+        const SizedBox(height: BracketWidget._boxGap),
+        _TeamBox(
+          name: match?.awayPlayerName,
+          score: match?.awayScore,
+          isWinner: _awayWon,
+          isFinished: match?.isFinished ?? false,
+          isBye: _isBye,
+        ),
+      ],
+    );
+  }
+}
+
+class _TeamBox extends StatelessWidget {
+  const _TeamBox({
     required this.name,
     required this.score,
     required this.isWinner,
+    required this.isFinished,
+    this.isBye = false,
   });
+
+  final String? name;
+  final int? score;
+  final bool isWinner;
+  final bool isFinished;
+  final bool isBye;
 
   @override
   Widget build(BuildContext context) {
+    if (name == null) {
+      return Container(
+        height: BracketWidget._boxHeight,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.border),
+        ),
+        alignment: Alignment.center,
+        child: Text('Por definir',
+            style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                color: AppColors.textMuted)),
+      );
+    }
+
+    // El jugador avanzó automáticamente (número impar de clasificados):
+    // se muestra el hueco "BYE" atenuado, sin ícono ni marcador, en vez
+    // de un rival y un resultado 0 que no existieron.
+    if (isBye) {
+      return Container(
+        height: BracketWidget._boxHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.border),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'BYE — avanza directo',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 10,
+            fontStyle: FontStyle.italic,
+            color: AppColors.textMuted,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      height: BracketWidget._boxHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: isWinner
-            ? AppColors.accent.withOpacity(0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+            ? AppColors.primary.withOpacity(0.15)
+            : AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isWinner ? AppColors.primary : AppColors.border,
+        ),
       ),
       child: Row(
         children: [
           if (isWinner)
             const Padding(
-              padding: EdgeInsets.only(right: 6),
-              child: Icon(Icons.emoji_events,
-                  size: 14, color: AppColors.gold),
-            ),
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.emoji_events, size: 12, color: AppColors.gold),
+            )
+          else
+            const Icon(Icons.shield_outlined, size: 12, color: AppColors.primary),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
-              name,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: isWinner ? AppColors.accent : AppColors.offWhite,
-                fontWeight:
-                    isWinner ? FontWeight.w600 : FontWeight.w400,
+              name!,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
+                color: isWinner ? AppColors.accent : AppColors.textSecondary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
           Text(
-            score != null ? '$score' : '-',
-            style: AppTextStyles.titleMedium.copyWith(
-              color: isWinner ? AppColors.accent : AppColors.grey400,
+            score != null ? '$score' : (isFinished ? '' : '-'),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isWinner ? AppColors.accent : AppColors.textMuted,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Wrap(
+        spacing: 24,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          _LegendItem(
+            dot: const Icon(Icons.circle, size: 10, color: AppColors.primary),
+            label: 'Clasificado',
+          ),
+          _LegendItem(
+            dot: Container(width: 16, height: 2, color: AppColors.grey600),
+            label: 'En disputa',
+          ),
+          _LegendItem(
+            dot: Icon(Icons.circle_outlined, size: 10, color: AppColors.grey600),
+            label: 'Pendiente',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.dot, required this.label});
+
+  final Widget dot;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        dot,
+        const SizedBox(width: 6),
+        Text(label,
+            style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: AppColors.textMuted)),
+      ],
     );
   }
 }

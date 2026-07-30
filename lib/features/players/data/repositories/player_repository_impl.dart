@@ -32,6 +32,9 @@ class PlayerRepositoryImpl implements PlayerRepository {
   }
 
   @override
+  Stream<List<PlayerEntity>> watchPlayers() => _local.watchPlayers();
+
+  @override
   Future<Either<Failure, PlayerEntity>> getPlayerById(String id) async {
     try {
       final result = await _local.getPlayerById(id);

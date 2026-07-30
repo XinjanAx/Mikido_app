@@ -56,12 +56,17 @@ class FixtureScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fixtureState = ref.watch(fixtureProvider(tournamentId));
     final isAdmin = ref.watch(isAdminProvider);
-    final tournament = ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull;
+    final tournament = ref.watch(tournamentByIdProvider(tournamentId));
     final mode = tournament?.mode;
     final isElimination = mode == AppConstants.tournamentModeElimination;
     final isTournamentFinished = tournament?.status == AppConstants.statusFinished;
+    // En eliminación, que todos los partidos CARGADOS estén terminados no
+    // basta: si el cuadro se quedó atascado en una ronda (p. ej. porque
+    // advance() nunca generó la siguiente), "todos terminados" sería
+    // cierto prematuramente. Exigimos además que exista la ronda Final.
     final isTournamentComplete = fixtureState.matches.isNotEmpty &&
-        fixtureState.matches.every((m) => m.isFinished);
+        fixtureState.matches.every((m) => m.isFinished) &&
+        (!isElimination || fixtureState.matches.any((m) => m.round == 'Final'));
     final standings =
         ref.watch(standingsStreamProvider(tournamentId)).valueOrNull ?? [];
     final championName =
@@ -255,8 +260,7 @@ class FixtureScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             onPressed: () async {
               Navigator.pop(context);
-              final tournament =
-                  ref.read(tournamentByIdProvider(tournamentId)).valueOrNull;
+              final tournament = ref.read(tournamentByIdProvider(tournamentId));
               if (tournament == null) return;
               await ref.read(tournamentsProvider.notifier).updateTournament(
                     TournamentEntity(
@@ -271,7 +275,6 @@ class FixtureScreen extends ConsumerWidget {
                       createdAt: tournament.createdAt,
                     ),
                   );
-              ref.invalidate(tournamentByIdProvider(tournamentId));
             },
             child: const Text('Finalizar'),
           ),

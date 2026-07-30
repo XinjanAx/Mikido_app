@@ -114,7 +114,7 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
             IconButton(
               icon: const Icon(Icons.logout_outlined),
               tooltip: 'Cerrar sesión',
-              onPressed: () => ref.read(authProvider.notifier).logout(),
+              onPressed: () => _confirmLogout(context, ref),
             )
           else
             IconButton(
@@ -216,6 +216,33 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
               await ref.read(tournamentsProvider.notifier).deleteTournament(id);
             },
             child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text(
+          '¿Seguro que deseas cerrar sesión? Vas a necesitar conexión a '
+          'internet para volver a iniciar sesión.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () {
+              Navigator.pop(context);
+              ref.read(authProvider.notifier).logout();
+            },
+            child: const Text('Cerrar sesión'),
           ),
         ],
       ),

@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/sync/sync_engine.dart';
+import '../../../tournaments/data/datasources/tournament_local_datasource.dart';
+import '../../../tournaments/data/models/tournament_model.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/repositories/fixture_repository.dart';
 import '../datasources/fixture_local_datasource.dart';
@@ -17,12 +20,14 @@ class FixtureRepositoryImpl implements FixtureRepository {
   final AppDatabase _db;
   final SyncEngine _syncEngine;
   final MatchResultService _matchResultService;
+  final TournamentLocalDataSource _tournaments;
 
   const FixtureRepositoryImpl(
     this._local,
     this._db,
     this._syncEngine,
     this._matchResultService,
+    this._tournaments,
   );
 
   @override
@@ -73,11 +78,40 @@ class FixtureRepositoryImpl implements FixtureRepository {
             SupabaseConstants.matchesTable, m.id, m.toJson());
       }
 
+      // 4. Un torneo con encuentros generados ya no está en borrador: pasa
+      // solo a "Activo" (no hace falta que el admin lo cambie a mano).
+      if (newMatches.isNotEmpty) {
+        await _activateIfDraft(tournamentId);
+      }
+
       unawaited(_syncEngine.trySync());
       return Right(newMatches);
     } catch (e) {
       return Left(CacheFailure(message: 'Error al generar los encuentros localmente: $e'));
     }
+  }
+
+  /// Si el torneo sigue en borrador, lo pasa a "Activo" — se llama justo
+  /// después de generar encuentros por primera vez (ver `generateFixture`).
+  Future<void> _activateIfDraft(String tournamentId) async {
+    final tournament = await _tournaments.getTournamentById(tournamentId);
+    if (tournament == null || tournament.status != AppConstants.statusDraft) {
+      return;
+    }
+    final updated = TournamentModel(
+      id: tournament.id,
+      name: tournament.name,
+      mode: tournament.mode,
+      status: AppConstants.statusActive,
+      description: tournament.description,
+      startDate: tournament.startDate,
+      endDate: tournament.endDate,
+      createdBy: tournament.createdBy,
+      createdAt: tournament.createdAt,
+    );
+    await _tournaments.upsert(updated, dirty: true);
+    await _db.enqueueUpsert(
+        SupabaseConstants.tournamentsTable, updated.id, updated.toJson());
   }
 
   @override

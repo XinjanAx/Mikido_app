@@ -46,7 +46,7 @@ class TournamentEntity extends Equatable {
       case AppConstants.statusDraft:
         return 'Borrador';
       case AppConstants.statusActive:
-        return 'Activo';
+        return 'En curso';
       case AppConstants.statusFinished:
         return 'Finalizado';
       case AppConstants.statusCancelled:

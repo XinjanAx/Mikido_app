@@ -101,15 +101,27 @@ class FixtureGenerator {
     return matches;
   }
 
-  /// Eliminación simple: cuadro directo. Empareja de a dos en el orden
-  /// dado (posiciones 1-2, 3-4, ...); si sobra uno, pasa directo con "bye".
-  /// Si no se da [manualOrder], se sortea al azar.
+  /// Eliminación simple: arma un cuadro de tamaño potencia de 2 (el
+  /// inmediato superior o igual a N) con el algoritmo estándar de
+  /// siembra ("standard pair expansion" — la suma de sembrados que se
+  /// cruzan siempre da `bracketSize + 1`: para 16, 1vs16, 8vs9, 4vs13,
+  /// 5vs12, 2vs15, 7vs10, 3vs14, 6vs11). [orderedIds] es la lista de
+  /// competidores ya ordenada por sembrado (posición 0 = Sembrado 1,
+  /// ...): si se da [manualOrder] es ese orden (el admin lo arma a mano
+  /// arrastrando/intercambiando en `BracketAssignmentScreen`, decidiendo
+  /// así quién queda en cada cabeza de serie); si no, se sortea al azar.
+  ///
+  /// Los sembrados que exceden N (siempre los peor ubicados, N+1 ..
+  /// bracketSize) son "BYE": ese partido de Ronda 1 se guarda
+  /// directamente como finalizado con el competidor real como ganador.
+  /// El motor de avance (`EliminationBracketService`) empareja
+  /// ganadores consecutivos en orden (partido 1 con partido 2, 3 con
+  /// 4, ...), que es exactamente la adyacencia correcta del cuadro
+  /// siempre que la Ronda 1 se haya generado en este orden de siembra —
+  /// así que el bye promueve solo, sin lógica extra en el avance.
   static List<MatchModel> _generateElimination(
       String tournamentId, List<String> playerIds, List<String> playerNames,
       {List<String>? manualOrder}) {
-    final matches = <MatchModel>[];
-    int matchNumber = 1;
-
     final orderedIds = manualOrder ??
         (List<int>.generate(playerIds.length, (i) => i)..shuffle())
             .map((i) => playerIds[i])
@@ -120,46 +132,90 @@ class FixtureGenerator {
       return idx >= 0 ? playerNames[idx] : id;
     }
 
-    for (int i = 0; i < orderedIds.length - 1; i += 2) {
-      final homeId = orderedIds[i];
-      final awayId = orderedIds[i + 1];
-      matches.add(MatchModel(
-        id: const Uuid().v4(),
-        tournamentId: tournamentId,
-        homePlayerId: homeId,
-        awayPlayerId: awayId,
-        homePlayerName: nameOf(homeId),
-        awayPlayerName: nameOf(awayId),
-        status: AppConstants.matchStatusPending,
-        round: _eliminationRoundName(playerIds.length),
-        matchNumber: matchNumber++,
-      ));
-    }
+    final matches = <MatchModel>[];
+    int matchNumber = 1;
 
-    if (orderedIds.length.isOdd) {
-      final byeId = orderedIds.last;
-      matches.add(MatchModel(
-        id: const Uuid().v4(),
-        tournamentId: tournamentId,
-        homePlayerId: byeId,
-        awayPlayerId: byeId, // mismo jugador = bye
-        homePlayerName: nameOf(byeId),
-        awayPlayerName: 'BYE',
-        homeScore: 1,
-        awayScore: 0,
-        status: AppConstants.matchStatusFinished,
-        round: _eliminationRoundName(playerIds.length),
-        matchNumber: matchNumber++,
-      ));
+    final n = orderedIds.length;
+    final bracketSize = nextPowerOfTwo(n);
+    final seedOrder = standardSeedOrder(bracketSize);
+    final round = _eliminationRoundName(bracketSize);
+
+    // Sembrado k (1-indexado): competidor real si k <= n, si no BYE.
+    String? idForSeed(int seed) => seed <= n ? orderedIds[seed - 1] : null;
+
+    for (int i = 0; i < seedOrder.length; i += 2) {
+      final idA = idForSeed(seedOrder[i]);
+      final idB = idForSeed(seedOrder[i + 1]);
+
+      if (idA != null && idB != null) {
+        matches.add(MatchModel(
+          id: const Uuid().v4(),
+          tournamentId: tournamentId,
+          homePlayerId: idA,
+          awayPlayerId: idB,
+          homePlayerName: nameOf(idA),
+          awayPlayerName: nameOf(idB),
+          status: AppConstants.matchStatusPending,
+          round: round,
+          matchNumber: matchNumber++,
+        ));
+      } else {
+        // Bye: el sembrado faltante no existe entre los N reales: el
+        // competidor real avanza automáticamente.
+        final realId = idA ?? idB!;
+        matches.add(MatchModel(
+          id: const Uuid().v4(),
+          tournamentId: tournamentId,
+          homePlayerId: realId,
+          awayPlayerId: realId, // mismo jugador = bye
+          homePlayerName: nameOf(realId),
+          awayPlayerName: 'BYE',
+          homeScore: 1,
+          awayScore: 0,
+          status: AppConstants.matchStatusFinished,
+          round: round,
+          matchNumber: matchNumber++,
+        ));
+      }
     }
 
     return matches;
   }
 
-  static String _eliminationRoundName(int totalPlayers) {
-    if (totalPlayers >= 16) return 'Octavos de final';
-    if (totalPlayers >= 8) return 'Cuartos de final';
-    if (totalPlayers >= 4) return 'Semifinal';
+  /// Potencia de 2 inmediata superior o igual a [n] (mínimo 2: un cuadro
+  /// de eliminación siempre tiene al menos un partido/bye). Pública para
+  /// que la pantalla de armado manual pueda mostrar de antemano el
+  /// tamaño del cuadro y la cantidad de byes, con la misma cuenta que
+  /// usa la generación real.
+  static int nextPowerOfTwo(int n) {
+    var size = 2;
+    while (size < n) {
+      size *= 2;
+    }
+    return size;
+  }
+
+  /// Orden de sembrados para un cuadro de tamaño [bracketSize] (potencia
+  /// de 2), generado por duplicación recursiva: en cada expansión, cada
+  /// sembrado `s` se empareja con `n - s` (donde `n` es el tamaño nuevo
+  /// + 1) — la construcción estándar donde los cruces de primera ronda
+  /// siempre suman `bracketSize + 1`. Pública por el mismo motivo que
+  /// [nextPowerOfTwo].
+  static List<int> standardSeedOrder(int bracketSize) {
+    var seeds = [1, 2];
+    while (seeds.length < bracketSize) {
+      final n = seeds.length * 2 + 1;
+      seeds = [for (final s in seeds) ...[s, n - s]];
+    }
+    return seeds;
+  }
+
+  static String _eliminationRoundName(int bracketSize) {
+    if (bracketSize >= 64) return 'Treintaidosavos de final';
+    if (bracketSize >= 32) return 'Dieciseisavos de final';
+    if (bracketSize >= 16) return 'Octavos de final';
+    if (bracketSize >= 8) return 'Cuartos de final';
+    if (bracketSize >= 4) return 'Semifinal';
     return 'Final';
   }
 

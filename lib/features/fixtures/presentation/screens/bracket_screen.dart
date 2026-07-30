@@ -36,7 +36,7 @@ class BracketScreen extends ConsumerWidget {
       ),
       body: mode == null
           ? const LoadingWidget()
-          : _buildBody(fixtureState, mode),
+          : _buildBody(fixtureState, mode, tournament?.name ?? ''),
     );
   }
 
@@ -51,7 +51,7 @@ class BracketScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildBody(FixtureState state, String mode) {
+  Widget _buildBody(FixtureState state, String mode, String tournamentName) {
     if (state.isLoading) {
       return const LoadingWidget(message: 'Cargando encuentros...');
     }
@@ -66,7 +66,8 @@ class BracketScreen extends ConsumerWidget {
 
     switch (mode) {
       case AppConstants.tournamentModeElimination:
-        return BracketWidget(matches: state.matches);
+        return BracketWidget(
+            matches: state.matches, tournamentName: tournamentName);
 
       case AppConstants.tournamentModeGroups:
         return _GroupsView(matchesByRound: state.matchesByRound);
@@ -75,7 +76,8 @@ class BracketScreen extends ConsumerWidget {
         return _LeagueView(matchesByRound: state.matchesByRound);
 
       default:
-        return BracketWidget(matches: state.matches);
+        return BracketWidget(
+            matches: state.matches, tournamentName: tournamentName);
     }
   }
 }

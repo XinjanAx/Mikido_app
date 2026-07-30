@@ -21,7 +21,10 @@ class TournamentPhaseHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        // Mismo color que el fondo de la pantalla (no el de las tarjetas):
+        // así la banda queda de lado a lado, sin leerse como una barra
+        // gris separada del resto — solo la línea roja la delimita.
+        color: AppColors.surface,
         border: Border(
           bottom: BorderSide(color: AppColors.primary, width: 2),
         ),

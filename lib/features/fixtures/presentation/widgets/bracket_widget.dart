@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/brand_footer.dart';
+import '../../../../core/widgets/tournament_phase_header.dart';
 import '../../domain/entities/match_entity.dart';
 
 /// Nombres de ronda de eliminación, en orden — igual a los que usa
@@ -24,21 +25,53 @@ const kEliminationRoundOrder = [
 /// muestran como casillas vacías ("Por definir"), para que se vea la
 /// llave completa desde el inicio del torneo. Mismo diseño que
 /// torneo_web (bracket_view.dart), portado para que ambos coincidan.
-class BracketWidget extends StatelessWidget {
+///
+/// La barra con los nombres de ronda (OCTAVOS, CUARTOS, ...) va justo
+/// debajo del encabezado con el logo. Al hacer scroll, el encabezado sube
+/// y desaparece como el resto del contenido, pero apenas la barra de
+/// rondas llega al borde superior se queda flotando ahí (igual que un
+/// encabezado de hoja de cálculo) mientras el resto sigue desplazándose
+/// debajo, para que siempre se sepa en qué ronda se está mirando.
+class BracketWidget extends StatefulWidget {
   final List<MatchEntity> matches;
+  final String tournamentName;
 
-  const BracketWidget({super.key, required this.matches});
+  const BracketWidget({
+    super.key,
+    required this.matches,
+    required this.tournamentName,
+  });
 
   static const double _boxHeight = 30;
   static const double _boxGap = 6;
   static const double _slotHeight = 100;
   static const double _colWidth = 190;
   static const double _colGap = 48;
+  static const double _labelBarPaddingTop = 10;
+  static const double _labelBarHeight = 32 + _labelBarPaddingTop;
+
+  @override
+  State<BracketWidget> createState() => _BracketWidgetState();
+}
+
+class _BracketWidgetState extends State<BracketWidget> {
+  // Único controlador: la barra de títulos no tiene su propio scroll, se
+  // dibuja corrida por -offset (ver [_RoundLabelsBar]) leyendo este mismo
+  // controlador con un AnimatedBuilder — así usa exactamente la misma
+  // aritmética que el cuerpo de la llave y no puede desalinearse (nada
+  // de sincronizar dos scrolls / anchos de viewport independientes).
+  final _bodyController = ScrollController();
+
+  @override
+  void dispose() {
+    _bodyController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final byRound = <String, List<MatchEntity>>{};
-    for (final m in matches) {
+    for (final m in widget.matches) {
       byRound.putIfAbsent(m.round ?? '', () => []).add(m);
     }
     for (final list in byRound.values) {
@@ -70,48 +103,204 @@ class BracketWidget extends StatelessWidget {
       }
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          if (rounds.length == 1)
-            Center(
-              child: SizedBox(
-                width: 220,
-                height: _boxHeight * 2 + _boxGap,
-                child: _MatchPair(match: rounds.first.first),
-              ),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: _BracketCanvas(rounds: rounds, roundNames: roundNames),
+    final multiRound = rounds.length > 1;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          sliver: SliverToBoxAdapter(
+            child: TournamentPhaseHeader(
+              tournamentName: widget.tournamentName,
+              phaseLabel: 'Fase eliminatoria',
             ),
-          const SizedBox(height: 24),
-          const _Legend(),
-          const SizedBox(height: 20),
-          const BrandFooter(),
-        ],
+          ),
+        ),
+        if (multiRound)
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _RoundLabelsHeaderDelegate(
+              bodyController: _bodyController,
+              rounds: rounds,
+              roundNames: roundNames,
+            ),
+          )
+        else
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          sliver: SliverToBoxAdapter(
+            child: !multiRound
+                ? Center(
+                    child: SizedBox(
+                      width: 220,
+                      height:
+                          BracketWidget._boxHeight * 2 + BracketWidget._boxGap,
+                      child: _MatchPair(match: rounds.first.first),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    controller: _bodyController,
+                    scrollDirection: Axis.horizontal,
+                    child: _BracketCanvasBody(rounds: rounds),
+                  ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const _Legend(),
+                const SizedBox(height: 20),
+                const BrandFooter(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Envuelve [_RoundLabelsBar] como encabezado fijo ("pinned") de un
+/// [CustomScrollView]: altura constante, se queda flotando en el borde
+/// superior en cuanto el scroll lo alcanza.
+class _RoundLabelsHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _RoundLabelsHeaderDelegate({
+    required this.bodyController,
+    required this.rounds,
+    required this.roundNames,
+  });
+
+  final ScrollController bodyController;
+  final List<List<MatchEntity?>> rounds;
+  final List<String> roundNames;
+
+  @override
+  double get minExtent => BracketWidget._labelBarHeight;
+
+  @override
+  double get maxExtent => BracketWidget._labelBarHeight;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return _RoundLabelsBar(
+      bodyController: bodyController,
+      rounds: rounds,
+      roundNames: roundNames,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _RoundLabelsHeaderDelegate oldDelegate) =>
+      oldDelegate.rounds != rounds || oldDelegate.roundNames != roundNames;
+}
+
+/// Contenido de la barra con los nombres de ronda (OCTAVOS DE FINAL,
+/// CUARTOS, ...), alineada por columna con el cuadro de abajo. En vez de
+/// tener su propio scroll horizontal (que podría desalinearse del cuerpo
+/// si sus anchos de viewport no coinciden pixel a pixel), simplemente se
+/// dibuja corrida por `-offset` leyendo en vivo el mismo
+/// [ScrollController] que usa el cuerpo — la misma aritmética, así que
+/// siempre coincide exactamente con las columnas de abajo.
+class _RoundLabelsBar extends StatelessWidget {
+  const _RoundLabelsBar({
+    required this.bodyController,
+    required this.rounds,
+    required this.roundNames,
+  });
+
+  final ScrollController bodyController;
+  final List<List<MatchEntity?>> rounds;
+  final List<String> roundNames;
+
+  @override
+  Widget build(BuildContext context) {
+    const colWidth = BracketWidget._colWidth;
+    const colGap = BracketWidget._colGap;
+    final finalCol = rounds.length - 1;
+    final width = rounds.length * colWidth + finalCol * colGap;
+    double colX(int col) => col * (colWidth + colGap);
+
+    return Container(
+      height: BracketWidget._labelBarHeight,
+      width: double.infinity,
+      color: AppColors.surface,
+      child: ClipRect(
+        child: AnimatedBuilder(
+          animation: bodyController,
+          builder: (context, _) {
+            final offset =
+                bodyController.hasClients ? bodyController.offset : 0.0;
+            // 20 = mismo padding izquierdo que envuelve al cuerpo de la
+            // llave (SliverPadding más abajo), para que el origen de
+            // coordenadas (offset 0) quede en el mismo x en pantalla.
+            return Transform.translate(
+              offset: Offset(20 - offset, 0),
+              // OverflowBox libera el ancho real del contenido (`width`,
+              // el ancho de TODAS las rondas) de la restricción del
+              // Container de afuera (que solo mide el ancho de la
+              // pantalla) — si no, el Stack quedaba comprimido al ancho
+              // de pantalla y las rondas fuera de ese rango (Cuartos,
+              // Semifinal, Final) no se llegaban a dibujar.
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: width,
+                maxWidth: width,
+                minHeight: BracketWidget._labelBarHeight,
+                maxHeight: BracketWidget._labelBarHeight,
+                child: Stack(
+                  children: [
+                    for (var r = 0; r < rounds.length; r++)
+                      _roundLabel(context, roundNames[r], colX(r), colWidth,
+                          isFinal: r == finalCol),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _roundLabel(BuildContext context, String name, double x, double w,
+      {bool isFinal = false}) {
+    return Positioned(
+      left: x,
+      top: BracketWidget._labelBarPaddingTop,
+      width: w,
+      child: Text(
+        name.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+          color: isFinal ? AppColors.primary : AppColors.textPrimary,
+        ),
       ),
     );
   }
 }
 
-/// Dibuja la llave como columnas por ronda (una por debajo de otra, de
-/// izquierda a derecha), en vez de dos mitades espejadas. Con jugadores
-/// variables, el número de partidos por ronda no siempre es una potencia
-/// de dos (cada bye reduce en 1 el número de "clasificados" de esa
-/// ronda), así que no siempre es posible partir la llave en dos mitades
-/// simétricas que converjan en el centro. Este layout es correcto para
-/// cualquier combinación de conteos por ronda: cada partido de la ronda
-/// r se conecta con el/los partido(s) de la ronda r-1 de los que salen
-/// sus dos participantes (o uno solo, si ese participante ya venía de
-/// un bye).
-class _BracketCanvas extends StatelessWidget {
-  const _BracketCanvas({required this.rounds, required this.roundNames});
+/// Dibuja el cuerpo de la llave como columnas por ronda (una por debajo
+/// de otra, de izquierda a derecha), en vez de dos mitades espejadas. Con
+/// jugadores variables, el número de partidos por ronda no siempre es una
+/// potencia de dos (cada bye reduce en 1 el número de "clasificados" de
+/// esa ronda), así que no siempre es posible partir la llave en dos
+/// mitades simétricas que converjan en el centro. Este layout es correcto
+/// para cualquier combinación de conteos por ronda: cada partido de la
+/// ronda r se conecta con el/los partido(s) de la ronda r-1 de los que
+/// salen sus dos participantes (o uno solo, si ese participante ya venía
+/// de un bye). Los nombres de ronda van aparte, en [_RoundLabelsBar].
+class _BracketCanvasBody extends StatelessWidget {
+  const _BracketCanvasBody({required this.rounds});
 
   final List<List<MatchEntity?>> rounds;
-  final List<String> roundNames;
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +323,7 @@ class _BracketCanvas extends StatelessWidget {
     // con el único partido 2k si 2k+1 no existe, es decir, si ese cupo
     // llegó por bye).
     final yPositions = <List<double>>[
-      List<double>.generate(
-          rounds.first.length, (i) => (i + 0.5) * slotHeight),
+      List<double>.generate(rounds.first.length, (i) => (i + 0.5) * slotHeight),
     ];
     for (var r = 1; r < rounds.length; r++) {
       final prevY = yPositions[r - 1];
@@ -204,22 +392,16 @@ class _BracketCanvas extends StatelessWidget {
       }
     }
 
-    final labels = <Widget>[
-      for (var r = 0; r < rounds.length; r++)
-        _roundLabel(context, roundNames[r], colX(r), colWidth,
-            isFinal: r == finalCol),
-    ];
-
     final emblemSize = (height * 0.5).clamp(100.0, 220.0);
 
     return SizedBox(
       width: width,
-      height: height + 40,
+      height: height,
       child: Stack(
         children: [
           Positioned(
             left: colX(finalCol) + colWidth / 2 - emblemSize / 2,
-            top: 40 + height / 2 - emblemSize / 2,
+            top: height / 2 - emblemSize / 2,
             width: emblemSize,
             height: emblemSize,
             child: Opacity(
@@ -232,10 +414,9 @@ class _BracketCanvas extends StatelessWidget {
               ),
             ),
           ),
-          ...labels,
           Positioned(
             left: 0,
-            top: 40,
+            top: 0,
             width: width,
             height: height,
             child: CustomPaint(
@@ -244,32 +425,12 @@ class _BracketCanvas extends StatelessWidget {
           ),
           Positioned(
             left: 0,
-            top: 40,
+            top: 0,
             width: width,
             height: height,
             child: Stack(children: boxes),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _roundLabel(BuildContext context, String name, double x, double w,
-      {bool isFinal = false}) {
-    return Positioned(
-      left: x,
-      top: 0,
-      width: w,
-      child: Text(
-        name.toUpperCase(),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-          color: isFinal ? AppColors.primary : AppColors.textPrimary,
-        ),
       ),
     );
   }
@@ -445,7 +606,8 @@ class _TeamBox extends StatelessWidget {
               child: Icon(Icons.emoji_events, size: 12, color: AppColors.gold),
             )
           else
-            const Icon(Icons.shield_outlined, size: 12, color: AppColors.primary),
+            const Icon(Icons.shield_outlined,
+                size: 12, color: AppColors.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -501,7 +663,8 @@ class _Legend extends StatelessWidget {
             label: 'En disputa',
           ),
           _LegendItem(
-            dot: Icon(Icons.circle_outlined, size: 10, color: AppColors.grey600),
+            dot:
+                Icon(Icons.circle_outlined, size: 10, color: AppColors.grey600),
             label: 'Pendiente',
           ),
         ],

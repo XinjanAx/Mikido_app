@@ -64,10 +64,8 @@ class MatchResultService {
 
     try {
       await _standingsRecalc.recalculate(updated.tournamentId);
-    } catch (e) {
+    } catch (_) {
       // No interrumpir el guardado del resultado si falla el recálculo
-      // ignore: avoid_print
-      print('STANDINGS: error al recalcular: $e');
     }
 
     return updated;

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.mikido" "\0"
-            VALUE "FileDescription", "torneo_app" "\0"
+            VALUE "CompanyName", "Club MIKIDO" "\0"
+            VALUE "FileDescription", "Torneos - Club MIKIDO" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "torneo_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.mikido. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Club MIKIDO. All rights reserved." "\0"
             VALUE "OriginalFilename", "torneo_app.exe" "\0"
-            VALUE "ProductName", "torneo_app" "\0"
+            VALUE "ProductName", "Torneos - Club MIKIDO" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

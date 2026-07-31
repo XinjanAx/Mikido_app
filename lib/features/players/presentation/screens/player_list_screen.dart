@@ -166,16 +166,13 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
     // No se puede eliminar a alguien que sigue inscrito en un torneo —
     // primero hay que desinscribirlo (eso a su vez está bloqueado si ya
     // tiene encuentros generados, ver player_enrollment_screen.dart).
-    final enrollments =
-        await ref.read(playerLocalDataSourceProvider).getAllEnrollments();
-    final playerEnrollments =
-        enrollments.where((e) => e.playerId == playerId).toList();
+    // (resolveActiveEnrollments ya descarta/limpia solo las inscripciones
+    // huérfanas de un torneo borrado, así que lo que queda acá sí bloquea.)
+    final playerEnrollments = await resolveActiveEnrollments(ref, playerId);
 
     if (playerEnrollments.isNotEmpty) {
       final tournamentNames = playerEnrollments
-          .map((e) =>
-              ref.read(tournamentByIdProvider(e.tournamentId))?.name ??
-              'un torneo')
+          .map((e) => ref.read(tournamentByIdProvider(e.tournamentId))!.name)
           .join(', ');
       if (context.mounted) {
         await showDialog<void>(

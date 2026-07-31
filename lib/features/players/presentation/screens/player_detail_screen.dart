@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../providers/player_provider.dart';
 
 class PlayerDetailScreen extends ConsumerWidget {
@@ -109,6 +110,44 @@ class PlayerDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: () async {
+                // No se puede eliminar a alguien que sigue inscrito en un
+                // torneo — primero hay que desinscribirlo (mismo chequeo
+                // que en player_list_screen.dart; resolveActiveEnrollments
+                // ya descarta/limpia solo las inscripciones huérfanas de
+                // un torneo borrado).
+                final playerEnrollments =
+                    await resolveActiveEnrollments(ref, playerId);
+
+                if (playerEnrollments.isNotEmpty) {
+                  final tournamentNames = playerEnrollments
+                      .map((e) => ref
+                          .read(tournamentByIdProvider(e.tournamentId))!
+                          .name)
+                      .join(', ');
+                  if (context.mounted) {
+                    await showDialog<void>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('No se puede eliminar'),
+                        content: Text(
+                          '"${player.name}" está inscrito en: '
+                          '$tournamentNames.\n\n'
+                          'Debes quitar su inscripción de esos torneos '
+                          'antes de poder eliminarlo.',
+                        ),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Entendido'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                if (!context.mounted) return;
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(

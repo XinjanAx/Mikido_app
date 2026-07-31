@@ -74,6 +74,23 @@ class TournamentRepositoryImpl implements TournamentRepository {
   @override
   Future<Either<Failure, void>> deleteTournament(String id) async {
     try {
+      // Borrado en cascada: sin esto, los encuentros e inscripciones del
+      // torneo quedaban huérfanos apuntando a un torneo que ya no existe
+      // — el caso real que vimos fue un participante que ya no se podía
+      // eliminar porque seguía "inscrito" en un torneo fantasma.
+      final matches = await _db.getMatchesByTournament(id);
+      for (final m in matches) {
+        await _db.softDeleteMatch(m.id);
+        await _db.enqueueDelete(SupabaseConstants.matchesTable, m.id);
+      }
+
+      final enrollments = await _db.getPlayersWithEnrollmentByTournament(id);
+      for (final (_, enrollment) in enrollments) {
+        await _db.softDeleteEnrollment(enrollment.id);
+        await _db.enqueueDelete(
+            SupabaseConstants.enrollmentsTable, enrollment.id);
+      }
+
       await _local.softDelete(id);
       await _enqueue(rowId: id, operation: 'delete', payload: null);
       unawaited(_syncEngine.trySync());

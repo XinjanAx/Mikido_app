@@ -178,10 +178,13 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
           startDate: created.startDate,
           endDate: created.endDate,
         ));
-        state = state.copyWith(
-          isLoading: false,
-          tournaments: [created, ...state.tournaments],
-        );
+        // No hace falta agregar `created` a `state.tournaments` acá: el
+        // stream del constructor (watchTournaments()) ya reacciona solo a
+        // la escritura local y trae la lista correcta de la base —
+        // hacerlo también a mano acá duplicaba momentáneamente el torneo
+        // recién creado hasta que el stream volvía a emitir y corregía
+        // la lista (mismo bug que había en PlayersNotifier).
+        state = state.copyWith(isLoading: false);
         return true;
       },
     );
@@ -203,11 +206,6 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
               startDate: updated.startDate,
               endDate: updated.endDate,
             )));
-        state = state.copyWith(
-          tournaments: state.tournaments
-              .map((t) => t.id == updated.id ? updated : t)
-              .toList(),
-        );
         return true;
       },
     );
@@ -222,9 +220,6 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
       },
       (_) {
         unawaited(_scheduleNotifications.cancel(id));
-        state = state.copyWith(
-          tournaments: state.tournaments.where((t) => t.id != id).toList(),
-        );
         return true;
       },
     );

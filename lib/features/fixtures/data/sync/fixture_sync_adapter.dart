@@ -37,15 +37,24 @@ class FixtureSyncAdapter implements SyncAdapter {
 
   @override
   Future<void> pull() async {
-    // Solo agrega/actualiza desde lo remoto — nunca borra localmente por
-    // "no aparece en esta traída" (una traída vacía o parcial por
-    // timing/red inestable borraba partidos reales sin excepción ni
-    // aviso, y no se recuperaban solos). Ver mismo comentario en
-    // TournamentSyncAdapter.pull().
     final remoteList = await _remote.getAllMatches();
     for (final m in remoteList) {
       if (await _local.isDirty(m.id)) continue;
       await _local.upsert(m, dirty: false);
+    }
+
+    // Propaga borrados hechos en OTRO dispositivo (p. ej. "Eliminar
+    // encuentros"), con la misma salvaguarda de no actuar sobre una
+    // traída vacía — ver TournamentSyncAdapter.pull() para la
+    // explicación completa.
+    if (remoteList.isNotEmpty) {
+      final remoteIds = remoteList.map((m) => m.id).toSet();
+      final localList = await _local.getAllMatches();
+      for (final local in localList) {
+        if (remoteIds.contains(local.id)) continue;
+        if (await _local.isDirty(local.id)) continue;
+        await _local.hardDelete(local.id);
+      }
     }
 
     // El avance de ronda de eliminación YA NO se dispara nunca en

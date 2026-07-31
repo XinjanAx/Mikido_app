@@ -94,23 +94,24 @@ class _BracketAssignmentScreenState
     }
   }
 
-  /// Rival de cada sembrado (1-indexado) según el mismo algoritmo de
-  /// siembra que usa la generación real (FixtureGenerator.
-  /// standardSeedOrder) — `null` significa BYE (pase directo). Se
-  /// recalcula en cada build a partir del orden actual de [_order], así
-  /// que se actualiza solo cuando el admin intercambia participantes.
-  Map<int, int?> _computeOpponentBySeed() {
+  /// Pares de sembrados según el mismo algoritmo de siembra que usa la
+  /// generación real (FixtureGenerator.standardSeedOrder). Se descartan
+  /// los pares donde NINGÚN lado tiene un participante real (pasa cuando
+  /// hay muchos más cupos del cuadro que participantes) — esos no
+  /// representan ningún partido. Se recalcula en cada build a partir del
+  /// orden actual de [_order], así se actualiza solo cuando el admin
+  /// intercambia participantes.
+  List<({int seedA, int seedB})> _computePairs() {
     final n = _order.length;
     final bracketSize = FixtureGenerator.nextPowerOfTwo(n);
     final seedOrder = FixtureGenerator.standardSeedOrder(bracketSize);
-    final opponent = <int, int?>{};
+    final pairs = <({int seedA, int seedB})>[];
     for (var i = 0; i < seedOrder.length; i += 2) {
       final a = seedOrder[i];
       final b = seedOrder[i + 1];
-      if (a <= n) opponent[a] = b <= n ? b : null;
-      if (b <= n) opponent[b] = a <= n ? a : null;
+      if (a <= n || b <= n) pairs.add((seedA: a, seedB: b));
     }
-    return opponent;
+    return pairs;
   }
 
   @override
@@ -118,7 +119,7 @@ class _BracketAssignmentScreenState
     final n = _order.length;
     final bracketSize = FixtureGenerator.nextPowerOfTwo(n);
     final byes = bracketSize - n;
-    final opponentBySeed = _computeOpponentBySeed();
+    final pairs = _computePairs();
 
     return Scaffold(
       appBar: AppBar(
@@ -138,8 +139,7 @@ class _BracketAssignmentScreenState
             child: Text(
               _selectedIndex == null
                   ? 'Toca un participante para elegirlo y luego toca otro '
-                    'para intercambiarlo de posición: la posición define '
-                    'la cabeza de serie (arriba = Sembrado 1).'
+                    'para intercambiarlo de posición entre partidos.'
                   : 'Ahora toca al participante con el que quieres '
                     'intercambiarlo.',
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
@@ -158,54 +158,24 @@ class _BracketAssignmentScreenState
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
-              itemCount: _order.length,
-              itemBuilder: (context, index) {
-                final player = _order[index];
-                final seed = index + 1;
-                final opponentSeed = opponentBySeed[seed];
-                final isBye = opponentSeed == null;
-                final isSelected = index == _selectedIndex;
+              itemCount: pairs.length,
+              itemBuilder: (context, i) {
+                final pair = pairs[i];
+                final indexA = pair.seedA - 1;
+                final indexB = pair.seedB - 1;
+                final hasA = indexA < n;
+                final hasB = indexB < n;
 
-                return Padding(
-                  key: ValueKey(player.id),
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    color: isSelected
-                        ? AppColors.accent.withOpacity(0.12)
-                        : null,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppColors.accent
-                            : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: ListTile(
-                      onTap: () => _onTapPlayer(index),
-                      leading: CircleAvatar(child: Text('$seed')),
-                      title: Text(player.name),
-                      subtitle: Text(
-                        isBye
-                            ? 'BYE — pasa directo a la siguiente ronda'
-                            : 'Rival: ${_order[opponentSeed - 1].name} '
-                              '(Sembrado $opponentSeed)',
-                        style: isBye
-                            ? const TextStyle(
-                                color: AppColors.accent,
-                                fontStyle: FontStyle.italic)
-                            : null,
-                      ),
-                      trailing: Icon(
-                        isSelected
-                            ? Icons.check_circle
-                            : Icons.swap_horiz,
-                        color: isSelected ? AppColors.accent : null,
-                      ),
-                    ),
-                  ),
+                return _PairCard(
+                  matchNumber: i + 1,
+                  seedA: pair.seedA,
+                  playerA: hasA ? _order[indexA] : null,
+                  isSelectedA: hasA && indexA == _selectedIndex,
+                  onTapA: hasA ? () => _onTapPlayer(indexA) : null,
+                  seedB: pair.seedB,
+                  playerB: hasB ? _order[indexB] : null,
+                  isSelectedB: hasB && indexB == _selectedIndex,
+                  onTapB: hasB ? () => _onTapPlayer(indexB) : null,
                 );
               },
             ),
@@ -223,6 +193,131 @@ class _BracketAssignmentScreenState
               )
             : const Icon(Icons.auto_awesome),
         label: Text(_isGenerating ? 'Generando...' : 'Generar encuentros'),
+      ),
+    );
+  }
+}
+
+/// Un partido del cuadro: dos casillas de sembrado apiladas, cada una
+/// tocable para elegir/intercambiar. Si un lado no tiene participante
+/// real (el otro sembrado avanza por BYE), se muestra atenuado y no se
+/// puede tocar.
+class _PairCard extends StatelessWidget {
+  final int matchNumber;
+  final int seedA;
+  final PlayerEntity? playerA;
+  final bool isSelectedA;
+  final VoidCallback? onTapA;
+  final int seedB;
+  final PlayerEntity? playerB;
+  final bool isSelectedB;
+  final VoidCallback? onTapB;
+
+  const _PairCard({
+    required this.matchNumber,
+    required this.seedA,
+    required this.playerA,
+    required this.isSelectedA,
+    required this.onTapA,
+    required this.seedB,
+    required this.playerB,
+    required this.isSelectedB,
+    required this.onTapB,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Text(
+              'Partido $matchNumber',
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.grey400),
+            ),
+          ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              children: [
+                _SeedRow(
+                  seed: seedA,
+                  player: playerA,
+                  isSelected: isSelectedA,
+                  onTap: onTapA,
+                ),
+                const Divider(height: 1),
+                _SeedRow(
+                  seed: seedB,
+                  player: playerB,
+                  isSelected: isSelectedB,
+                  onTap: onTapB,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeedRow extends StatelessWidget {
+  final int seed;
+  final PlayerEntity? player;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  const _SeedRow({
+    required this.seed,
+    required this.player,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isBye = player == null;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: isSelected ? AppColors.accent.withOpacity(0.12) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundColor:
+                  isBye ? AppColors.surfaceVariant : AppColors.primary,
+              child: Text('$seed', style: const TextStyle(fontSize: 11)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isBye ? 'BYE — pasa directo' : player!.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: isBye
+                    ? AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.grey400,
+                        fontStyle: FontStyle.italic)
+                    : AppTextStyles.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (!isBye)
+              Icon(
+                isSelected ? Icons.check_circle : Icons.swap_horiz,
+                size: 18,
+                color: isSelected ? AppColors.accent : AppColors.grey600,
+              ),
+          ],
+        ),
       ),
     );
   }

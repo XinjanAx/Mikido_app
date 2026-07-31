@@ -9,6 +9,7 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/fixtures/presentation/screens/bracket_screen.dart';
 import '../features/fixtures/presentation/screens/fixture_screen.dart';
+import '../features/players/presentation/screens/player_detail_screen.dart';
 import '../features/players/presentation/screens/player_form_screen.dart';
 import '../features/players/presentation/screens/player_list_screen.dart';
 import '../features/reports/presentation/screens/report_screen.dart';
@@ -139,6 +140,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'create',
             builder: (_, __) => const PlayerFormScreen(),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (_, state) => PlayerDetailScreen(
+              playerId: state.pathParameters['id']!,
+            ),
           ),
           GoRoute(
             path: ':id/edit',

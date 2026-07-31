@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -99,8 +100,8 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(tournamentsProvider.notifier).loadTournaments(),
+            tooltip: 'Sincronizar',
+            onPressed: () => ref.read(syncEngineProvider).trySync(),
           ),
           IconButton(
             icon: Icon(ref.watch(themeModeProvider) == ThemeMode.dark

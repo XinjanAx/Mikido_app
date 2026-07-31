@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
@@ -29,8 +30,11 @@ class BracketScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(fixtureProvider(tournamentId).notifier).loadMatches(),
+            tooltip: 'Sincronizar',
+            onPressed: () async {
+              await ref.read(syncEngineProvider).trySync();
+              ref.read(fixtureProvider(tournamentId).notifier).loadMatches();
+            },
           ),
         ],
       ),

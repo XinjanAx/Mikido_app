@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../../core/sync/sync_engine_provider.dart';
+import '../../../tournaments/presentation/providers/tournament_provider.dart'
+    show tournamentByIdProvider;
 import '../../data/datasources/player_local_datasource.dart';
 import '../../data/datasources/player_remote_datasource.dart';
 import '../../data/repositories/player_repository_impl.dart';
@@ -162,15 +165,17 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
       birthDate: birthDate,
     );
     final result = await _create(player);
+    // No hace falta tocar `state.players` acá: el stream del constructor
+    // (watchPlayers()) ya reacciona solo a la escritura local y trae la
+    // lista correcta de la base — actualizarla también a mano acá
+    // duplicaba momentáneamente al participante recién creado hasta que
+    // el stream volvía a emitir y corregía la lista.
     return result.fold(
       (f) {
         state = state.copyWith(errorMessage: f.message);
         return false;
       },
-      (created) {
-        state = state.copyWith(players: [created, ...state.players]);
-        return true;
-      },
+      (_) => true,
     );
   }
 
@@ -181,14 +186,7 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
         state = state.copyWith(errorMessage: f.message);
         return false;
       },
-      (updated) {
-        state = state.copyWith(
-          players: state.players
-              .map((p) => p.id == updated.id ? updated : p)
-              .toList(),
-        );
-        return true;
-      },
+      (_) => true,
     );
   }
 
@@ -199,12 +197,7 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
         state = state.copyWith(errorMessage: f.message);
         return false;
       },
-      (_) {
-        state = state.copyWith(
-          players: state.players.where((p) => p.id != id).toList(),
-        );
-        return true;
-      },
+      (_) => true,
     );
   }
 
@@ -254,3 +247,27 @@ final playersByTournamentProvider =
   final result = await useCase(tournamentId);
   return result.fold((_) => [], (list) => list);
 });
+
+/// Inscripciones de un jugador que realmente bloquean su borrado —
+/// autolimpia (local + remoto) las que apuntan a un torneo que ya no
+/// existe. Antes de esto una fila huérfana (p. ej. porque el torneo se
+/// borró sin borrar sus inscripciones en cascada) dejaba al participante
+/// bloqueado para siempre, sin ninguna forma de solucionarlo desde la UI.
+Future<List<({String id, String tournamentId, String playerId})>>
+    resolveActiveEnrollments(WidgetRef ref, String playerId) async {
+  final all = await ref.read(playerLocalDataSourceProvider).getAllEnrollments();
+  final mine = all.where((e) => e.playerId == playerId).toList();
+  final active = <({String id, String tournamentId, String playerId})>[];
+  for (final e in mine) {
+    final tournament = ref.read(tournamentByIdProvider(e.tournamentId));
+    if (tournament == null) {
+      await ref.read(playerLocalDataSourceProvider).hardDeleteEnrollment(e.id);
+      await ref
+          .read(appDatabaseProvider)
+          .enqueueDelete(SupabaseConstants.enrollmentsTable, e.id);
+    } else {
+      active.add(e);
+    }
+  }
+  return active;
+}

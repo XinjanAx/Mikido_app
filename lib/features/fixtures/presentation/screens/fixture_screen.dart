@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:torneo_app/features/tournaments/domain/entities/tournament_entity.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -99,9 +100,11 @@ class FixtureScreen extends ConsumerWidget {
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: () => ref
-                  .read(fixtureProvider(tournamentId).notifier)
-                  .loadMatches(),
+              tooltip: 'Sincronizar',
+              onPressed: () async {
+                await ref.read(syncEngineProvider).trySync();
+                ref.read(fixtureProvider(tournamentId).notifier).loadMatches();
+              },
             ),
         ],
       ),

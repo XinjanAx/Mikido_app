@@ -38,16 +38,13 @@ class EnrollmentSyncAdapter implements SyncAdapter {
 
   @override
   Future<void> pull() async {
-    // Solo agrega/actualiza desde lo remoto — nunca borra localmente por
-    // "no aparece en esta traída" (una traída vacía o parcial por
-    // timing/red inestable borraba inscripciones reales sin excepción ni
-    // aviso, y no se recuperaban solas). Ver mismo comentario en
-    // TournamentSyncAdapter.pull().
     final remoteRows = await _remote.getAllEnrollments();
+    final remoteIds = <String>{};
     for (final row in remoteRows) {
       final tournamentId = row['tournament_id'] as String;
       final playerId = row['player_id'] as String;
       final id = '$tournamentId:$playerId';
+      remoteIds.add(id);
 
       if (await _local.isEnrollmentDirty(id)) continue;
       await _local.upsertEnrollment(
@@ -56,6 +53,18 @@ class EnrollmentSyncAdapter implements SyncAdapter {
         playerId: playerId,
         dirty: false,
       );
+    }
+
+    // Propaga borrados hechos en OTRO dispositivo (con la misma
+    // salvaguarda de no actuar sobre una traída vacía — ver
+    // TournamentSyncAdapter.pull() para la explicación completa).
+    if (remoteRows.isNotEmpty) {
+      final localList = await _local.getAllEnrollments();
+      for (final local in localList) {
+        if (remoteIds.contains(local.id)) continue;
+        if (await _local.isEnrollmentDirty(local.id)) continue;
+        await _local.hardDeleteEnrollment(local.id);
+      }
     }
   }
 }

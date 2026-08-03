@@ -50,7 +50,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: RouteConstants.tournaments,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-      if (authState.status == AuthStatus.initial) return null; // restaurando sesión
+      if (authState.status == AuthStatus.initial)
+        return null; // restaurando sesión
 
       final isLoggedIn = authState.status == AuthStatus.authenticated;
       final isOnAuth = state.matchedLocation == RouteConstants.login ||
@@ -161,9 +162,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     if (next.status == AuthStatus.authenticated && !next.isRegistering) {
       router.go(RouteConstants.tournaments);
     }
-    // Ya no se fuerza a /login cuando el estado pasa a 'unauthenticated'
-    // (login o logout): la navegación pública se queda donde está y solo
-    // el `redirect` de arriba manda a login si hace falta rol admin.
   });
 
   return router;

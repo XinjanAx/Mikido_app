@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_colors.dart';
 
-/// Tema manual (claro/oscuro), sin seguir el modo del sistema — el usuario
-/// lo cambia con el botón de la barra superior y queda guardado.
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   static const _key = 'theme_mode';
 
@@ -32,7 +30,6 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   }
 }
 
-final themeModeProvider =
-    StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
+final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
   (ref) => ThemeModeNotifier(),
 );

@@ -129,8 +129,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<Player?> getPlayerById(String id) {
-    return (select(players)..where((p) => p.id.equals(id)))
-        .getSingleOrNull();
+    return (select(players)..where((p) => p.id.equals(id))).getSingleOrNull();
   }
 
   Future<void> upsertPlayer(PlayersCompanion entry) {
@@ -154,8 +153,7 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- Enrollments ----------
 
-  /// Jugadores inscritos en un torneo, resuelto con un join local —
-  /// reemplaza el fetch-y-stitch manual que se hacía contra Supabase.
+  /// Jugadores inscritos en un torneo, resuelto con un join local
   Future<List<(Player, Enrollment)>> getPlayersWithEnrollmentByTournament(
       String tournamentId) async {
     final query = select(players).join([
@@ -303,8 +301,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<Standing?> getStandingById(String id) {
-    return (select(standings)..where((s) => s.id.equals(id)))
-        .getSingleOrNull();
+    return (select(standings)..where((s) => s.id.equals(id))).getSingleOrNull();
   }
 
   Future<List<Standing>> getAllStandingsLocal() => select(standings).get();

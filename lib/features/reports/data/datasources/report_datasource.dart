@@ -1,12 +1,13 @@
 import 'dart:typed_data';
 import '../../../../core/utils/pdf_utils.dart';
-import '../../../../core/utils/excel_utils.dart';
 import '../../domain/entities/report_params.dart';
 
 abstract class ReportDataSource {
   Future<Uint8List> generatePdf(ReportParams params);
-  Uint8List generateExcel(ReportParams params);
-  Future<void> sharePdf(Uint8List bytes, String fileName);
+
+  /// Devuelve `true` si el PDF quedó guardado y `false` si el usuario
+  /// canceló el diálogo de guardado.
+  Future<bool> savePdf(Uint8List bytes, String fileName);
 }
 
 class ReportDataSourceImpl implements ReportDataSource {
@@ -22,14 +23,6 @@ class ReportDataSourceImpl implements ReportDataSource {
       );
 
   @override
-  Uint8List generateExcel(ReportParams params) =>
-      ExcelUtils.generateTournamentExcel(
-        tournamentName: params.tournamentName,
-        standings: params.standings,
-        matches: params.matches,
-      );
-
-  @override
-  Future<void> sharePdf(Uint8List bytes, String fileName) =>
-      PdfUtils.sharePdf(bytes, fileName);
+  Future<bool> savePdf(Uint8List bytes, String fileName) =>
+      PdfUtils.savePdf(bytes, fileName);
 }

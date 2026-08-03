@@ -67,16 +67,7 @@ class ReportScreen extends ConsumerWidget {
               subtitle: 'Tabla de posiciones y resultados en PDF',
               color: AppColors.error,
               isLoading: reportState.isGeneratingPdf,
-              onTap: () => _export(context, ref, isPdf: true),
-            ),
-            const SizedBox(height: 12),
-            _ExportCard(
-              icon: Icons.table_chart_outlined,
-              title: 'Exportar Excel',
-              subtitle: 'Datos completos en formato .xlsx',
-              color: AppColors.success,
-              isLoading: reportState.isGeneratingExcel,
-              onTap: () => _export(context, ref, isPdf: false),
+              onTap: () => _export(context, ref),
             ),
           ],
         ),
@@ -84,8 +75,7 @@ class ReportScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _export(BuildContext context, WidgetRef ref,
-      {required bool isPdf}) async {
+  Future<void> _export(BuildContext context, WidgetRef ref) async {
     final tournament = ref.read(tournamentsProvider).tournaments
         .firstWhere((t) => t.id == tournamentId);
     final standings = ref
@@ -121,11 +111,7 @@ class ReportScreen extends ConsumerWidget {
           .toList(),
     );
 
-    if (isPdf) {
-      await ref.read(reportProvider.notifier).exportPdf(params);
-    } else {
-      await ref.read(reportProvider.notifier).exportExcel(params);
-    }
+    await ref.read(reportProvider.notifier).exportPdf(params);
   }
 }
 

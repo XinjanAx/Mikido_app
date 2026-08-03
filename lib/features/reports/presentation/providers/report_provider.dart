@@ -9,32 +9,25 @@ final reportDataSourceProvider = Provider<ReportDataSource>(
 final exportPdfUseCaseProvider = Provider(
   (ref) => ExportPdfUseCase(ref.watch(reportDataSourceProvider)),
 );
-final exportExcelUseCaseProvider = Provider(
-  (ref) => ExportExcelUseCase(ref.watch(reportDataSourceProvider)),
-);
 
 class ReportState {
   final bool isGeneratingPdf;
-  final bool isGeneratingExcel;
   final String? errorMessage;
   final String? successMessage;
 
   const ReportState({
     this.isGeneratingPdf = false,
-    this.isGeneratingExcel = false,
     this.errorMessage,
     this.successMessage,
   });
 
   ReportState copyWith({
     bool? isGeneratingPdf,
-    bool? isGeneratingExcel,
     String? errorMessage,
     String? successMessage,
   }) =>
       ReportState(
         isGeneratingPdf: isGeneratingPdf ?? this.isGeneratingPdf,
-        isGeneratingExcel: isGeneratingExcel ?? this.isGeneratingExcel,
         errorMessage: errorMessage,
         successMessage: successMessage,
       );
@@ -42,15 +35,12 @@ class ReportState {
 
 class ReportNotifier extends StateNotifier<ReportState> {
   final ExportPdfUseCase _exportPdf;
-  final ExportExcelUseCase _exportExcel;
   final ReportDataSource _dataSource;
 
   ReportNotifier({
     required ExportPdfUseCase exportPdf,
-    required ExportExcelUseCase exportExcel,
     required ReportDataSource dataSource,
   })  : _exportPdf = exportPdf,
-        _exportExcel = exportExcel,
         _dataSource = dataSource,
         super(const ReportState());
 
@@ -58,10 +48,12 @@ class ReportNotifier extends StateNotifier<ReportState> {
     state = state.copyWith(isGeneratingPdf: true);
     try {
       final bytes = await _exportPdf(params);
-      await _dataSource.sharePdf(bytes, params.tournamentName);
+      final saved = await _dataSource.savePdf(bytes, params.tournamentName);
+      // Si el usuario canceló el diálogo de guardado no mostramos ni éxito
+      // ni error — simplemente no pasó nada.
       state = state.copyWith(
         isGeneratingPdf: false,
-        successMessage: 'PDF generado exitosamente',
+        successMessage: saved ? 'PDF guardado exitosamente' : null,
       );
     } catch (e) {
       state = state.copyWith(
@@ -70,29 +62,11 @@ class ReportNotifier extends StateNotifier<ReportState> {
       );
     }
   }
-
-  Future<void> exportExcel(ReportParams params) async {
-    state = state.copyWith(isGeneratingExcel: true);
-    try {
-      _exportExcel(params);
-      // En implementación real usar share_plus para compartir el archivo Excel
-      state = state.copyWith(
-        isGeneratingExcel: false,
-        successMessage: 'Excel generado exitosamente',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isGeneratingExcel: false,
-        errorMessage: 'Error al generar Excel: $e',
-      );
-    }
-  }
 }
 
 final reportProvider = StateNotifierProvider<ReportNotifier, ReportState>(
   (ref) => ReportNotifier(
     exportPdf: ref.watch(exportPdfUseCaseProvider),
-    exportExcel: ref.watch(exportExcelUseCaseProvider),
     dataSource: ref.watch(reportDataSourceProvider),
   ),
 );

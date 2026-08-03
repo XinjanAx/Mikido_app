@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.mikido.torneo_app"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker arrastra flutter_plugin_android_lifecycle, que exige
+    // compileSdk 36+; flutter.compileSdkVersion todavía resuelve a 34.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

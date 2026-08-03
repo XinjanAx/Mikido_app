@@ -9,10 +9,3 @@ class ExportPdfUseCase {
   Future<Uint8List> call(ReportParams params) =>
       _dataSource.generatePdf(params);
 }
-
-class ExportExcelUseCase {
-  final ReportDataSource _dataSource;
-  const ExportExcelUseCase(this._dataSource);
-
-  Uint8List call(ReportParams params) => _dataSource.generateExcel(params);
-}

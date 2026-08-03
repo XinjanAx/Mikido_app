@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Pie de marca reutilizable para pantallas de resultados (llave, tabla
-/// de posiciones): línea roja + logo del club en un recuadro.
+///(llave, tabla d posiciones)
 class BrandFooter extends StatelessWidget {
   const BrandFooter({super.key});
 

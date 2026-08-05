@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:torneo_app/features/tournaments/domain/entities/tournament_entity.dart';
@@ -80,7 +81,7 @@ class FixtureScreen extends ConsumerWidget {
         title: const Text('Encuentros'),
         actions: [
           if (isAdmin) ...[
-            if (fixtureState.matches.isNotEmpty)
+            if (fixtureState.matches.isNotEmpty && !isTournamentFinished)
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: 'Eliminar encuentros',
@@ -660,6 +661,26 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
   }
 }
 
+/// Recorta el marcador a [AppConstants.maxMatchScore] mientras se escribe
+/// — un partido no puede terminar con un resultado absurdo por un dedo
+/// que se resbala en el teclado numérico.
+class _MaxScoreInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+    final value = int.tryParse(newValue.text);
+    if (value == null || value <= AppConstants.maxMatchScore) return newValue;
+    final clamped = AppConstants.maxMatchScore.toString();
+    return TextEditingValue(
+      text: clamped,
+      selection: TextSelection.collapsed(offset: clamped.length),
+    );
+  }
+}
+
 class _ResultDialog extends StatefulWidget {
   final String matchId;
   final String homePlayerName;
@@ -688,6 +709,10 @@ class _ResultDialog extends StatefulWidget {
 }
 
 class _ResultDialogState extends State<_ResultDialog> {
+  static final List<TextInputFormatter> _scoreInputFormatters = [
+    FilteringTextInputFormatter.digitsOnly,
+    _MaxScoreInputFormatter(),
+  ];
   late final _homeController =
       TextEditingController(text: widget.initialHomeScore?.toString() ?? '');
   late final _awayController =
@@ -722,6 +747,7 @@ class _ResultDialogState extends State<_ResultDialog> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.scoreDisplay,
+                      inputFormatters: _scoreInputFormatters,
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: '0',
@@ -748,6 +774,7 @@ class _ResultDialogState extends State<_ResultDialog> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.scoreDisplay,
+                      inputFormatters: _scoreInputFormatters,
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: '0',

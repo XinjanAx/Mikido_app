@@ -1,3 +1,4 @@
+import '../../../../core/extensions/datetime_extensions.dart';
 import '../../domain/entities/tournament_entity.dart';
 
 class TournamentModel extends TournamentEntity {
@@ -35,8 +36,8 @@ class TournamentModel extends TournamentEntity {
         'mode': mode,
         'status': status,
         'description': description,
-        'start_date': startDate.toIso8601String(),
-        'end_date': endDate.toIso8601String(),
+        'start_date': startDate.toApiDateTime(),
+        'end_date': endDate.toApiDateTime(),
         'created_by': createdBy,
       };
 

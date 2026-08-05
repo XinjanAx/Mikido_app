@@ -40,16 +40,6 @@ class TournamentSyncAdapter implements SyncAdapter {
       await _local.upsert(t, dirty: false);
     }
 
-    // Propaga borrados hechos en OTRO dispositivo: si un torneo local ya
-    // sincronizado (no dirty) no aparece en la traída remota, se borró de
-    // verdad en otro lado. Antes esto borraba directo por "no aparece en
-    // esta traída", pero una traída vacía o parcial (red inestable,
-    // timing en el arranque) hacía lo mismo por error y borraba datos
-    // reales sin aviso. La salvaguarda `remoteList.isNotEmpty` evita
-    // exactamente ese caso: nunca se interpreta una traída vacía como
-    // "se borró todo" (el único costo es que borrar el ÚLTIMO torneo
-    // restante no se propaga solo — hay que borrarlo también a mano en
-    // cada dispositivo, un caso raro comparado con perder datos reales).
     if (remoteList.isNotEmpty) {
       final remoteIds = remoteList.map((t) => t.id).toSet();
       final localList = await _local.getTournaments();

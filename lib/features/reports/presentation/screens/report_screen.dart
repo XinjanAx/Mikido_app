@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart';
 import '../../../standings/presentation/providers/standing_provider.dart';
 import '../../../tournaments/presentation/providers/tournament_provider.dart';
@@ -82,12 +83,18 @@ class ReportScreen extends ConsumerWidget {
             .read(standingsStreamProvider(tournamentId))
             .valueOrNull ??
         [];
-    final matches =
-        ref.read(fixtureProvider(tournamentId)).matches;
+    // Se pide directo al usecase (no al fixtureProvider ya instanciado) para
+    // garantizar la lista completa y fresca de TODAS las rondas — si el
+    // provider de fixtures no se había abierto antes en esta navegación,
+    // leer su estado podía traer una lista vacía o desactualizada.
+    final matchesResult =
+        await ref.read(getMatchesUseCaseProvider)(tournamentId);
+    final matches = matchesResult.fold((_) => <MatchEntity>[], (list) => list);
 
     final params = ReportParams(
       tournamentName: tournament.name,
       category: tournament.modeLabel,
+      mode: tournament.mode,
       standings: standings
           .map((s) => {
                 'player_name': s.playerName,
@@ -107,10 +114,12 @@ class ReportScreen extends ConsumerWidget {
                 'home_score': m.homeScore ?? 0,
                 'away_score': m.awayScore ?? 0,
                 'status': m.status,
+                'round': m.round,
               })
           .toList(),
     );
 
+    if (!context.mounted) return;
     await ref.read(reportProvider.notifier).exportPdf(params);
   }
 }

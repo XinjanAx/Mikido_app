@@ -110,17 +110,12 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
         _scheduleNotifications = scheduleNotifications,
         _userId = userId,
         super(const TournamentsState()) {
-    // Reactivo en vez de una sola carga al crearse: si algo cambia el
-    // torneo por fuera de esta misma pantalla (p. ej. generar encuentros
-    // pasa el torneo de Borrador a Activo desde la pantalla de Fixtures),
-    // esto lo refleja solo en vez de quedarse con el valor viejo hasta
-    // que se vuelva a crear el provider.
     state = state.copyWith(isLoading: true);
     _tournamentsSub = _repository.watchTournaments().listen(
-      (list) => state = state.copyWith(isLoading: false, tournaments: list),
-      onError: (Object e) =>
-          state = state.copyWith(isLoading: false, errorMessage: e.toString()),
-    );
+          (list) => state = state.copyWith(isLoading: false, tournaments: list),
+          onError: (Object e) => state =
+              state.copyWith(isLoading: false, errorMessage: e.toString()),
+        );
   }
 
   @override
@@ -178,12 +173,7 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
           startDate: created.startDate,
           endDate: created.endDate,
         ));
-        // No hace falta agregar `created` a `state.tournaments` acá: el
-        // stream del constructor (watchTournaments()) ya reacciona solo a
-        // la escritura local y trae la lista correcta de la base —
-        // hacerlo también a mano acá duplicaba momentáneamente el torneo
-        // recién creado hasta que el stream volvía a emitir y corregía
-        // la lista (mismo bug que había en PlayersNotifier).
+
         state = state.copyWith(isLoading: false);
         return true;
       },
@@ -199,13 +189,14 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
       },
       (updated) {
         // Las fechas pueden haber cambiado: se reprograman desde cero.
-        unawaited(_scheduleNotifications.cancel(updated.id).then((_) =>
-            _scheduleNotifications.schedule(
-              tournamentId: updated.id,
-              tournamentName: updated.name,
-              startDate: updated.startDate,
-              endDate: updated.endDate,
-            )));
+        unawaited(_scheduleNotifications
+            .cancel(updated.id)
+            .then((_) => _scheduleNotifications.schedule(
+                  tournamentId: updated.id,
+                  tournamentName: updated.name,
+                  startDate: updated.startDate,
+                  endDate: updated.endDate,
+                )));
         return true;
       },
     );
@@ -242,10 +233,6 @@ final tournamentsProvider =
   },
 );
 
-// Torneo individual por ID — derivado de la misma lista reactiva de
-// tournamentsProvider en vez de una carga propia (que se quedaba
-// obsoleta): así refleja solo cualquier cambio, venga de esta pantalla
-// o de otra (p. ej. el estado que cambia solo al generar encuentros).
 final tournamentByIdProvider = Provider.family<TournamentEntity?, String>(
   (ref, id) {
     final tournaments = ref.watch(tournamentsProvider).tournaments;

@@ -4,11 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_model.dart';
 
-/// Cachea el último perfil (nombre/rol) del usuario autenticado, para que
-/// la app siga sabiendo quién eres y si eres admin al abrirla sin conexión.
-/// Supabase ya guarda la sesión localmente por su cuenta — lo que faltaba
-/// era esto: el perfil (tabla `profiles`, con el rol) se leía siempre por
-/// red, así que sin internet un admin ya logueado aparecía como invitado.
 class AuthLocalDataSource {
   static const _key = 'cached_user_profile';
 

@@ -1,3 +1,4 @@
+import '../../../../core/extensions/datetime_extensions.dart';
 import '../../domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
@@ -26,6 +27,6 @@ class UserModel extends UserEntity {
         'email': email,
         'name': name,
         'role': role,
-        'created_at': createdAt?.toIso8601String(),
+        'created_at': createdAt?.toApiDateTime(),
       };
 }

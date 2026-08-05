@@ -40,4 +40,7 @@ class AppConstants {
 
   // Paginación
   static const int pageSize = 20;
+
+  // Resultados de partidos
+  static const int maxMatchScore = 100;
 }

@@ -8,13 +8,12 @@ class NotificationLocalDataSource {
 
   NotificationLocalDataSource(this._plugin);
 
-  // Minutos de antelación para avisar antes de que empiece/termine el torneo.
-  static const List<int> _startOffsetsMin = [30, 10, 5];
-  static const List<int> _endOffsetsMin = [60, 30, 10, 5];
+  // Minutos de antelación para avisar antes de que empiece/termine el
+  // torneo. El 0 final es el aviso justo en el momento exacto de inicio/fin
+  // (no "antes de" — cuando ya llegó/venció la hora).
+  static const List<int> _startOffsetsMin = [30, 10, 5, 0];
+  static const List<int> _endOffsetsMin = [60, 30, 10, 5, 0];
 
-  // flutter_local_notifications no tiene implementación para Windows/Linux
-  // (solo Android, iOS, macOS) — sin este check, cualquier llamada al
-  // plugin en la build de escritorio Windows lanza MissingPluginException.
   bool get _isSupported => !Platform.isWindows && !Platform.isLinux;
 
   Future<void> initialize() async {
@@ -54,7 +53,8 @@ class NotificationLocalDataSource {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    final baseStartId = tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
+    final baseStartId =
+        tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
     final baseEndId = tournamentId.hashCode.abs() + AppConstants.notifIdEndBase;
 
     // Notificaciones de inicio
@@ -62,10 +62,12 @@ class NotificationLocalDataSource {
       'Faltan 30 minutos para iniciar',
       'Faltan 10 minutos para iniciar',
       '¡Faltan 5 minutos para iniciar!',
+      '¡El torneo ha comenzado!',
     ];
 
     for (var i = 0; i < _startOffsetsMin.length; i++) {
-      final notifTime = startDate.subtract(Duration(minutes: _startOffsetsMin[i]));
+      final notifTime =
+          startDate.subtract(Duration(minutes: _startOffsetsMin[i]));
       if (notifTime.isAfter(DateTime.now())) {
         await _scheduleNotification(
           id: baseStartId + i,
@@ -82,6 +84,7 @@ class NotificationLocalDataSource {
       'Faltan 30 minutos para finalizar',
       'Faltan 10 minutos para finalizar',
       '¡Faltan 5 minutos para finalizar!',
+      'El torneo ya debió haber finalizado',
     ];
 
     for (var i = 0; i < _endOffsetsMin.length; i++) {
@@ -99,7 +102,8 @@ class NotificationLocalDataSource {
 
   Future<void> cancelTournamentNotifications(String tournamentId) async {
     if (!_isSupported) return;
-    final baseStartId = tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
+    final baseStartId =
+        tournamentId.hashCode.abs() + AppConstants.notifIdStartBase;
     final baseEndId = tournamentId.hashCode.abs() + AppConstants.notifIdEndBase;
 
     for (var i = 0; i < _startOffsetsMin.length; i++) {

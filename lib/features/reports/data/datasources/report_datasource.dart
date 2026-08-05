@@ -18,6 +18,7 @@ class ReportDataSourceImpl implements ReportDataSource {
       PdfUtils.generateTournamentReport(
         tournamentName: params.tournamentName,
         category: params.category,
+        mode: params.mode,
         standings: params.standings,
         matches: params.matches,
       );

@@ -1,3 +1,4 @@
+import '../../../../core/extensions/datetime_extensions.dart';
 import '../../domain/entities/match_entity.dart';
 
 class MatchModel extends MatchEntity {
@@ -47,7 +48,7 @@ class MatchModel extends MatchEntity {
         'home_score': homeScore,
         'away_score': awayScore,
         'status': status,
-        'scheduled_at': scheduledAt?.toIso8601String(),
+        'scheduled_at': scheduledAt?.toApiDateTime(),
         'round': round,
         'match_number': matchNumber,
       };

@@ -1,3 +1,4 @@
+import '../../../../core/extensions/datetime_extensions.dart';
 import '../../domain/entities/result_entity.dart';
 
 class ResultModel extends ResultEntity {
@@ -37,7 +38,7 @@ class ResultModel extends ResultEntity {
         'away_score': awayScore,
         'notes': notes,
         'registered_by': registeredBy,
-        'registered_at': registeredAt.toIso8601String(),
+        'registered_at': registeredAt.toApiDateTime(),
       };
 
   Map<String, dynamic> toInsertJson() {

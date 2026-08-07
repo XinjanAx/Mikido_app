@@ -1,3 +1,5 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
@@ -2738,6 +2740,12 @@ class $StandingsTable extends Standings
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _manualRankMeta =
+      const VerificationMeta('manualRank');
+  @override
+  late final GeneratedColumn<int> manualRank = GeneratedColumn<int>(
+      'manual_rank', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -2760,6 +2768,7 @@ class $StandingsTable extends Standings
         goalsFor,
         goalsAgainst,
         points,
+        manualRank,
         dirty
       ];
   @override
@@ -2829,6 +2838,12 @@ class $StandingsTable extends Standings
       context.handle(_pointsMeta,
           points.isAcceptableOrUnknown(data['points']!, _pointsMeta));
     }
+    if (data.containsKey('manual_rank')) {
+      context.handle(
+          _manualRankMeta,
+          manualRank.isAcceptableOrUnknown(
+              data['manual_rank']!, _manualRankMeta));
+    }
     if (data.containsKey('dirty')) {
       context.handle(
           _dirtyMeta, dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta));
@@ -2864,6 +2879,8 @@ class $StandingsTable extends Standings
           .read(DriftSqlType.int, data['${effectivePrefix}goals_against'])!,
       points: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}points'])!,
+      manualRank: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}manual_rank']),
       dirty: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}dirty'])!,
     );
@@ -2887,6 +2904,7 @@ class Standing extends DataClass implements Insertable<Standing> {
   final int goalsFor;
   final int goalsAgainst;
   final int points;
+  final int? manualRank;
   final bool dirty;
   const Standing(
       {required this.id,
@@ -2900,6 +2918,7 @@ class Standing extends DataClass implements Insertable<Standing> {
       required this.goalsFor,
       required this.goalsAgainst,
       required this.points,
+      this.manualRank,
       required this.dirty});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2915,6 +2934,9 @@ class Standing extends DataClass implements Insertable<Standing> {
     map['goals_for'] = Variable<int>(goalsFor);
     map['goals_against'] = Variable<int>(goalsAgainst);
     map['points'] = Variable<int>(points);
+    if (!nullToAbsent || manualRank != null) {
+      map['manual_rank'] = Variable<int>(manualRank);
+    }
     map['dirty'] = Variable<bool>(dirty);
     return map;
   }
@@ -2932,6 +2954,9 @@ class Standing extends DataClass implements Insertable<Standing> {
       goalsFor: Value(goalsFor),
       goalsAgainst: Value(goalsAgainst),
       points: Value(points),
+      manualRank: manualRank == null && nullToAbsent
+          ? const Value.absent()
+          : Value(manualRank),
       dirty: Value(dirty),
     );
   }
@@ -2951,6 +2976,7 @@ class Standing extends DataClass implements Insertable<Standing> {
       goalsFor: serializer.fromJson<int>(json['goalsFor']),
       goalsAgainst: serializer.fromJson<int>(json['goalsAgainst']),
       points: serializer.fromJson<int>(json['points']),
+      manualRank: serializer.fromJson<int?>(json['manualRank']),
       dirty: serializer.fromJson<bool>(json['dirty']),
     );
   }
@@ -2969,6 +2995,7 @@ class Standing extends DataClass implements Insertable<Standing> {
       'goalsFor': serializer.toJson<int>(goalsFor),
       'goalsAgainst': serializer.toJson<int>(goalsAgainst),
       'points': serializer.toJson<int>(points),
+      'manualRank': serializer.toJson<int?>(manualRank),
       'dirty': serializer.toJson<bool>(dirty),
     };
   }
@@ -2985,6 +3012,7 @@ class Standing extends DataClass implements Insertable<Standing> {
           int? goalsFor,
           int? goalsAgainst,
           int? points,
+          Value<int?> manualRank = const Value.absent(),
           bool? dirty}) =>
       Standing(
         id: id ?? this.id,
@@ -2998,6 +3026,7 @@ class Standing extends DataClass implements Insertable<Standing> {
         goalsFor: goalsFor ?? this.goalsFor,
         goalsAgainst: goalsAgainst ?? this.goalsAgainst,
         points: points ?? this.points,
+        manualRank: manualRank.present ? manualRank.value : this.manualRank,
         dirty: dirty ?? this.dirty,
       );
   Standing copyWithCompanion(StandingsCompanion data) {
@@ -3018,6 +3047,8 @@ class Standing extends DataClass implements Insertable<Standing> {
           ? data.goalsAgainst.value
           : this.goalsAgainst,
       points: data.points.present ? data.points.value : this.points,
+      manualRank:
+          data.manualRank.present ? data.manualRank.value : this.manualRank,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
     );
   }
@@ -3036,14 +3067,27 @@ class Standing extends DataClass implements Insertable<Standing> {
           ..write('goalsFor: $goalsFor, ')
           ..write('goalsAgainst: $goalsAgainst, ')
           ..write('points: $points, ')
+          ..write('manualRank: $manualRank, ')
           ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, tournamentId, playerId, playerName,
-      played, won, drawn, lost, goalsFor, goalsAgainst, points, dirty);
+  int get hashCode => Object.hash(
+      id,
+      tournamentId,
+      playerId,
+      playerName,
+      played,
+      won,
+      drawn,
+      lost,
+      goalsFor,
+      goalsAgainst,
+      points,
+      manualRank,
+      dirty);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3059,6 +3103,7 @@ class Standing extends DataClass implements Insertable<Standing> {
           other.goalsFor == this.goalsFor &&
           other.goalsAgainst == this.goalsAgainst &&
           other.points == this.points &&
+          other.manualRank == this.manualRank &&
           other.dirty == this.dirty);
 }
 
@@ -3074,6 +3119,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
   final Value<int> goalsFor;
   final Value<int> goalsAgainst;
   final Value<int> points;
+  final Value<int?> manualRank;
   final Value<bool> dirty;
   final Value<int> rowid;
   const StandingsCompanion({
@@ -3088,6 +3134,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     this.goalsFor = const Value.absent(),
     this.goalsAgainst = const Value.absent(),
     this.points = const Value.absent(),
+    this.manualRank = const Value.absent(),
     this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3103,6 +3150,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     this.goalsFor = const Value.absent(),
     this.goalsAgainst = const Value.absent(),
     this.points = const Value.absent(),
+    this.manualRank = const Value.absent(),
     this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -3121,6 +3169,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     Expression<int>? goalsFor,
     Expression<int>? goalsAgainst,
     Expression<int>? points,
+    Expression<int>? manualRank,
     Expression<bool>? dirty,
     Expression<int>? rowid,
   }) {
@@ -3136,6 +3185,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
       if (goalsFor != null) 'goals_for': goalsFor,
       if (goalsAgainst != null) 'goals_against': goalsAgainst,
       if (points != null) 'points': points,
+      if (manualRank != null) 'manual_rank': manualRank,
       if (dirty != null) 'dirty': dirty,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3153,6 +3203,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
       Value<int>? goalsFor,
       Value<int>? goalsAgainst,
       Value<int>? points,
+      Value<int?>? manualRank,
       Value<bool>? dirty,
       Value<int>? rowid}) {
     return StandingsCompanion(
@@ -3167,6 +3218,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
       goalsFor: goalsFor ?? this.goalsFor,
       goalsAgainst: goalsAgainst ?? this.goalsAgainst,
       points: points ?? this.points,
+      manualRank: manualRank ?? this.manualRank,
       dirty: dirty ?? this.dirty,
       rowid: rowid ?? this.rowid,
     );
@@ -3208,6 +3260,9 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
     if (points.present) {
       map['points'] = Variable<int>(points.value);
     }
+    if (manualRank.present) {
+      map['manual_rank'] = Variable<int>(manualRank.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -3231,6 +3286,7 @@ class StandingsCompanion extends UpdateCompanion<Standing> {
           ..write('goalsFor: $goalsFor, ')
           ..write('goalsAgainst: $goalsAgainst, ')
           ..write('points: $points, ')
+          ..write('manualRank: $manualRank, ')
           ..write('dirty: $dirty, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4954,6 +5010,7 @@ typedef $$StandingsTableCreateCompanionBuilder = StandingsCompanion Function({
   Value<int> goalsFor,
   Value<int> goalsAgainst,
   Value<int> points,
+  Value<int?> manualRank,
   Value<bool> dirty,
   Value<int> rowid,
 });
@@ -4969,6 +5026,7 @@ typedef $$StandingsTableUpdateCompanionBuilder = StandingsCompanion Function({
   Value<int> goalsFor,
   Value<int> goalsAgainst,
   Value<int> points,
+  Value<int?> manualRank,
   Value<bool> dirty,
   Value<int> rowid,
 });
@@ -5014,6 +5072,9 @@ class $$StandingsTableFilterComposer
 
   ColumnFilters<int> get points => $composableBuilder(
       column: $table.points, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get manualRank => $composableBuilder(
+      column: $table.manualRank, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get dirty => $composableBuilder(
       column: $table.dirty, builder: (column) => ColumnFilters(column));
@@ -5063,6 +5124,9 @@ class $$StandingsTableOrderingComposer
   ColumnOrderings<int> get points => $composableBuilder(
       column: $table.points, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get manualRank => $composableBuilder(
+      column: $table.manualRank, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
       column: $table.dirty, builder: (column) => ColumnOrderings(column));
 }
@@ -5109,6 +5173,9 @@ class $$StandingsTableAnnotationComposer
   GeneratedColumn<int> get points =>
       $composableBuilder(column: $table.points, builder: (column) => column);
 
+  GeneratedColumn<int> get manualRank => $composableBuilder(
+      column: $table.manualRank, builder: (column) => column);
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 }
@@ -5147,6 +5214,7 @@ class $$StandingsTableTableManager extends RootTableManager<
             Value<int> goalsFor = const Value.absent(),
             Value<int> goalsAgainst = const Value.absent(),
             Value<int> points = const Value.absent(),
+            Value<int?> manualRank = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -5162,6 +5230,7 @@ class $$StandingsTableTableManager extends RootTableManager<
             goalsFor: goalsFor,
             goalsAgainst: goalsAgainst,
             points: points,
+            manualRank: manualRank,
             dirty: dirty,
             rowid: rowid,
           ),
@@ -5177,6 +5246,7 @@ class $$StandingsTableTableManager extends RootTableManager<
             Value<int> goalsFor = const Value.absent(),
             Value<int> goalsAgainst = const Value.absent(),
             Value<int> points = const Value.absent(),
+            Value<int?> manualRank = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -5192,6 +5262,7 @@ class $$StandingsTableTableManager extends RootTableManager<
             goalsFor: goalsFor,
             goalsAgainst: goalsAgainst,
             points: points,
+            manualRank: manualRank,
             dirty: dirty,
             rowid: rowid,
           ),

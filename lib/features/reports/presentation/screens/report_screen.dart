@@ -77,6 +77,9 @@ class ReportScreen extends ConsumerWidget {
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
+    if (ref.read(reportProvider).isGeneratingPdf) return;
+    ref.read(reportProvider.notifier).startGenerating();
+
     final tournament = ref.read(tournamentsProvider).tournaments
         .firstWhere((t) => t.id == tournamentId);
     final standings = ref

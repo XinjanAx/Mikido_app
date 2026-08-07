@@ -13,6 +13,7 @@ class StandingModel extends StandingEntity {
     required super.goalsFor,
     required super.goalsAgainst,
     required super.points,
+    super.manualRank,
   });
 
   factory StandingModel.fromJson(Map<String, dynamic> json) => StandingModel(
@@ -27,6 +28,7 @@ class StandingModel extends StandingEntity {
         goalsFor: json['goals_for'] as int? ?? 0,
         goalsAgainst: json['goals_against'] as int? ?? 0,
         points: json['points'] as int? ?? 0,
+        manualRank: json['manual_rank'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -41,5 +43,6 @@ class StandingModel extends StandingEntity {
         'goals_for': goalsFor,
         'goals_against': goalsAgainst,
         'points': points,
+        'manual_rank': manualRank,
       };
 }

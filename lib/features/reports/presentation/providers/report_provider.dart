@@ -44,6 +44,12 @@ class ReportNotifier extends StateNotifier<ReportState> {
         _dataSource = dataSource,
         super(const ReportState());
 
+  /// Marca el inicio de la exportación antes de que arranque cualquier
+  /// trabajo async (p. ej. traer los matches) para que el botón de
+  /// exportar se deshabilite de inmediato y un doble tap no dispare dos
+  /// exportaciones en paralelo.
+  void startGenerating() => state = state.copyWith(isGeneratingPdf: true);
+
   Future<void> exportPdf(ReportParams params) async {
     state = state.copyWith(isGeneratingPdf: true);
     try {

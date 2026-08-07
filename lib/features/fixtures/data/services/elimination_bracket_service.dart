@@ -159,6 +159,7 @@ class EliminationBracketService {
   /// Público para que la UI pueda saber si una ronda ya tiene la
   /// siguiente generada (y por lo tanto debe bloquear su edición).
   static const roundOrder = [
+    'Sesentaicuatroavos de final',
     'Treintaidosavos de final',
     'Dieciseisavos de final',
     'Octavos de final',
@@ -183,6 +184,7 @@ class EliminationBracketService {
       return roundOrder[idx + 1];
     }
     // Ronda no reconocida (no debería pasar): usar el conteo como respaldo.
+    if (winners > 64) return 'Sesentaicuatroavos de final';
     if (winners > 32) return 'Treintaidosavos de final';
     if (winners > 16) return 'Dieciseisavos de final';
     if (winners > 8) return 'Octavos de final';

@@ -211,6 +211,7 @@ class FixtureGenerator {
   }
 
   static String _eliminationRoundName(int bracketSize) {
+    if (bracketSize >= 128) return 'Sesentaicuatroavos de final';
     if (bracketSize >= 64) return 'Treintaidosavos de final';
     if (bracketSize >= 32) return 'Dieciseisavos de final';
     if (bracketSize >= 16) return 'Octavos de final';

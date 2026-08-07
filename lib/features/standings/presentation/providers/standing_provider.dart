@@ -42,6 +42,7 @@ final standingRepositoryProvider = Provider<StandingRepository>(
     ref.watch(standingLocalDataSourceProvider),
     ref.watch(standingsRecalculationServiceProvider),
     ref.watch(syncEngineProvider),
+    ref.watch(appDatabaseProvider),
   ),
 );
 
@@ -50,6 +51,9 @@ final getStandingsUseCaseProvider = Provider(
 );
 final recalculateStandingsUseCaseProvider = Provider(
   (ref) => RecalculateStandingsUseCase(ref.watch(standingRepositoryProvider)),
+);
+final saveManualRankUseCaseProvider = Provider(
+  (ref) => SaveManualRankUseCase(ref.watch(standingRepositoryProvider)),
 );
 
 // Stream en tiempo real — clave para el requisito de actualización automática

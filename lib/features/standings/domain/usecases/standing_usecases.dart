@@ -18,3 +18,11 @@ class RecalculateStandingsUseCase {
   Future<Either<Failure, void>> call(String tournamentId) =>
       repository.recalculateStandings(tournamentId);
 }
+
+class SaveManualRankUseCase {
+  final StandingRepository repository;
+  const SaveManualRankUseCase(this.repository);
+
+  Future<Either<Failure, void>> call(StandingEntity standing, int manualRank) =>
+      repository.saveManualRank(standing, manualRank);
+}

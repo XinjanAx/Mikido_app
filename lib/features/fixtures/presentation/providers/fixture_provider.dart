@@ -218,6 +218,13 @@ final fixtureProvider =
   ),
 );
 
+/// Modo de carga rápida de resultados: mientras está activo, el diálogo
+/// de registrar/corregir resultado muestra botones +1 debajo de cada
+/// marcador (además de poder seguir escribiéndolo a teclado). Desactivado
+/// por defecto; es solo un estado de UI, no se persiste.
+final quickScoreModeProvider =
+    StateProvider.family<bool, String>((ref, tournamentId) => false);
+
 // Stream en tiempo real de partidos
 final matchesStreamProvider =
     StreamProvider.family<List<MatchEntity>, String>((ref, tournamentId) {

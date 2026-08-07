@@ -29,6 +29,7 @@ class StandingLocalDataSourceImpl implements StandingLocalDataSource {
         goalsFor: row.goalsFor,
         goalsAgainst: row.goalsAgainst,
         points: row.points,
+        manualRank: row.manualRank,
       );
 
   @override
@@ -59,6 +60,7 @@ class StandingLocalDataSourceImpl implements StandingLocalDataSource {
       goalsFor: Value(standing.goalsFor),
       goalsAgainst: Value(standing.goalsAgainst),
       points: Value(standing.points),
+      manualRank: Value(standing.manualRank),
       dirty: Value(dirty),
     ));
   }

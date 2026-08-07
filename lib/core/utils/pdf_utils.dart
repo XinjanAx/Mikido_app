@@ -23,6 +23,7 @@ class PdfUtils {
   /// es una utilidad de `core/` que solo recibe `Map<String, dynamic>`
   /// genéricos y no debe depender de una feature concreta.
   static const _eliminationRoundOrder = [
+    'Sesentaicuatroavos de final',
     'Treintaidosavos de final',
     'Dieciseisavos de final',
     'Octavos de final',

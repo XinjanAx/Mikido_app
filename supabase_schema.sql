@@ -98,6 +98,7 @@ create table public.standings (
   goals_for integer not null default 0,
   goals_against integer not null default 0,
   points integer not null default 0,
+  manual_rank integer,
   updated_at timestamp with time zone default now(),
   constraint standings_pkey primary key (id),
   constraint standings_player_id_fkey foreign key (player_id) references public.players(id),

@@ -7,6 +7,7 @@ import '../../domain/entities/match_entity.dart';
 /// Nombres de ronda de eliminación, en orden — igual a los que usa
 /// torneo_web (bracket_view.dart) para que ambos se vean idénticos.
 const kEliminationRoundOrder = [
+  'Sesentaicuatroavos de final',
   'Treintaidosavos de final',
   'Dieciseisavos de final',
   'Octavos de final',

@@ -12,6 +12,7 @@ class StandingEntity extends Equatable {
   final int goalsFor;
   final int goalsAgainst;
   final int points;
+  final int? manualRank;
 
   const StandingEntity({
     required this.id,
@@ -25,6 +26,7 @@ class StandingEntity extends Equatable {
     required this.goalsFor,
     required this.goalsAgainst,
     required this.points,
+    this.manualRank,
   });
 
   int get goalDifference => goalsFor - goalsAgainst;
@@ -32,6 +34,6 @@ class StandingEntity extends Equatable {
   @override
   List<Object?> get props => [
         id, tournamentId, playerId, playerName,
-        played, won, drawn, lost, goalsFor, goalsAgainst, points
+        played, won, drawn, lost, goalsFor, goalsAgainst, points, manualRank
       ];
 }

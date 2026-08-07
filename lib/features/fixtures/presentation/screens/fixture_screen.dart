@@ -13,7 +13,9 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../standings/domain/entities/standing_entity.dart';
+import '../../../standings/domain/services/tiebreak_detector.dart';
 import '../../../standings/presentation/providers/standing_provider.dart';
+import '../../../standings/presentation/widgets/tiebreak_resolution_dialog.dart';
 import '../../data/services/elimination_bracket_service.dart';
 import '../../domain/entities/match_entity.dart';
 import '../providers/fixture_provider.dart';
@@ -63,6 +65,7 @@ class FixtureScreen extends ConsumerWidget {
     final tournament = ref.watch(tournamentByIdProvider(tournamentId));
     final mode = tournament?.mode;
     final isElimination = mode == AppConstants.tournamentModeElimination;
+    final isGroups = mode == AppConstants.tournamentModeGroups;
     final isTournamentFinished = tournament?.status == AppConstants.statusFinished;
     // En eliminación, que todos los partidos CARGADOS estén terminados no
     // basta: si el cuadro se quedó atascado en una ronda (p. ej. porque
@@ -75,6 +78,7 @@ class FixtureScreen extends ConsumerWidget {
         ref.watch(standingsStreamProvider(tournamentId)).valueOrNull ?? [];
     final championName =
         _championName(fixtureState.matches, isElimination, standings);
+    final quickScoreMode = ref.watch(quickScoreModeProvider(tournamentId));
 
     return Scaffold(
       appBar: AppBar(
@@ -134,23 +138,41 @@ class FixtureScreen extends ConsumerWidget {
             ),
 
           // Acceso rápido a la vista de resultados: cuadro gráfico en
-          // eliminación simple, tabla de posiciones en grupos/liga.
+          // eliminación simple, tabla de posiciones en grupos/liga. Al
+          // lado, solo para el admin, el toggle de carga rápida de
+          // resultados (agrega botones +1 al diálogo de registrar
+          // resultado, ver [_ResultDialog]).
           if (fixtureState.matches.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: OutlinedButton.icon(
-                onPressed: () => context.push(
-                  (isElimination
-                          ? RouteConstants.bracket
-                          : RouteConstants.standings)
-                      .replaceAll(':id', tournamentId),
-                ),
-                icon: Icon(isElimination
-                    ? Icons.account_tree_outlined
-                    : Icons.leaderboard_outlined),
-                label: Text(isElimination
-                    ? 'Ver cuadro de eliminatorias'
-                    : 'Ver tabla de posiciones'),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push(
+                        (isElimination
+                                ? RouteConstants.bracket
+                                : RouteConstants.standings)
+                            .replaceAll(':id', tournamentId),
+                      ),
+                      icon: Icon(isElimination
+                          ? Icons.account_tree_outlined
+                          : Icons.leaderboard_outlined),
+                      label: Text(isElimination
+                          ? 'Ver cuadro de eliminatorias'
+                          : 'Ver tabla de posiciones'),
+                    ),
+                  ),
+                  if (isAdmin && !isTournamentFinished) ...[
+                    const SizedBox(width: 10),
+                    _QuickScoreModeToggle(
+                      active: quickScoreMode,
+                      onPressed: () => ref
+                          .read(quickScoreModeProvider(tournamentId).notifier)
+                          .state = !quickScoreMode,
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -163,7 +185,8 @@ class FixtureScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success),
-                onPressed: () => _confirmFinalize(context, ref),
+                onPressed: () => _confirmFinalize(
+                    context, ref, standings, isGroups, fixtureState.matches),
                 icon: const Icon(Icons.flag_outlined),
                 label: const Text('Finalizar torneo'),
               ),
@@ -253,43 +276,84 @@ class FixtureScreen extends ConsumerWidget {
     return standings.first.playerName;
   }
 
-  void _confirmFinalize(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Finalizar torneo'),
-        content: const Text(
-            'Ya no se podrán registrar ni corregir resultados. ¿Confirmas que el torneo terminó?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+  /// Si no hay empates sin resolver, el flujo de siempre (confirmar y
+  /// finalizar). Si los hay — en liga comparando a todos, en grupos solo
+  /// dentro de cada grupo —, primero hay que resolverlos a mano: el propio
+  /// botón "Guardar y finalizar torneo" del diálogo de empates ya cumple el
+  /// rol de confirmación, así que no se apila un segundo diálogo.
+  Future<void> _confirmFinalize(
+    BuildContext context,
+    WidgetRef ref,
+    List<StandingEntity> standings,
+    bool isGroups,
+    List<MatchEntity> matches,
+  ) async {
+    Map<String, String>? groupOf;
+    if (isGroups) {
+      groupOf = {};
+      for (final m in matches) {
+        final round = m.round;
+        if (round == null || !round.startsWith('Grupo')) continue;
+        groupOf[m.homePlayerId] = round;
+        if (m.awayPlayerId != m.homePlayerId) groupOf[m.awayPlayerId] = round;
+      }
+    }
+    final tied = detectTiedGroups(standings, groupOf: groupOf);
+
+    if (tied.isEmpty) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Finalizar torneo'),
+          content: const Text(
+              'Ya no se podrán registrar ni corregir resultados. ¿Confirmas que el torneo terminó?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _finalizeTournament(ref);
+              },
+              child: const Text('Finalizar'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final resolution = await showTiebreakResolutionDialog(context, tied);
+    if (resolution == null) return;
+
+    for (final entry in resolution.entries) {
+      final standing = standings.firstWhere((s) => s.id == entry.key);
+      await ref.read(saveManualRankUseCaseProvider)(standing, entry.value);
+    }
+    await _finalizeTournament(ref);
+  }
+
+  Future<void> _finalizeTournament(WidgetRef ref) async {
+    final tournament = ref.read(tournamentByIdProvider(tournamentId));
+    if (tournament == null) return;
+    await ref.read(tournamentsProvider.notifier).updateTournament(
+          TournamentEntity(
+            id: tournament.id,
+            name: tournament.name,
+            mode: tournament.mode,
+            status: AppConstants.statusFinished,
+            description: tournament.description,
+            startDate: tournament.startDate,
+            endDate: tournament.endDate,
+            createdBy: tournament.createdBy,
+            createdAt: tournament.createdAt,
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            onPressed: () async {
-              Navigator.pop(context);
-              final tournament = ref.read(tournamentByIdProvider(tournamentId));
-              if (tournament == null) return;
-              await ref.read(tournamentsProvider.notifier).updateTournament(
-                    TournamentEntity(
-                      id: tournament.id,
-                      name: tournament.name,
-                      mode: tournament.mode,
-                      status: AppConstants.statusFinished,
-                      description: tournament.description,
-                      startDate: tournament.startDate,
-                      endDate: tournament.endDate,
-                      createdBy: tournament.createdBy,
-                      createdAt: tournament.createdAt,
-                    ),
-                  );
-            },
-            child: const Text('Finalizar'),
-          ),
-        ],
-      ),
-    );
+        );
   }
 
   Widget _buildMatchesList(BuildContext context, WidgetRef ref,
@@ -383,6 +447,46 @@ class FixtureScreen extends ConsumerWidget {
         tournamentId: tournamentId,
         round: match.round,
         ref: ref,
+        quickScoreMode: ref.read(quickScoreModeProvider(tournamentId)),
+      ),
+    );
+  }
+}
+
+/// Botón cuadrado junto a "Ver cuadro/tabla" que activa el modo de carga
+/// rápida de resultados: rojo cuando está activo, del color de fondo
+/// cuando no (apagado por defecto).
+class _QuickScoreModeToggle extends StatelessWidget {
+  final bool active;
+  final VoidCallback onPressed;
+
+  const _QuickScoreModeToggle({required this.active, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: active
+          ? 'Desactivar carga rápida de resultados'
+          : 'Activar carga rápida de resultados (+1 por jugador)',
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: active ? AppColors.error : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: active ? AppColors.error : AppColors.border,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.bolt,
+            color: active ? AppColors.white : AppColors.textPrimary,
+          ),
+        ),
       ),
     );
   }
@@ -690,6 +794,7 @@ class _ResultDialog extends StatefulWidget {
   final String tournamentId;
   final String? round;
   final WidgetRef ref;
+  final bool quickScoreMode;
 
   const _ResultDialog({
     required this.matchId,
@@ -700,6 +805,7 @@ class _ResultDialog extends StatefulWidget {
     required this.tournamentId,
     this.round,
     required this.ref,
+    this.quickScoreMode = false,
   });
 
   bool get _isEdit => initialHomeScore != null || initialAwayScore != null;
@@ -724,6 +830,18 @@ class _ResultDialogState extends State<_ResultDialog> {
     _homeController.dispose();
     _awayController.dispose();
     super.dispose();
+  }
+
+  /// Suma 1 al valor que se está escribiendo en el campo (modo de carga
+  /// rápida). Solo toca el texto del diálogo — no guarda nada hasta que
+  /// se toque "Guardar", igual que si se hubiera tecleado el número a
+  /// mano.
+  void _incrementLocal(TextEditingController controller) {
+    final current = int.tryParse(controller.text) ?? 0;
+    if (current >= AppConstants.maxMatchScore) return;
+    final next = (current + 1).toString();
+    controller.text = next;
+    controller.selection = TextSelection.collapsed(offset: next.length);
   }
 
   @override
@@ -755,6 +873,12 @@ class _ResultDialogState extends State<_ResultDialog> {
                             .copyWith(color: AppColors.grey600),
                       ),
                     ),
+                    if (widget.quickScoreMode) ...[
+                      const SizedBox(height: 8),
+                      _QuickAddPointButton(
+                        onTap: () => _incrementLocal(_homeController),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -782,6 +906,12 @@ class _ResultDialogState extends State<_ResultDialog> {
                             .copyWith(color: AppColors.grey600),
                       ),
                     ),
+                    if (widget.quickScoreMode) ...[
+                      const SizedBox(height: 8),
+                      _QuickAddPointButton(
+                        onTap: () => _incrementLocal(_awayController),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -845,5 +975,38 @@ class _ResultDialogState extends State<_ResultDialog> {
 
     setState(() => _isSaving = false);
     if (mounted) Navigator.pop(context);
+  }
+}
+
+/// Botón "+1" del modo de carga rápida, debajo de cada marcador en el
+/// diálogo de registrar/corregir resultado.
+class _QuickAddPointButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _QuickAddPointButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          '+1',
+          style: TextStyle(
+            color: AppColors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 }

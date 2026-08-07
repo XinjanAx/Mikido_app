@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +57,17 @@ class AppDatabase extends _$AppDatabase {
             await m.alterTable(TableMigration(matches));
             await m.alterTable(TableMigration(standings));
             await m.alterTable(TableMigration(enrollments));
+          }
+          if (from < 5) {
+            // v5: columna manualRank en standings, para el desempate
+            // manual al finalizar el torneo. `newColumns` es obligatorio
+            // acá: sin avisarle a Drift que es una columna nueva, intenta
+            // copiarla también desde la tabla vieja (que todavía no la
+            // tiene) y la migración falla con "no such column: manual_rank".
+            await m.alterTable(TableMigration(
+              standings,
+              newColumns: [standings.manualRank],
+            ));
           }
         },
       );
@@ -286,17 +297,31 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- Standings ----------
 
+  // Desempate: puntos de torneo primero, luego la diferencia de puntos
+  // anotados en cancha (favor - contra), y por último manualRank — el
+  // orden que el admin eligió a mano para los que seguían empatados
+  // incluso en diferencia (ver TiebreakDetector /
+  // showTiebreakResolutionDialog). Sin manualRank, un empate ahí quedaba
+  // en el orden que la fila tuviera en SQLite, no en un criterio real.
   Future<List<Standing>> getStandingsByTournament(String tournamentId) {
     return (select(standings)
           ..where((s) => s.tournamentId.equals(tournamentId))
-          ..orderBy([(s) => OrderingTerm.desc(s.points)]))
+          ..orderBy([
+            (s) => OrderingTerm.desc(s.points),
+            (s) => OrderingTerm.desc(s.goalsFor - s.goalsAgainst),
+            (s) => OrderingTerm.asc(s.manualRank),
+          ]))
         .get();
   }
 
   Stream<List<Standing>> watchStandings(String tournamentId) {
     return (select(standings)
           ..where((s) => s.tournamentId.equals(tournamentId))
-          ..orderBy([(s) => OrderingTerm.desc(s.points)]))
+          ..orderBy([
+            (s) => OrderingTerm.desc(s.points),
+            (s) => OrderingTerm.desc(s.goalsFor - s.goalsAgainst),
+            (s) => OrderingTerm.asc(s.manualRank),
+          ]))
         .watch();
   }
 

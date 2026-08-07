@@ -4,7 +4,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/match_entity.dart';
 
 /// Muestra una tabla compacta de resultados para un grupo específico.
-/// Calcula PJ, PG, PP, GF, GC y Puntos directamente desde los partidos.
+/// Calcula PJ, PG, PP, PF, PC y Puntos directamente desde los partidos.
 class GroupTableWidget extends StatelessWidget {
   final String groupName;
   final List<MatchEntity> matches;
@@ -53,8 +53,8 @@ class GroupTableWidget extends StatelessWidget {
                 _ColHeader('PJ'),
                 _ColHeader('PG'),
                 _ColHeader('PP'),
-                _ColHeader('GF'),
-                _ColHeader('GC'),
+                _ColHeader('PF'),
+                _ColHeader('PC'),
                 _ColHeader('PTS', bold: true),
               ],
             ),

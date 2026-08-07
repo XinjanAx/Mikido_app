@@ -211,8 +211,8 @@ class _StandingsCard extends StatelessWidget {
           _HeaderCell('PG'),
           _HeaderCell('PE'),
           _HeaderCell('PP'),
-          _HeaderCell('GF'),
-          _HeaderCell('GC'),
+          _HeaderCell('PF'),
+          _HeaderCell('PC'),
           _HeaderCell('DG'),
           _HeaderCell('PTS', isLast: true),
         ],
@@ -355,7 +355,7 @@ class _Legend extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Text(
         'PJ: Jugados  PG: Ganados  PE: Empatados  PP: Perdidos  '
-        'GF: Goles a favor  GC: Goles en contra  DG: Diferencia  PTS: Puntos',
+        'PF: Puntos a favor  PC: Puntos en contra  DG: Diferencia  PTS: Puntos',
         style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
         textAlign: TextAlign.center,
       ),

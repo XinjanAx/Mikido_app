@@ -71,7 +71,7 @@ class StandingsTableWidget extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              'PJ: Jugados · PG: Ganados · PP: Perdidos · GF: Goles favor · GC: Goles contra · DG: Diferencia · PTS: Puntos',
+              'PJ: Jugados · PG: Ganados · PP: Perdidos · PF: Puntos favor · PC: Puntos contra · DG: Diferencia · PTS: Puntos',
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
               textAlign: TextAlign.center,
             ),
@@ -100,8 +100,8 @@ class _TableHeader extends StatelessWidget {
           _H('G'),
           _H('P'),
           if (!compact) ...[
-            _H('GF'),
-            _H('GC'),
+            _H('PF'),
+            _H('PC'),
             _H('DG'),
           ],
           _H('PTS', bold: true),

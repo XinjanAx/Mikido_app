@@ -19,6 +19,12 @@ abstract class FixtureRemoteDataSource {
 
   Future<void> deleteMatch(String id);
 
+  /// Borrado directo e inmediato de TODOS los partidos de un torneo,
+  /// usado al regenerar/eliminar el fixture en vez de depender solo del
+  /// outbox (que puede tardar en sincronizar o, si falla en silencio,
+  /// dejar filas "fantasma" que resucitan en el próximo pull).
+  Future<void> deleteMatchesByTournament(String tournamentId);
+
   Stream<List<MatchModel>> watchMatches(String tournamentId);
 }
 
@@ -70,6 +76,19 @@ class FixtureRemoteDataSourceImpl implements FixtureRemoteDataSource {
       await _client.from(SupabaseConstants.matchesTable).delete().eq('id', id);
     } catch (e) {
       throw ServerException(message: 'Error al eliminar partido: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteMatchesByTournament(String tournamentId) async {
+    try {
+      await _client
+          .from(SupabaseConstants.matchesTable)
+          .delete()
+          .eq('tournament_id', tournamentId);
+    } catch (e) {
+      throw ServerException(
+          message: 'Error al eliminar partidos del torneo: $e');
     }
   }
 

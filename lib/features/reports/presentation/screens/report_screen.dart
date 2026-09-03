@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
@@ -94,6 +95,35 @@ class ReportScreen extends ConsumerWidget {
         await ref.read(getMatchesUseCaseProvider)(tournamentId);
     final matches = matchesResult.fold((_) => <MatchEntity>[], (list) => list);
 
+    // En modo grupos, se particiona la tabla de posiciones REAL (ya
+    // ordenada con el mismo criterio que la pantalla de posiciones:
+    // puntos, diferencia de gol, desempate manual) en vez de recalcularla
+    // desde los partidos — así el PDF respeta cualquier empate que el
+    // admin ya haya resuelto a mano.
+    Map<String, List<Map<String, dynamic>>>? groupedStandings;
+    if (tournament.mode == AppConstants.tournamentModeGroups) {
+      final groupOf = <String, String>{};
+      for (final m in matches) {
+        final round = m.round;
+        if (round == null || !round.startsWith('Grupo')) continue;
+        groupOf[m.homePlayerId] = round;
+        if (m.awayPlayerId != m.homePlayerId) groupOf[m.awayPlayerId] = round;
+      }
+      groupedStandings = {};
+      for (final s in standings) {
+        final group = groupOf[s.playerId] ?? 'Sin grupo';
+        groupedStandings.putIfAbsent(group, () => []).add({
+          'player_name': s.playerName,
+          'played': s.played,
+          'won': s.won,
+          'lost': s.lost,
+          'goals_for': s.goalsFor,
+          'goals_against': s.goalsAgainst,
+          'points': s.points,
+        });
+      }
+    }
+
     final params = ReportParams(
       tournamentName: tournament.name,
       category: tournament.modeLabel,
@@ -111,7 +141,6 @@ class ReportScreen extends ConsumerWidget {
           .toList(),
       matches: matches
           .map((m) => {
-                'date': m.scheduledAt?.toIso8601String() ?? '',
                 'home': m.homePlayerName,
                 'away': m.awayPlayerName,
                 'home_score': m.homeScore ?? 0,
@@ -120,6 +149,7 @@ class ReportScreen extends ConsumerWidget {
                 'round': m.round,
               })
           .toList(),
+      groupedStandings: groupedStandings,
     );
 
     if (!context.mounted) return;

@@ -12,11 +12,13 @@ import '../../../tournaments/data/models/tournament_model.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/repositories/fixture_repository.dart';
 import '../datasources/fixture_local_datasource.dart';
+import '../datasources/fixture_remote_datasource.dart';
 import '../services/fixture_generator.dart';
 import '../services/match_result_service.dart';
 
 class FixtureRepositoryImpl implements FixtureRepository {
   final FixtureLocalDataSource _local;
+  final FixtureRemoteDataSource _remote;
   final AppDatabase _db;
   final SyncEngine _syncEngine;
   final MatchResultService _matchResultService;
@@ -24,11 +26,35 @@ class FixtureRepositoryImpl implements FixtureRepository {
 
   const FixtureRepositoryImpl(
     this._local,
+    this._remote,
     this._db,
     this._syncEngine,
     this._matchResultService,
     this._tournaments,
   );
+
+  /// Borra todos los partidos de un torneo: soft-delete local + outbox
+  /// (offline-first, como siempre) MÁS un borrado remoto directo e
+  /// inmediato. El outbox solo puede fallar en silencio o tardar en
+  /// sincronizar — si eso pasa, la fila vieja queda viva en Supabase y el
+  /// próximo `pull()` la resucita localmente como si fuera nueva,
+  /// mezclando la llave anterior con la que se regenere después. El
+  /// borrado remoto directo no depende de esa espera, así que evita ese
+  /// fantasma incluso si el outbox nunca llega a drenarse.
+  Future<void> _wipeMatches(String tournamentId) async {
+    final old = await _local.getMatchesByTournament(tournamentId);
+    for (final m in old) {
+      await _local.softDelete(m.id);
+      await _db.enqueueDelete(SupabaseConstants.matchesTable, m.id);
+    }
+    if (old.isEmpty) return;
+    try {
+      await _remote.deleteMatchesByTournament(tournamentId);
+    } catch (_) {
+      // Sin red o error remoto: no bloquea el flujo local, el outbox ya
+      // encoló el borrado y lo reintentará en el próximo sync.
+    }
+  }
 
   @override
   Future<Either<Failure, List<MatchEntity>>> getMatchesByTournament(
@@ -52,12 +78,8 @@ class FixtureRepositoryImpl implements FixtureRepository {
     List<String>? manualBracketOrder,
   }) async {
     try {
-      // 1. Eliminar fixture anterior del torneo (local + encolar borrado)
-      final old = await _local.getMatchesByTournament(tournamentId);
-      for (final m in old) {
-        await _local.softDelete(m.id);
-        await _db.enqueueDelete(SupabaseConstants.matchesTable, m.id);
-      }
+      // 1. Eliminar fixture anterior del torneo
+      await _wipeMatches(tournamentId);
 
       // 2. Generar los partidos nuevos (función pura, sin red)
       final newMatches = FixtureGenerator.generate(
@@ -137,11 +159,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
   @override
   Future<Either<Failure, void>> deleteFixture(String tournamentId) async {
     try {
-      final all = await _local.getMatchesByTournament(tournamentId);
-      for (final m in all) {
-        await _local.softDelete(m.id);
-        await _db.enqueueDelete(SupabaseConstants.matchesTable, m.id);
-      }
+      await _wipeMatches(tournamentId);
       unawaited(_syncEngine.trySync());
       return const Right(null);
     } catch (e) {

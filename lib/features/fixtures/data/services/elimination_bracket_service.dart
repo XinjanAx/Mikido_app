@@ -16,11 +16,18 @@ class PendingRoundAdvance {
   final String nextRound;
   final List<({String id, String name})> winners;
 
+  /// Los dos perdedores de Semifinal, solo cuando [completedRound] es
+  /// exactamente eso y hubo dos partidos de semifinal (el caso estándar de
+  /// 4 semifinalistas) — se usan para generar el partido por el 3er
+  /// puesto junto con la Final. `null` en cualquier otra ronda.
+  final List<({String id, String name})>? thirdPlacePlayers;
+
   const PendingRoundAdvance({
     required this.tournamentId,
     required this.completedRound,
     required this.nextRound,
     required this.winners,
+    this.thirdPlacePlayers,
   });
 }
 
@@ -49,11 +56,25 @@ class EliminationBracketService {
     final allFinished = roundMatches.every((m) => m.isFinished);
     if (!allFinished) return null; // aún faltan resultados
 
+    // 2b. Ningún partido puede haber quedado empatado: en eliminación
+    // directa cada uno necesita un ganador real para poder avanzar. Esto
+    // ya se bloquea al guardar el resultado (fixture_screen.dart), pero
+    // este método no debe asumirlo — si de todos modos llegara un empate
+    // (dato viejo, u otro camino de guardado), antes se resolvía en
+    // silencio a favor del local (`homeScore! >= awayScore!`), avanzando a
+    // alguien sin que el marcador lo respaldara. Ahora se bloquea el
+    // avance por completo hasta que el admin corrija el marcador.
+    final hasUnresolvedTie = roundMatches.any((m) =>
+        m.homeScore != null &&
+        m.awayScore != null &&
+        m.homeScore == m.awayScore);
+    if (hasUnresolvedTie) return null;
+
     // 3. Obtener ganadores
     final winners = roundMatches.where((m) {
       return m.homeScore != null && m.awayScore != null;
     }).map((m) {
-      if (m.homeScore! >= m.awayScore!) {
+      if (m.homeScore! > m.awayScore!) {
         return (id: m.homePlayerId, name: m.homePlayerName);
       } else {
         return (id: m.awayPlayerId, name: m.awayPlayerName);
@@ -71,11 +92,27 @@ class EliminationBracketService {
         await _local.getMatchesByRound(tournamentId, nextRound);
     if (existingNext.isNotEmpty) return null;
 
+    // 7. Si la ronda que se completó es la Semifinal "estándar" (2
+    // partidos, 4 semifinalistas), los dos perdedores juegan el partido
+    // por el 3er puesto — se genera junto con la Final, no aparte, para
+    // que el admin lo vea desde el inicio de esa fase.
+    List<({String id, String name})>? thirdPlacePlayers;
+    if (completedRound == 'Semifinal' && roundMatches.length == 2) {
+      thirdPlacePlayers = roundMatches.map((m) {
+        if (m.homeScore! > m.awayScore!) {
+          return (id: m.awayPlayerId, name: m.awayPlayerName);
+        } else {
+          return (id: m.homePlayerId, name: m.homePlayerName);
+        }
+      }).toList();
+    }
+
     return PendingRoundAdvance(
       tournamentId: tournamentId,
       completedRound: completedRound,
       nextRound: nextRound,
       winners: winners,
+      thirdPlacePlayers: thirdPlacePlayers,
     );
   }
 
@@ -125,6 +162,24 @@ class EliminationBracketService {
         awayScore: 0,
         status: AppConstants.matchStatusFinished,
         round: nextRound,
+        matchNumber: matchNumber++,
+      ));
+    }
+
+    // Partido por el 3er puesto, entre los dos perdedores de semifinal —
+    // se genera junto con la Final (ver checkRoundComplete paso 7), no
+    // depende de que la Final se juegue primero.
+    final thirdPlace = pending.thirdPlacePlayers;
+    if (thirdPlace != null && thirdPlace.length == 2) {
+      newMatches.add(MatchModel(
+        id: const Uuid().v4(),
+        tournamentId: tournamentId,
+        homePlayerId: thirdPlace[0].id,
+        awayPlayerId: thirdPlace[1].id,
+        homePlayerName: thirdPlace[0].name,
+        awayPlayerName: thirdPlace[1].name,
+        status: AppConstants.matchStatusPending,
+        round: 'Tercer puesto',
         matchNumber: matchNumber++,
       ));
     }

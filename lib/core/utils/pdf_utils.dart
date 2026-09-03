@@ -47,6 +47,7 @@ class PdfUtils {
     required String mode,
     required List<Map<String, dynamic>> standings,
     required List<Map<String, dynamic>> matches,
+    Map<String, List<Map<String, dynamic>>>? groupedStandings,
   }) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.openSansRegular();
@@ -57,6 +58,9 @@ class PdfUtils {
     final isElimination = mode == AppConstants.tournamentModeElimination;
     final isGroups = mode == AppConstants.tournamentModeGroups;
     final matchesByRound = _groupByRound(matches, mode);
+    final bracketDiagram = isElimination
+        ? _buildBracketDiagram(matchesByRound, font, boldFont)
+        : null;
     // Con una sola "ronda" y sin nombre real (partidos sin `round`), mostrar
     // el nombre de grupo genérico sería redundante con el título de sección.
     final showRoundHeadings =
@@ -79,6 +83,10 @@ class PdfUtils {
             style: pw.TextStyle(font: font, fontSize: 12, color: PdfColors.grey700),
           ),
           pw.SizedBox(height: 20),
+
+          // Llave visual del bracket: solo eliminación simple, y solo con
+          // las rondas ya generadas (misma fuente que las tablas de abajo).
+          if (bracketDiagram != null) bracketDiagram,
 
           // Tabla de posiciones global: solo tiene sentido en liga (un único
           // grupo, todos contra todos). En eliminación cada jugador juega
@@ -112,7 +120,8 @@ class PdfUtils {
               if (isGroups) ...[
                 pw.SizedBox(height: 6),
                 _buildStandingsTable(
-                  _computeGroupStandings(entry.value),
+                  groupedStandings?[entry.key] ??
+                      _computeGroupStandings(entry.value),
                   font,
                   boldFont,
                 ),
@@ -181,10 +190,11 @@ class PdfUtils {
     return a.compareTo(b);
   }
 
-  /// Tabla de posiciones de un solo grupo, calculada solo con los partidos
-  /// finalizados de ese grupo — mismo criterio (3/1/0 puntos) que
-  /// StandingsCalculator, pero operando sobre los mapas genéricos que ya
-  /// recibe esta utilidad en vez de importar la entidad de dominio.
+  /// Respaldo si no se pasó `groupedStandings` (la tabla real, ya
+  /// calculada y ordenada por la app): recalcula la posición de un grupo
+  /// solo con sus partidos finalizados, mismo criterio de puntos (3/1/0)
+  /// que StandingsCalculator. No conoce el desempate manual del admin —
+  /// por eso se prefiere siempre `groupedStandings` cuando existe.
   static List<Map<String, dynamic>> _computeGroupStandings(
     List<Map<String, dynamic>> groupMatches,
   ) {
@@ -204,6 +214,10 @@ class PdfUtils {
       final a = statFor(away);
       h.played++;
       a.played++;
+      h.goalsFor += homeScore;
+      h.goalsAgainst += awayScore;
+      a.goalsFor += awayScore;
+      a.goalsAgainst += homeScore;
 
       if (homeScore > awayScore) {
         h.won++;
@@ -221,8 +235,19 @@ class PdfUtils {
       }
     }
 
+    // Mismo criterio de desempate que la tabla real de la app
+    // (AppDatabase.getStandingsByTournament/watchStandings): puntos,
+    // luego diferencia de gol. El desempate manual del admin no aplica
+    // acá — esta tabla se recalcula desde cero a partir de los partidos,
+    // no lee la fila de standings donde vive ese ajuste manual.
     final list = stats.values.toList()
-      ..sort((x, y) => y.points.compareTo(x.points));
+      ..sort((x, y) {
+        final byPoints = y.points.compareTo(x.points);
+        if (byPoints != 0) return byPoints;
+        final xDiff = x.goalsFor - x.goalsAgainst;
+        final yDiff = y.goalsFor - y.goalsAgainst;
+        return yDiff.compareTo(xDiff);
+      });
     return list
         .map((s) => {
               'player_name': s.name,
@@ -230,6 +255,8 @@ class PdfUtils {
               'won': s.won,
               'lost': s.lost,
               'points': s.points,
+              'goals_for': s.goalsFor,
+              'goals_against': s.goalsAgainst,
             })
         .toList();
   }
@@ -297,17 +324,21 @@ class PdfUtils {
     pw.Font font,
     pw.Font boldFont,
   ) {
-    final headers = ['#', 'Participante', 'PJ', 'PG', 'PP', 'Pts'];
+    final headers = ['#', 'Participante', 'PJ', 'PG', 'PP', 'DG', 'Pts'];
     return pw.TableHelper.fromTextArray(
       headers: headers,
       data: standings.asMap().entries.map((e) {
         final s = e.value;
+        final goalsFor = s['goals_for'] as int? ?? 0;
+        final goalsAgainst = s['goals_against'] as int? ?? 0;
+        final dg = goalsFor - goalsAgainst;
         return [
           '${e.key + 1}',
           s['player_name'] ?? '',
           '${s['played'] ?? 0}',
           '${s['won'] ?? 0}',
           '${s['lost'] ?? 0}',
+          dg > 0 ? '+$dg' : '$dg',
           '${s['points'] ?? 0}',
         ];
       }).toList(),
@@ -319,6 +350,7 @@ class PdfUtils {
         3: pw.Alignment.center,
         4: pw.Alignment.center,
         5: pw.Alignment.center,
+        6: pw.Alignment.center,
       },
       border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
       headerDecoration: const pw.BoxDecoration(color: _brandRed),
@@ -332,12 +364,11 @@ class PdfUtils {
     pw.Font font,
     pw.Font boldFont,
   ) {
-    final headers = ['Fecha', 'Local', 'Resultado', 'Visitante'];
+    final headers = ['Local', 'Resultado', 'Visitante'];
     return pw.TableHelper.fromTextArray(
       headers: headers,
       data: matches.map((m) {
         return [
-          m['date'] ?? '',
           m['home'] ?? '',
           '${m['home_score'] ?? '-'} - ${m['away_score'] ?? '-'}',
           m['away'] ?? '',
@@ -345,11 +376,295 @@ class PdfUtils {
       }).toList(),
       headerStyle: pw.TextStyle(font: boldFont, fontSize: 10, color: PdfColors.white),
       cellStyle: pw.TextStyle(font: font, fontSize: 10),
-      cellAlignments: const {2: pw.Alignment.center},
+      cellAlignments: const {1: pw.Alignment.center},
       border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
       headerDecoration: const pw.BoxDecoration(color: _brandRed),
       oddRowDecoration: const pw.BoxDecoration(color: _brandRedLight),
       rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+    );
+  }
+
+  /// Diagrama visual de la llave completa (árbol de eliminación simple),
+  /// como el BracketWidget de la app: una columna por ronda, cajas
+  /// conectadas con líneas. Las rondas ya generadas en la base muestran los
+  /// contendientes reales; las fases futuras que aún no se generaron (por
+  /// no haberse completado la ronda anterior) se dibujan igual, pero con
+  /// cajas vacías — la cantidad de cupos de cada fase futura se proyecta
+  /// desde el número de partidos de la última ronda generada, reduciendo a
+  /// la mitad (redondeando hacia arriba, igual que
+  /// EliminationBracketService.generateNextRound) hasta llegar a la Final.
+  /// Devuelve `null` si el torneo todavía no tiene ningún partido de
+  /// eliminación generado.
+  static pw.Widget? _buildBracketDiagram(
+    Map<String, List<Map<String, dynamic>>> matchesByRound,
+    pw.Font font,
+    pw.Font boldFont,
+  ) {
+    final generatedRoundNames = _eliminationRoundOrder
+        .where((r) =>
+            matchesByRound.containsKey(r) && matchesByRound[r]!.isNotEmpty)
+        .toList();
+    if (generatedRoundNames.isEmpty) return null;
+
+    final roundNames = List<String>.from(generatedRoundNames);
+    final rounds = <List<Map<String, dynamic>?>>[
+      for (final r in generatedRoundNames)
+        List<Map<String, dynamic>?>.from(matchesByRound[r]!),
+    ];
+
+    // Proyecta las fases futuras (sin generar aún) hasta la Final.
+    final lastGeneratedIdx =
+        _eliminationRoundOrder.indexOf(generatedRoundNames.last);
+    if (lastGeneratedIdx != -1 &&
+        lastGeneratedIdx < _eliminationRoundOrder.length - 1) {
+      var count = rounds.last.length;
+      for (var idx = lastGeneratedIdx + 1;
+          idx < _eliminationRoundOrder.length;
+          idx++) {
+        count = (count / 2).ceil();
+        roundNames.add(_eliminationRoundOrder[idx]);
+        rounds.add(List<Map<String, dynamic>?>.filled(count, null));
+        if (count <= 1) break; // ya llegó a la Final
+      }
+    }
+
+    const colWidth = 118.0;
+    const colGap = 30.0;
+    const boxHeight = 32.0;
+    const slotHeight = 44.0;
+    const headerHeight = 20.0;
+    const maxDiagramWidth = 530.0;
+
+    final gridHeight = rounds.first.length * slotHeight;
+    final totalWidth =
+        rounds.length * colWidth + (rounds.length - 1) * colGap;
+    final totalHeight = headerHeight + gridHeight;
+
+    // Posición vertical (desde arriba) de cada caja: la 1ª ronda se reparte
+    // en franjas iguales, y cada ronda siguiente se centra entre el par de
+    // cajas que la originan — mismo cálculo que BracketWidget.
+    final yPositions = <List<double>>[
+      List<double>.generate(
+          rounds.first.length, (i) => headerHeight + (i + 0.5) * slotHeight),
+    ];
+    for (var r = 1; r < rounds.length; r++) {
+      final prevY = yPositions[r - 1];
+      yPositions.add(List<double>.generate(rounds[r].length, (k) {
+        final c0 = k * 2;
+        final c1 = c0 + 1 < prevY.length ? c0 + 1 : c0;
+        return (prevY[c0] + prevY[c1]) / 2;
+      }));
+    }
+
+    double colX(int c) => c * (colWidth + colGap);
+
+    final children = <pw.Widget>[];
+
+    if (rounds.length > 1) {
+      children.add(pw.Positioned(
+        left: 0,
+        top: 0,
+        child: pw.CustomPaint(
+          size: PdfPoint(totalWidth, totalHeight),
+          painter: (canvas, size) {
+            canvas
+              ..setStrokeColor(PdfColors.grey500)
+              ..setLineWidth(0.8);
+            for (var r = 1; r < rounds.length; r++) {
+              final prevY = yPositions[r - 1];
+              final joinX = colX(r - 1) + colWidth;
+              final parentX = colX(r);
+              final midX = joinX + colGap / 2;
+              for (var k = 0; k < rounds[r].length; k++) {
+                final c0 = k * 2;
+                final c1 = c0 + 1 < prevY.length ? c0 + 1 : c0;
+                // El canvas de CustomPaint usa origen inferior-izquierdo
+                // (convención PDF), mientras que yPositions está medido
+                // desde arriba — de ahí el `size.y - y`.
+                final y1 = size.y - prevY[c0];
+                final y2 = size.y - prevY[c1];
+                final yP = size.y - yPositions[r][k];
+                canvas
+                  ..moveTo(joinX, y1)
+                  ..lineTo(midX, y1)
+                  ..strokePath();
+                if (c1 != c0) {
+                  canvas
+                    ..moveTo(joinX, y2)
+                    ..lineTo(midX, y2)
+                    ..strokePath();
+                  canvas
+                    ..moveTo(midX, y1)
+                    ..lineTo(midX, y2)
+                    ..strokePath();
+                }
+                canvas
+                  ..moveTo(midX, yP)
+                  ..lineTo(parentX, yP)
+                  ..strokePath();
+              }
+            }
+          },
+        ),
+      ));
+    }
+
+    for (var r = 0; r < roundNames.length; r++) {
+      children.add(pw.Positioned(
+        left: colX(r),
+        top: 0,
+        child: pw.SizedBox(
+          width: colWidth,
+          height: headerHeight,
+          child: pw.Center(
+            child: pw.Text(
+              roundNames[r],
+              textAlign: pw.TextAlign.center,
+              style:
+                  pw.TextStyle(font: boldFont, fontSize: 7.5, color: _brandRed),
+            ),
+          ),
+        ),
+      ));
+    }
+
+    for (var r = 0; r < rounds.length; r++) {
+      for (var i = 0; i < rounds[r].length; i++) {
+        final m = rounds[r][i];
+        children.add(pw.Positioned(
+          left: colX(r),
+          top: yPositions[r][i] - boxHeight / 2,
+          child: m == null
+              ? _bracketPlaceholderBox(colWidth, boxHeight)
+              : _bracketMatchBox(m, colWidth, boxHeight, font, boldFont),
+        ));
+      }
+    }
+
+    final diagram = pw.SizedBox(
+      width: totalWidth,
+      height: totalHeight,
+      child: pw.Stack(children: children),
+    );
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Llave del Torneo', boldFont),
+        pw.SizedBox(height: 10),
+        totalWidth > maxDiagramWidth
+            ? pw.SizedBox(
+                width: maxDiagramWidth,
+                height: totalHeight * (maxDiagramWidth / totalWidth),
+                child: pw.FittedBox(
+                  fit: pw.BoxFit.contain,
+                  alignment: pw.Alignment.topLeft,
+                  child: diagram,
+                ),
+              )
+            : diagram,
+        pw.SizedBox(height: 24),
+      ],
+    );
+  }
+
+  /// Caja de un partido dentro de la llave: local arriba, visitante abajo,
+  /// separador fino, marcador a la derecha de cada nombre y el ganador
+  /// resaltado en rojo institucional (mismo criterio visual que las cajas
+  /// de BracketWidget en la app).
+  static pw.Widget _bracketMatchBox(
+    Map<String, dynamic> m,
+    double width,
+    double height,
+    pw.Font font,
+    pw.Font boldFont,
+  ) {
+    final home = (m['home'] as String?) ?? '';
+    final away = (m['away'] as String?) ?? '';
+    final isFinished = m['status'] == AppConstants.matchStatusFinished;
+    final homeScore = m['home_score'] as int?;
+    final awayScore = m['away_score'] as int?;
+    final homeWins = isFinished &&
+        homeScore != null &&
+        awayScore != null &&
+        homeScore > awayScore;
+    final awayWins = isFinished &&
+        homeScore != null &&
+        awayScore != null &&
+        awayScore > homeScore;
+
+    pw.Widget row(String name, int? score, bool isWinner) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: pw.Row(
+          children: [
+            pw.Expanded(
+              child: pw.Text(
+                name.isEmpty ? '-' : name,
+                maxLines: 1,
+                overflow: pw.TextOverflow.clip,
+                style: pw.TextStyle(
+                  font: isWinner ? boldFont : font,
+                  fontSize: 7,
+                  color: isWinner ? _brandRed : PdfColors.black,
+                ),
+              ),
+            ),
+            pw.Text(
+              score?.toString() ?? '-',
+              style: pw.TextStyle(
+                font: isWinner ? boldFont : font,
+                fontSize: 7,
+                color: isWinner ? _brandRed : PdfColors.black,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return pw.Container(
+      width: width,
+      height: height,
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey500, width: 0.6),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+        color: PdfColors.white,
+      ),
+      child: pw.Column(
+        mainAxisAlignment: pw.MainAxisAlignment.center,
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          row(home, homeScore, homeWins),
+          pw.Container(height: 0.6, color: PdfColors.grey300),
+          row(away, awayScore, awayWins),
+        ],
+      ),
+    );
+  }
+
+  /// Caja vacía para una fase futura aún no generada — mismo tamaño y
+  /// estilo que una caja real (borde sólido, fondo blanco), pero sin texto
+  /// dentro: se deja en blanco a propósito para que se pueda completar a
+  /// mano con esfero una vez impreso el reporte.
+  static pw.Widget _bracketPlaceholderBox(double width, double height) {
+    return pw.Container(
+      width: width,
+      height: height,
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey500, width: 0.6),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+        color: PdfColors.white,
+      ),
+      child: pw.Column(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Expanded(child: pw.SizedBox()),
+          pw.Container(height: 0.6, color: PdfColors.grey300),
+          pw.Expanded(child: pw.SizedBox()),
+        ],
+      ),
     );
   }
 
@@ -402,5 +717,7 @@ class _GroupPlayerStat {
   int won = 0;
   int lost = 0;
   int points = 0;
+  int goalsFor = 0;
+  int goalsAgainst = 0;
   _GroupPlayerStat(this.name);
 }

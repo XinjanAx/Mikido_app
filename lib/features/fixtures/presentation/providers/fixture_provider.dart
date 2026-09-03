@@ -49,6 +49,7 @@ final matchResultServiceProvider = Provider<MatchResultService>(
 final fixtureRepositoryProvider = Provider<FixtureRepository>(
   (ref) => FixtureRepositoryImpl(
     ref.watch(fixtureLocalDataSourceProvider),
+    ref.watch(fixtureRemoteDataSourceProvider),
     ref.watch(appDatabaseProvider),
     ref.watch(syncEngineProvider),
     ref.watch(matchResultServiceProvider),

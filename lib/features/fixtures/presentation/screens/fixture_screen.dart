@@ -67,13 +67,28 @@ class FixtureScreen extends ConsumerWidget {
     final isElimination = mode == AppConstants.tournamentModeElimination;
     final isGroups = mode == AppConstants.tournamentModeGroups;
     final isTournamentFinished = tournament?.status == AppConstants.statusFinished;
+    // El partido por el 3er puesto se evalúa aparte del resto del cuadro:
+    // no se exige para considerar terminada la llave principal (si no,
+    // "Finalizar torneo" desaparecería sin explicación apenas se genera),
+    // pero si existe y sigue pendiente, bloquea igual la finalización más
+    // abajo — con un aviso explícito en vez de ocultar el botón en
+    // silencio.
+    final thirdPlaceMatch = fixtureState.matches
+        .where((m) => m.round == 'Tercer puesto')
+        .firstOrNull;
+    final mainBracketMatches = fixtureState.matches
+        .where((m) => m.round != 'Tercer puesto')
+        .toList();
     // En eliminación, que todos los partidos CARGADOS estén terminados no
     // basta: si el cuadro se quedó atascado en una ronda (p. ej. porque
     // advance() nunca generó la siguiente), "todos terminados" sería
     // cierto prematuramente. Exigimos además que exista la ronda Final.
-    final isTournamentComplete = fixtureState.matches.isNotEmpty &&
-        fixtureState.matches.every((m) => m.isFinished) &&
-        (!isElimination || fixtureState.matches.any((m) => m.round == 'Final'));
+    final isMainBracketComplete = mainBracketMatches.isNotEmpty &&
+        mainBracketMatches.every((m) => m.isFinished) &&
+        (!isElimination || mainBracketMatches.any((m) => m.round == 'Final'));
+    final needsThirdPlace =
+        isElimination && thirdPlaceMatch != null && !thirdPlaceMatch.isFinished;
+    final isTournamentComplete = isMainBracketComplete && !needsThirdPlace;
     final standings =
         ref.watch(standingsStreamProvider(tournamentId)).valueOrNull ?? [];
     final championName =
@@ -176,6 +191,41 @@ class FixtureScreen extends ConsumerWidget {
               ),
             ),
 
+          // Aviso bloqueante: la llave principal ya terminó, pero el
+          // partido por el 3er puesto sigue pendiente — no se puede
+          // finalizar el torneo hasta que también se juegue.
+          if (isAdmin &&
+              isMainBracketComplete &&
+              needsThirdPlace &&
+              !isTournamentFinished)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.military_tech_outlined,
+                        color: AppColors.warning),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Falta definir el partido por el tercer puesto '
+                        '(${thirdPlaceMatch.homePlayerName} vs '
+                        '${thirdPlaceMatch.awayPlayerName}) antes de poder '
+                        'finalizar el torneo.',
+                        style: AppTextStyles.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Finalizar torneo: aparece cuando ya no quedan partidos
           // pendientes, en cualquier modalidad. Antes de esto, cualquier
           // resultado se puede seguir corrigiendo.
@@ -185,8 +235,8 @@ class FixtureScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success),
-                onPressed: () => _confirmFinalize(
-                    context, ref, standings, isGroups, fixtureState.matches),
+                onPressed: () => _confirmFinalize(context, ref, standings,
+                    isGroups, isElimination, fixtureState.matches),
                 icon: const Icon(Icons.flag_outlined),
                 label: const Text('Finalizar torneo'),
               ),
@@ -249,28 +299,26 @@ class FixtureScreen extends ConsumerWidget {
     );
   }
 
-  /// Eliminación: gana quien ganó el último partido (mayor número de
-  /// partido). Grupos/liga: gana quien encabeza la tabla de posiciones.
+  /// Eliminación: gana quien ganó la Final. Grupos/liga: gana quien
+  /// encabeza la tabla de posiciones.
   String? _championName(List<MatchEntity> matches, bool isElimination,
       List<StandingEntity> standings) {
     if (isElimination) {
-      if (matches.isEmpty) return null;
-      // Evitar List.reduce aquí: en runtime `matches` suele ser en
-      // realidad un List<MatchModel> (subtipo) expuesto como
-      // List<MatchEntity>, y reduce() liga su callback al tipo genérico
-      // reificado en runtime, no al estático — con reduce eso rompe con
-      // un TypeError de covarianza. Un for manual no tiene ese problema.
-      MatchEntity lastMatch = matches.first;
+      // Se busca la ronda "Final" explícitamente en vez de asumir que es
+      // el partido con mayor `matchNumber`: el partido por el 3er puesto
+      // se genera después de la Final (número más alto), así que ese
+      // supuesto elegiría por error al ganador del 3er puesto como
+      // "Campeón".
+      MatchEntity? finalMatch;
       for (final m in matches) {
-        if ((m.matchNumber ?? 0) > (lastMatch.matchNumber ?? 0)) {
-          lastMatch = m;
-        }
+        if (m.round == 'Final') finalMatch = m;
       }
-      final winnerId = lastMatch.winner;
+      if (finalMatch == null) return null;
+      final winnerId = finalMatch.winner;
       if (winnerId == null) return null;
-      return winnerId == lastMatch.homePlayerId
-          ? lastMatch.homePlayerName
-          : lastMatch.awayPlayerName;
+      return winnerId == finalMatch.homePlayerId
+          ? finalMatch.homePlayerName
+          : finalMatch.awayPlayerName;
     }
     if (standings.isEmpty) return null;
     return standings.first.playerName;
@@ -281,11 +329,18 @@ class FixtureScreen extends ConsumerWidget {
   /// dentro de cada grupo —, primero hay que resolverlos a mano: el propio
   /// botón "Guardar y finalizar torneo" del diálogo de empates ya cumple el
   /// rol de confirmación, así que no se apila un segundo diálogo.
+  ///
+  /// En eliminación directa esta detección NUNCA corre: comparar puntos
+  /// (PJ/PG/PP) entre jugadores que jamás se enfrentaron no tiene sentido
+  /// ahí — dos eliminados con el mismo marcador en partidos distintos no
+  /// están "empatados" en ningún sentido competitivo real, y antes de este
+  /// fix disparaban el diálogo de resolución de empates propio de liga.
   Future<void> _confirmFinalize(
     BuildContext context,
     WidgetRef ref,
     List<StandingEntity> standings,
     bool isGroups,
+    bool isElimination,
     List<MatchEntity> matches,
   ) async {
     Map<String, String>? groupOf;
@@ -298,7 +353,9 @@ class FixtureScreen extends ConsumerWidget {
         if (m.awayPlayerId != m.homePlayerId) groupOf[m.awayPlayerId] = round;
       }
     }
-    final tied = detectTiedGroups(standings, groupOf: groupOf);
+    final tied = isElimination
+        ? const <TiedGroup>[]
+        : detectTiedGroups(standings, groupOf: groupOf);
 
     if (tied.isEmpty) {
       if (!context.mounted) return;
@@ -374,11 +431,12 @@ class FixtureScreen extends ConsumerWidget {
     }
 
     final byRound = state.matchesByRound;
-    // En eliminación las rondas ya vienen en orden cronológico (octavos,
-    // cuartos, semifinal, final); se invierten para mostrar primero la
-    // ronda más avanzada, sin tener que hacer scroll por las ya jugadas.
+    // En eliminación se muestra primero la ronda más avanzada (Final
+    // arriba de todo), sin tener que hacer scroll por las ya jugadas. El
+    // 3er puesto no tiene lugar propio en ese orden cronológico — se
+    // intercala justo debajo de la Final a mano.
     final roundKeys = isElimination
-        ? byRound.keys.toList().reversed.toList()
+        ? _orderedEliminationRoundKeys(byRound.keys)
         : byRound.keys.toList();
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 24),
@@ -409,6 +467,23 @@ class FixtureScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  /// Ordena las rondas de eliminación de la más avanzada a la más
+  /// temprana (Final primero), intercalando "Tercer puesto" justo debajo
+  /// de la Final — no está en `roundOrder` porque no forma parte de la
+  /// progresión del cuadro, así que necesita su propio criterio de orden.
+  List<String> _orderedEliminationRoundKeys(Iterable<String> keys) {
+    const order = EliminationBracketService.roundOrder;
+    double rankOf(String round) {
+      if (round == 'Tercer puesto') {
+        return order.indexOf('Final') - 0.5;
+      }
+      final idx = order.indexOf(round);
+      return idx == -1 ? -1 : idx.toDouble();
+    }
+
+    return keys.toList()..sort((a, b) => rankOf(b).compareTo(rankOf(a)));
   }
 
   /// Una ronda de eliminación queda bloqueada (no editable) en cuanto el
@@ -942,6 +1017,28 @@ class _ResultDialogState extends State<_ResultDialog> {
   Future<void> _save() async {
     final home = int.tryParse(_homeController.text) ?? 0;
     final away = int.tryParse(_awayController.text) ?? 0;
+
+    final tournament =
+        widget.ref.read(tournamentByIdProvider(widget.tournamentId));
+    final isElimination =
+        tournament?.mode == AppConstants.tournamentModeElimination;
+
+    // En eliminación directa cada partido necesita un ganador para poder
+    // avanzar de ronda: sin esta validación, checkRoundComplete() más abajo
+    // resolvía el empate en silencio a favor del local (homeScore >=
+    // awayScore), avanzando a alguien sin que el marcador realmente lo
+    // respaldara.
+    if (isElimination && home == away) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'En eliminación directa no se permiten empates: el resultado debe tener un ganador.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     final ok = await widget.ref
         .read(fixtureProvider(widget.tournamentId).notifier)
@@ -952,9 +1049,7 @@ class _ResultDialogState extends State<_ResultDialog> {
         );
 
     if (ok && widget.round != null && mounted) {
-      final tournament =
-          widget.ref.read(tournamentByIdProvider(widget.tournamentId));
-      if (tournament?.mode == AppConstants.tournamentModeElimination) {
+      if (isElimination) {
         final bracket = widget.ref.read(eliminationBracketServiceProvider);
         final pending = await bracket.checkRoundComplete(
           tournamentId: widget.tournamentId,

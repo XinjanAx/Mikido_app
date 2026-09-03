@@ -21,6 +21,7 @@ class ReportDataSourceImpl implements ReportDataSource {
         mode: params.mode,
         standings: params.standings,
         matches: params.matches,
+        groupedStandings: params.groupedStandings,
       );
 
   @override

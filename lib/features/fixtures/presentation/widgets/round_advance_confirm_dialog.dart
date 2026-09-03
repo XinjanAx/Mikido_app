@@ -52,6 +52,27 @@ Future<bool> showRoundAdvanceConfirmDialog(
               ),
             ),
           ),
+          if (pending.thirdPlacePlayers != null) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.military_tech_outlined,
+                    size: 16, color: AppColors.grey600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'También se genera el partido por el 3er puesto: '
+                    '${pending.thirdPlacePlayers![0].name} vs '
+                    '${pending.thirdPlacePlayers![1].name}',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.grey600),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
       actions: [

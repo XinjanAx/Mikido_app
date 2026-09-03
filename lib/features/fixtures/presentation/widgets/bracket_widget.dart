@@ -71,12 +71,38 @@ class _BracketWidgetState extends State<BracketWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // El partido por el 3er puesto no es parte de la progresión lineal del
+    // cuadro (no alimenta a ningún partido siguiente, sale directo de los
+    // dos perdedores de semifinal) — se excluye de las columnas principales.
+    // Su ganador se muestra en la columna de la Final (más abajo) recién
+    // cuando el partido termina, igual que el podio del campeón.
+    final thirdPlaceMatch = widget.matches
+        .where((m) => m.round == 'Tercer puesto')
+        .cast<MatchEntity?>()
+        .firstOrNull;
+    final thirdPlaceWinnerMatch =
+        thirdPlaceMatch != null && thirdPlaceMatch.winner != null
+            ? thirdPlaceMatch
+            : null;
+
     final byRound = <String, List<MatchEntity>>{};
     for (final m in widget.matches) {
+      if (m.round == 'Tercer puesto') continue;
       byRound.putIfAbsent(m.round ?? '', () => []).add(m);
     }
     for (final list in byRound.values) {
       list.sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
+    }
+
+    // El campeón se destaca con un podio propio (logo del club de fondo)
+    // junto a la columna Final, además del resaltado normal que ya recibe
+    // como ganador dentro de esa caja — solo aparece cuando la Final
+    // existe y ya se jugó.
+    final finalMatches = byRound['Final'];
+    MatchEntity? championMatch;
+    if (finalMatches != null && finalMatches.isNotEmpty) {
+      final f = finalMatches.first;
+      if (f.winner != null) championMatch = f;
     }
 
     final presentRounds =
@@ -133,17 +159,31 @@ class _BracketWidgetState extends State<BracketWidget> {
           sliver: SliverToBoxAdapter(
             child: !multiRound
                 ? Center(
-                    child: SizedBox(
-                      width: 220,
-                      height:
-                          BracketWidget._boxHeight * 2 + BracketWidget._boxGap,
-                      child: _MatchPair(match: rounds.first.first),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 220,
+                          height: BracketWidget._boxHeight * 2 +
+                              BracketWidget._boxGap,
+                          child: _MatchPair(match: rounds.first.first),
+                        ),
+                        if (championMatch != null) ...[
+                          const SizedBox(width: 24),
+                          _ChampionPodium(match: championMatch),
+                        ],
+                      ],
                     ),
                   )
                 : SingleChildScrollView(
                     controller: _bodyController,
                     scrollDirection: Axis.horizontal,
-                    child: _BracketCanvasBody(rounds: rounds),
+                    child: _BracketCanvasBody(
+                      rounds: rounds,
+                      championMatch: championMatch,
+                      thirdPlaceMatch: thirdPlaceWinnerMatch,
+                    ),
                   ),
           ),
         ),
@@ -299,9 +339,18 @@ class _RoundLabelsBar extends StatelessWidget {
 /// salen sus dos participantes (o uno solo, si ese participante ya venía
 /// de un bye). Los nombres de ronda van aparte, en [_RoundLabelsBar].
 class _BracketCanvasBody extends StatelessWidget {
-  const _BracketCanvasBody({required this.rounds});
+  const _BracketCanvasBody({
+    required this.rounds,
+    this.championMatch,
+    this.thirdPlaceMatch,
+  });
 
   final List<List<MatchEntity?>> rounds;
+  final MatchEntity? championMatch;
+
+  /// Ganador del partido por el 3er puesto (ya decidido) — se muestra en
+  /// la misma columna que la Final, debajo de esa caja.
+  final MatchEntity? thirdPlaceMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -312,9 +361,24 @@ class _BracketCanvasBody extends StatelessWidget {
     const colGap = BracketWidget._colGap;
     final matchHeight = boxHeight * 2 + boxGap;
 
-    final height = rounds.first.length * slotHeight;
+    final hasThirdPlace = thirdPlaceMatch != null;
+    // Borde inferior de la llave principal (todas las filas de la primera
+    // ronda) — la Final queda centrada ahí en medio, no al fondo, así que
+    // la fila del 3er puesto se ubica respecto a ESTE borde y no respecto
+    // a la Final, o se solaparía con la última fila del cuadro apenas
+    // hubiera más de una ronda antes de semifinales.
+    final gridBottom = rounds.first.length * slotHeight;
+    // Espacio extra abajo para la caja del 3er puesto, que cuelga debajo
+    // de toda la llave — no reemplaza ninguna fila existente, así que hay
+    // que darle su propio lugar.
+    final height = gridBottom + (hasThirdPlace ? matchHeight + 40 : 0);
     final finalCol = rounds.length - 1;
-    final width = rounds.length * colWidth + finalCol * colGap;
+    // Columna extra para el podio del campeón, junto a la Final — solo se
+    // reserva espacio cuando hay campeón para mostrar.
+    final hasChampion = championMatch != null;
+    final width = rounds.length * colWidth +
+        finalCol * colGap +
+        (hasChampion ? colWidth + colGap : 0);
 
     double colX(int col) => col * (colWidth + colGap);
 
@@ -393,6 +457,39 @@ class _BracketCanvasBody extends StatelessWidget {
       }
     }
 
+    // Fila del 3er puesto, debajo del cuadro principal — la caja de
+    // partido con los dos perdedores de semifinal, conectada solo con la
+    // caja del ganador (en la columna de la Final). Sin línea hacia las
+    // semifinales: en cuadros grandes esa línea cruzaba por encima de
+    // rondas intermedias enteras y se veía como un cable suelto.
+    double? thirdPlaceRowY;
+    if (hasThirdPlace && finalCol >= 1) {
+      final semifinalCol = finalCol - 1;
+      final semifinalY = yPositions[semifinalCol];
+      if (semifinalY.length == 2) {
+        thirdPlaceRowY = gridBottom + 40 + matchHeight / 2;
+        final pairJoinX = colX(semifinalCol) + colWidth;
+
+        // Caja de partido → caja del ganador, en la columna de la Final.
+        linePaths.add(Path()
+          ..moveTo(pairJoinX, thirdPlaceRowY)
+          ..lineTo(colX(finalCol), thirdPlaceRowY));
+        dots.add(_Dot(Offset(colX(finalCol), thirdPlaceRowY), true));
+      }
+    }
+
+    // Línea que conecta la Final con el podio del campeón, igual que el
+    // resto de las rondas se conectan entre sí.
+    if (hasChampion) {
+      final finalY = yPositions.last[0];
+      final finalRightX = colX(finalCol) + colWidth;
+      final podiumLeftX = colX(finalCol) + colWidth + colGap;
+      linePaths.add(Path()
+        ..moveTo(finalRightX, finalY)
+        ..lineTo(podiumLeftX, finalY));
+      dots.add(_Dot(Offset(podiumLeftX, finalY), true));
+    }
+
     final emblemSize = (height * 0.5).clamp(100.0, 220.0);
 
     return SizedBox(
@@ -400,21 +497,81 @@ class _BracketCanvasBody extends StatelessWidget {
       height: height,
       child: Stack(
         children: [
-          Positioned(
-            left: colX(finalCol) + colWidth / 2 - emblemSize / 2,
-            top: height / 2 - emblemSize / 2,
-            width: emblemSize,
-            height: emblemSize,
-            child: Opacity(
-              opacity: 0.15,
-              child: Image.asset(
-                AppColors.isDark
-                    ? 'assets/images/logo_positivo.png'
-                    : 'assets/images/logo_negativo.png',
-                fit: BoxFit.contain,
+          // El emblema decorativo de fondo solo va sobre la Final mientras
+          // el torneo sigue en curso — en cuanto hay campeón, el logo vive
+          // únicamente en su podio (más abajo), no repetido en los dos
+          // lugares a la vez.
+          if (!hasChampion)
+            Positioned(
+              left: colX(finalCol) + colWidth / 2 - emblemSize / 2,
+              top: height / 2 - emblemSize / 2,
+              width: emblemSize,
+              height: emblemSize,
+              child: Opacity(
+                opacity: 0.15,
+                child: Image.asset(
+                  AppColors.isDark
+                      ? 'assets/images/logo_positivo.png'
+                      : 'assets/images/logo_negativo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
+          if (hasChampion)
+            Positioned(
+              left: colX(finalCol) + colWidth + colGap,
+              top: yPositions.last[0] - _ChampionPodium.height / 2,
+              width: colWidth,
+              child: _ChampionPodium(match: championMatch!),
+            ),
+          if (thirdPlaceRowY != null) ...[
+            Positioned(
+              left: colX(finalCol - 1),
+              top: thirdPlaceRowY - matchHeight / 2 - 26,
+              width: colWidth * 2 + colGap,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.military_tech_outlined,
+                      size: 14, color: AppColors.bronze),
+                  const SizedBox(width: 6),
+                  Text(
+                    '3ER PUESTO',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: AppColors.bronze,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: colX(finalCol - 1),
+              top: thirdPlaceRowY - matchHeight / 2,
+              width: colWidth,
+              height: matchHeight,
+              child: _MatchPair(match: thirdPlaceMatch),
+            ),
+            Positioned(
+              left: colX(finalCol),
+              top: thirdPlaceRowY - boxHeight / 2,
+              width: colWidth,
+              child: _TeamBox(
+                name: thirdPlaceMatch!.winner == thirdPlaceMatch!.homePlayerId
+                    ? thirdPlaceMatch!.homePlayerName
+                    : thirdPlaceMatch!.awayPlayerName,
+                score:
+                    thirdPlaceMatch!.winner == thirdPlaceMatch!.homePlayerId
+                        ? thirdPlaceMatch!.homeScore
+                        : thirdPlaceMatch!.awayScore,
+                isWinner: true,
+                isFinished: true,
+              ),
+            ),
+          ],
           Positioned(
             left: 0,
             top: 0,
@@ -630,6 +787,74 @@ class _TeamBox extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: isWinner ? AppColors.accent : AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Podio del campeón: junto a la columna Final, la misma caja de ganador
+/// que ya se usa en el cuadro (`_TeamBox`) superpuesta sobre el logo
+/// completo del club — que ya trae escudo, copa y el texto "MIKIDO
+/// TORNEOS" en una sola imagen, así que no hace falta redibujar nada de
+/// eso a mano.
+class _ChampionPodium extends StatelessWidget {
+  const _ChampionPodium({required this.match});
+
+  final MatchEntity match;
+
+  static const double height = 260;
+  static const double _width = BracketWidget._colWidth;
+  static const double _logoWidth = 170;
+  // Alto real de logo_negativo.png a este ancho (proporción 2339x3413).
+  static const double _logoHeight = _logoWidth * 3413 / 2339;
+  // La caja del ganador y el logo completo se centran en el mismo punto
+  // vertical (la mitad de [height]) — ese mismo punto es adonde llega la
+  // línea que conecta con la Final (ver _BracketCanvasBody), así que la
+  // caja queda "enganchada" a esa línea en vez de flotar aparte.
+  static const double _logoTopOffset = height / 2 - _logoHeight / 2;
+  static const double _boxTopOffset =
+      height / 2 - (BracketWidget._boxHeight / 2);
+
+  @override
+  Widget build(BuildContext context) {
+    final homeWon = match.homeScore != null &&
+        match.awayScore != null &&
+        match.homeScore! > match.awayScore!;
+    final name = homeWon ? match.homePlayerName : match.awayPlayerName;
+    final score = homeWon ? match.homeScore : match.awayScore;
+
+    return SizedBox(
+      width: _width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: _logoTopOffset,
+            left: (_width - _logoWidth) / 2,
+            child: Opacity(
+              opacity: 0.25,
+              child: Image.asset(
+                AppColors.isDark
+                    ? 'assets/images/logo_positivo.png'
+                    : 'assets/images/logo_negativo.png',
+                width: _logoWidth,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          Positioned(
+            top: _boxTopOffset,
+            left: 0,
+            right: 0,
+            child: _TeamBox(
+              name: name,
+              score: score,
+              isWinner: true,
+              isFinished: true,
             ),
           ),
         ],

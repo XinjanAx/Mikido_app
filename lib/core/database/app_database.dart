@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import 'database_location.dart';
 import 'tables/enrollments_table.dart';
 import 'tables/matches_table.dart';
 import 'tables/mesas_table.dart';
@@ -107,8 +105,8 @@ class AppDatabase extends _$AppDatabase {
 
   static QueryExecutor _openConnection() {
     return LazyDatabase(() async {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dir.path, 'torneo_app.sqlite'));
+      // Fuera de OneDrive/iCloud en escritorio (ver DatabaseLocation).
+      final file = await DatabaseLocation.resolve();
       return NativeDatabase.createInBackground(file);
     });
   }

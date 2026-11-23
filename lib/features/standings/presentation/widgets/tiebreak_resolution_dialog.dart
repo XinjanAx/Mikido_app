@@ -137,7 +137,7 @@ class _TiebreakResolutionDialogState
         ),
         ElevatedButton(
           onPressed: _allResolved ? _save : null,
-          child: const Text('Guardar y finalizar torneo'),
+          child: const Text('Guardar y finalizar categoría'),
         ),
       ],
     );

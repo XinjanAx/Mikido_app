@@ -31,6 +31,8 @@ class TournamentLocalDataSourceImpl implements TournamentLocalDataSource {
         endDate: row.endDate,
         createdBy: row.createdBy,
         createdAt: row.createdAt,
+        mesaId: row.mesaId,
+        color: row.color,
       );
 
   @override
@@ -59,6 +61,8 @@ class TournamentLocalDataSourceImpl implements TournamentLocalDataSource {
       endDate: tournament.endDate,
       createdBy: tournament.createdBy,
       createdAt: Value(tournament.createdAt),
+      mesaId: Value(tournament.mesaId),
+      color: Value(tournament.color),
       dirty: Value(dirty),
     ));
   }

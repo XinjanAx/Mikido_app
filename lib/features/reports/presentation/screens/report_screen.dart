@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:torneo_app/features/tournaments/presentation/widgets/category_color_widgets.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -42,7 +43,10 @@ class ReportScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes')),
+      appBar: AppBar(
+        flexibleSpace: CategoryHeaderGradient(tournamentId: tournamentId),
+        title: const Text('Reportes'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -58,7 +62,7 @@ class ReportScreen extends ConsumerWidget {
             Text('Exportar información', style: AppTextStyles.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Genera reportes con las posiciones y resultados del torneo.',
+              'Genera reportes con las posiciones y resultados de la categoría.',
               style: AppTextStyles.bodyMedium
                   .copyWith(color: AppColors.grey400),
             ),

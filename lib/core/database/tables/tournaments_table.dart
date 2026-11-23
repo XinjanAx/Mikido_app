@@ -13,6 +13,15 @@ class Tournaments extends Table {
   TextColumn get createdBy => text()();
   DateTimeColumn get createdAt => dateTime().nullable()();
 
+  /// Mesa a la que pertenece la categoría (en la UI "torneo" se muestra
+  /// como "categoría"). Nullable solo por los datos anteriores a la v6;
+  /// toda categoría nueva se crea dentro de una mesa y no cambia de mesa.
+  TextColumn get mesaId => text().nullable()();
+
+  /// Color de la categoría, '#RRGGBB' (ver CategoryColors). null en datos
+  /// anteriores a la v7.
+  TextColumn get color => text().nullable()();
+
   /// true = hay cambios locales que aún no se subieron a Supabase.
   BoolColumn get dirty => boolean().withDefault(const Constant(false))();
 

@@ -12,6 +12,18 @@ create table public.profiles (
   constraint profiles_id_fkey foreign key (id) references auth.users(id)
 );
 
+-- Mesa: lugar físico (cancha, tatami, ring...) con varias categorías.
+create table public.mesas (
+  id uuid not null default gen_random_uuid(),
+  name text not null,
+  description text,
+  created_by uuid,
+  created_at timestamp with time zone default now(),
+  constraint mesas_pkey primary key (id),
+  constraint mesas_created_by_fkey foreign key (created_by) references public.profiles(id)
+);
+
+-- tournaments = "categorías" en la UI de la app.
 create table public.tournaments (
   id uuid not null default gen_random_uuid(),
   name text not null,
@@ -22,8 +34,11 @@ create table public.tournaments (
   end_date timestamp with time zone not null,
   created_by uuid,
   created_at timestamp with time zone default now(),
+  mesa_id uuid,
+  color text, -- color de la categoría, '#RRGGBB'
   constraint tournaments_pkey primary key (id),
-  constraint tournaments_created_by_fkey foreign key (created_by) references public.profiles(id)
+  constraint tournaments_created_by_fkey foreign key (created_by) references public.profiles(id),
+  constraint tournaments_mesa_id_fkey foreign key (mesa_id) references public.mesas(id)
 );
 
 create table public.players (
@@ -60,6 +75,7 @@ create table public.matches (
   scheduled_at timestamp with time zone,
   round text,
   match_number integer,
+  mesa_order integer, -- turno global dentro de la mesa (null en los BYE)
   created_at timestamp with time zone default now(),
   constraint matches_pkey primary key (id),
   constraint matches_tournament_id_fkey foreign key (tournament_id) references public.tournaments(id),
@@ -124,6 +140,7 @@ $function$;
 -- Row Level Security
 -- ------------------------------------------------------------------
 alter table public.profiles enable row level security;
+alter table public.mesas enable row level security;
 alter table public.tournaments enable row level security;
 alter table public.players enable row level security;
 alter table public.enrollments enable row level security;
@@ -147,6 +164,22 @@ create policy profiles_update on public.profiles
 create policy profiles_delete on public.profiles
   as permissive for delete to public
   using (get_my_role() = 'admin'::text);
+
+-- mesas: mismo criterio que tournaments.
+create policy "Lectura pública" on public.mesas
+  as permissive for select to anon
+  using (true);
+
+create policy mesas_select on public.mesas
+  as permissive for select to public
+  using (auth.role() = 'authenticated'::text);
+
+create policy mesas_write on public.mesas
+  as permissive for all to public
+  using (exists (
+    select 1 from public.profiles
+    where profiles.id = auth.uid() and profiles.role = 'admin'::text
+  ));
 
 -- tournaments: lectura pública (anon, para torneo_web) + lectura para
 -- cualquier autenticado; solo admin crea/edita/borra.

@@ -16,6 +16,10 @@ class MatchEntity extends Equatable {
   final int? matchNumber;
   final DateTime? createdAt;
 
+  /// Turno global dentro de la mesa (ver MesaScheduleService). null en
+  /// los BYE, que no ocupan turno.
+  final int? mesaOrder;
+
   const MatchEntity({
     required this.id,
     required this.tournamentId,
@@ -30,6 +34,7 @@ class MatchEntity extends Equatable {
     this.round,
     this.matchNumber,
     this.createdAt,
+    this.mesaOrder,
   });
 
   bool get isFinished => status == AppConstants.matchStatusFinished;
@@ -53,6 +58,6 @@ class MatchEntity extends Equatable {
   @override
   List<Object?> get props => [
         id, tournamentId, homePlayerId, awayPlayerId,
-        homeScore, awayScore, status, scheduledAt, round, matchNumber
+        homeScore, awayScore, status, scheduledAt, round, matchNumber, mesaOrder
       ];
 }

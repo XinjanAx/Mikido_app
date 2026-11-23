@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/extensions/datetime_extensions.dart';
+import '../../../../core/theme/category_colors.dart';
 import '../../domain/entities/tournament_entity.dart';
+import 'category_color_widgets.dart';
 
 class TournamentCard extends StatelessWidget {
   final TournamentEntity tournament;
@@ -46,74 +48,88 @@ class TournamentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final categoryColor = CategoryColors.parse(tournament.color);
+    final accent = categoryColor ?? AppColors.primary;
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(_modeIcon(), color: AppColors.primary, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      tournament.name,
-                      style: AppTextStyles.titleLarge,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (isAdmin && onDelete != null)
-                    IconButton(
-                      icon: Icon(Icons.delete_outline,
-                          color: AppColors.grey400, size: 20),
-                      onPressed: onDelete,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _InfoChip(label: tournament.modeLabel),
-                  const SizedBox(width: 8),
-                  _StatusBadge(
-                    label: tournament.statusLabel,
-                    color: _statusColor(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_outlined,
-                      size: 14, color: AppColors.grey400),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${tournament.startDate.toDisplayDateTime()} → ${tournament.endDate.toDisplayDateTime()}',
-                      style: AppTextStyles.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+              CategoryColorStrip(hex: tournament.color),
+              Expanded(child: _buildContent(accent)),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent(Color accent) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(_modeIcon(), color: accent, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tournament.name,
+                  style: AppTextStyles.titleLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (isAdmin && onDelete != null)
+                IconButton(
+                  icon: Icon(Icons.delete_outline,
+                      color: AppColors.grey400, size: 20),
+                  onPressed: onDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _InfoChip(label: tournament.modeLabel),
+              const SizedBox(width: 8),
+              _StatusBadge(
+                label: tournament.statusLabel,
+                color: _statusColor(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_outlined,
+                  size: 14, color: AppColors.grey400),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${tournament.startDate.toDisplayDateTime()} → ${tournament.endDate.toDisplayDateTime()}',
+                  style: AppTextStyles.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

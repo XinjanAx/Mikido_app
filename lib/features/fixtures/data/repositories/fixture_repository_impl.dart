@@ -7,6 +7,7 @@ import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/sync/sync_engine.dart';
+import '../../../mesas/data/services/mesa_schedule_service.dart';
 import '../../../tournaments/data/datasources/tournament_local_datasource.dart';
 import '../../../tournaments/data/models/tournament_model.dart';
 import '../../domain/entities/match_entity.dart';
@@ -23,6 +24,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
   final SyncEngine _syncEngine;
   final MatchResultService _matchResultService;
   final TournamentLocalDataSource _tournaments;
+  final MesaScheduleService _mesaSchedule;
 
   const FixtureRepositoryImpl(
     this._local,
@@ -31,6 +33,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
     this._syncEngine,
     this._matchResultService,
     this._tournaments,
+    this._mesaSchedule,
   );
 
   /// Borra todos los partidos de un torneo: soft-delete local + outbox
@@ -82,7 +85,7 @@ class FixtureRepositoryImpl implements FixtureRepository {
       await _wipeMatches(tournamentId);
 
       // 2. Generar los partidos nuevos (función pura, sin red)
-      final newMatches = FixtureGenerator.generate(
+      final generated = FixtureGenerator.generate(
         tournamentId: tournamentId,
         mode: mode,
         playerIds: playerIds,
@@ -92,6 +95,13 @@ class FixtureRepositoryImpl implements FixtureRepository {
         manualGroups: manualGroups,
         manualBracketOrder: manualBracketOrder,
       );
+
+      // 2b. Turno de cada encuentro en la cola de la mesa (intercalado con
+      // las demás categorías de la misma mesa, con descanso entre
+      // combates). Los turnos que dejó libres el fixture anterior se
+      // compactan solos, porque la cola se recalcula sin él.
+      final newMatches = await _mesaSchedule.placeNewCategoryMatches(
+          tournamentId, generated);
 
       // 3. Guardarlos localmente + encolar la subida
       for (final m in newMatches) {
@@ -130,6 +140,8 @@ class FixtureRepositoryImpl implements FixtureRepository {
       endDate: tournament.endDate,
       createdBy: tournament.createdBy,
       createdAt: tournament.createdAt,
+      mesaId: tournament.mesaId,
+      color: tournament.color,
     );
     await _tournaments.upsert(updated, dirty: true);
     await _db.enqueueUpsert(
@@ -160,6 +172,8 @@ class FixtureRepositoryImpl implements FixtureRepository {
   Future<Either<Failure, void>> deleteFixture(String tournamentId) async {
     try {
       await _wipeMatches(tournamentId);
+      // La cola de la mesa se renumera sin los turnos de esta categoría.
+      await _mesaSchedule.compact(await _mesaSchedule.mesaIdOf(tournamentId));
       unawaited(_syncEngine.trySync());
       return const Right(null);
     } catch (e) {

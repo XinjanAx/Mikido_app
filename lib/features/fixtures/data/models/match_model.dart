@@ -16,6 +16,7 @@ class MatchModel extends MatchEntity {
     super.round,
     super.matchNumber,
     super.createdAt,
+    super.mesaOrder,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
@@ -36,6 +37,7 @@ class MatchModel extends MatchEntity {
         createdAt: json['created_at'] != null
             ? DateTime.tryParse(json['created_at'] as String)
             : null,
+        mesaOrder: json['mesa_order'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,7 +53,26 @@ class MatchModel extends MatchEntity {
         'scheduled_at': scheduledAt?.toApiDateTime(),
         'round': round,
         'match_number': matchNumber,
+        'mesa_order': mesaOrder,
       };
+
+  /// Copia con otro turno de mesa (lo único que cambia MesaScheduleService).
+  MatchModel withMesaOrder(int? order) => MatchModel(
+        id: id,
+        tournamentId: tournamentId,
+        homePlayerId: homePlayerId,
+        awayPlayerId: awayPlayerId,
+        homePlayerName: homePlayerName,
+        awayPlayerName: awayPlayerName,
+        homeScore: homeScore,
+        awayScore: awayScore,
+        status: status,
+        scheduledAt: scheduledAt,
+        round: round,
+        matchNumber: matchNumber,
+        createdAt: createdAt,
+        mesaOrder: order,
+      );
 
   Map<String, dynamic> toInsertJson() {
     final j = toJson();

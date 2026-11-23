@@ -62,7 +62,7 @@ class NotificationLocalDataSource {
       'Faltan 30 minutos para iniciar',
       'Faltan 10 minutos para iniciar',
       '¡Faltan 5 minutos para iniciar!',
-      '¡El torneo ha comenzado!',
+      '¡La categoría ha comenzado!',
     ];
 
     for (var i = 0; i < _startOffsetsMin.length; i++) {
@@ -84,7 +84,7 @@ class NotificationLocalDataSource {
       'Faltan 30 minutos para finalizar',
       'Faltan 10 minutos para finalizar',
       '¡Faltan 5 minutos para finalizar!',
-      'El torneo ya debió haber finalizado',
+      'La categoría ya debió haber finalizado',
     ];
 
     for (var i = 0; i < _endOffsetsMin.length; i++) {

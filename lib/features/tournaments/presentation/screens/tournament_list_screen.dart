@@ -1,149 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
-import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
-import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart'
     show matchesStreamProvider;
+import '../../../mesas/presentation/providers/mesa_provider.dart';
+import '../../../mesas/presentation/widgets/mesa_next_match_card.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../providers/tournament_provider.dart';
 import '../widgets/tournament_card_widget.dart';
 
-class TournamentListScreen extends ConsumerStatefulWidget {
-  const TournamentListScreen({super.key});
+/// Detalle de una mesa: sus categorías. (En el código y la base una
+/// categoría sigue siendo un "tournament".) Con [mesaId] null muestra las
+/// categorías viejas que todavía no tienen mesa.
+class TournamentListScreen extends ConsumerWidget {
+  final String? mesaId;
+
+  const TournamentListScreen({super.key, required this.mesaId});
 
   @override
-  ConsumerState<TournamentListScreen> createState() =>
-      _TournamentListScreenState();
-}
-
-class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
-  static const _seenIntroKey = 'seen_offline_intro';
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowIntro());
-  }
-
-  Future<void> _maybeShowIntro() async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadySeen = prefs.getBool(_seenIntroKey) ?? false;
-    if (alreadySeen || !mounted) return;
-    await prefs.setBool(_seenIntroKey, true);
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('¡Bienvenido!'),
-        scrollable: true,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Image.asset(
-                'assets/images/mikido_wordmark.png',
-                height: 48,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'La primera vez inicia sesión con internet para verificar tu cuenta.\n\n'
-              'Luego podrás usar la aplicación sin conexión y los cambios se '
-              'sincronizarán automáticamente cuando haya internet.',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Continuar...'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(tournamentsProvider);
+    final categories = ref.watch(categoriesByMesaProvider(mesaId));
+    final mesa = mesaId == null ? null : ref.watch(mesaByIdProvider(mesaId!));
     final isAdmin = ref.watch(isAdminProvider);
-    final user = ref.watch(currentUserProvider);
+    final canCreate = isAdmin && mesa != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Torneos'),
-            if (user != null)
-              Text(
-                'Hola, ${user.name}',
-                style: AppTextStyles.bodySmall,
-              ),
-          ],
-        ),
+        title: Text(mesaId == null
+            ? 'Categorías sin mesa'
+            : (mesa?.name ?? 'Mesa')),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Sincronizar',
-            onPressed: () => ref.read(syncEngineProvider).trySync(),
-          ),
-          IconButton(
-            icon: Icon(ref.watch(themeModeProvider) == ThemeMode.dark
-                ? Icons.light_mode_outlined
-                : Icons.dark_mode_outlined),
-            tooltip: 'Cambiar tema',
-            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
-          ),
-          if (isAdmin)
+          if (mesa != null)
             IconButton(
-              icon: const Icon(Icons.people_outline),
-              onPressed: () => context.push(RouteConstants.players),
+              icon: const Icon(Icons.format_list_numbered),
+              tooltip: 'Orden de la mesa',
+              onPressed: () => context
+                  .push(RouteConstants.mesaQueue.replaceAll(':id', mesa.id)),
             ),
-          if (user != null)
+          if (isAdmin && mesa != null)
             IconButton(
-              icon: const Icon(Icons.logout_outlined),
-              tooltip: 'Cerrar sesión',
-              onPressed: () => _confirmLogout(context, ref),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.login_outlined),
-              tooltip: 'Iniciar sesión',
-              onPressed: () => context.push(RouteConstants.login),
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Editar mesa',
+              onPressed: () => context.push(
+                RouteConstants.mesaEdit.replaceAll(':id', mesa.id),
+                extra: mesa,
+              ),
             ),
         ],
       ),
-      body: _buildBody(context, ref, state, isAdmin),
-      floatingActionButton: isAdmin
+      body: _buildBody(context, ref, state, categories, isAdmin, canCreate),
+      floatingActionButton: canCreate
           ? FloatingActionButton.extended(
-              onPressed: () => context.push(RouteConstants.tournamentCreate),
+              onPressed: () => _goCreate(context),
               icon: const Icon(Icons.add),
-              label: const Text('Nuevo torneo'),
+              label: const Text('Nueva categoría'),
             )
           : null,
     );
   }
 
-  Widget _buildBody(BuildContext context, WidgetRef ref, TournamentsState state,
-      bool isAdmin) {
+  void _goCreate(BuildContext context) => context.push(
+      Uri(path: RouteConstants.tournamentCreate, queryParameters: {
+        'mesaId': mesaId!,
+      }).toString());
+
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    TournamentsState state,
+    List<TournamentEntity> categories,
+    bool isAdmin,
+    bool canCreate,
+  ) {
     if (state.isLoading && state.tournaments.isEmpty) {
-      return const LoadingWidget(message: 'Cargando torneos...');
+      return const LoadingWidget(message: 'Cargando categorías...');
     }
 
     if (state.errorMessage != null && state.tournaments.isEmpty) {
@@ -165,17 +103,15 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
       );
     }
 
-    if (state.tournaments.isEmpty) {
+    if (categories.isEmpty) {
       return EmptyStateWidget(
         icon: Icons.emoji_events_outlined,
-        title: 'Sin torneos',
-        subtitle: isAdmin
-            ? 'Crea el primer torneo del club'
-            : 'Aún no hay torneos disponibles',
-        actionLabel: isAdmin ? 'Crear torneo' : null,
-        onAction: isAdmin
-            ? () => context.push(RouteConstants.tournamentCreate)
-            : null,
+        title: 'Sin categorías',
+        subtitle: canCreate
+            ? 'Crea la primera categoría de esta mesa'
+            : 'Aún no hay categorías en esta mesa',
+        actionLabel: canCreate ? 'Crear categoría' : null,
+        onAction: canCreate ? () => _goCreate(context) : null,
       );
     }
 
@@ -184,9 +120,14 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
       color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 88),
-        itemCount: state.tournaments.length,
-        itemBuilder: (_, i) {
-          final t = state.tournaments[i];
+        // Primero la tarjeta del orden de la mesa (con el siguiente
+        // encuentro), después las categorías.
+        itemCount: categories.length + (mesaId != null ? 1 : 0),
+        itemBuilder: (_, index) {
+          if (mesaId != null && index == 0) {
+            return MesaNextMatchCard(mesaId: mesaId!);
+          }
+          final t = categories[index - (mesaId != null ? 1 : 0)];
           final hasMatches = ref
                   .watch(matchesStreamProvider(t.id))
                   .valueOrNull
@@ -215,16 +156,16 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
     if (!canDelete) {
       showDialog<void>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('No se puede eliminar'),
           content: const Text(
-            'Este torneo ya tiene encuentros generados y todavía no ha '
+            'Esta categoría ya tiene encuentros generados y todavía no ha '
             'finalizado. Solo se puede eliminar si ya finalizó o si no '
             'tiene encuentros generados.',
           ),
           actions: [
             ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Entendido'),
             ),
           ],
@@ -233,55 +174,24 @@ class _TournamentListScreenState extends ConsumerState<TournamentListScreen> {
       return;
     }
 
-    _confirmDelete(context, ref, t.id, t.name);
-  }
-
-  void _confirmDelete(
-      BuildContext context, WidgetRef ref, String id, String name) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar torneo'),
-        content: Text('¿Eliminar "$name"? Esta acción no se puede deshacer.'),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar categoría'),
+        content:
+            Text('¿Eliminar "${t.name}"? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(tournamentsProvider.notifier).deleteTournament(id);
+              Navigator.pop(dialogContext);
+              await ref.read(tournamentsProvider.notifier).deleteTournament(t.id);
             },
             child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text(
-          '¿Seguro que deseas cerrar sesión? Vas a necesitar conexión a '
-          'internet para volver a iniciar sesión.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(authProvider.notifier).logout();
-            },
-            child: const Text('Cerrar sesión'),
           ),
         ],
       ),

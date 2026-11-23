@@ -5,7 +5,21 @@ class RouteConstants {
   static const String login = '/login';
   static const String register = '/register';
 
-  // Torneos
+  // Mesas (pantalla de inicio)
+  static const String mesas = '/mesas';
+  static const String mesaCreate = '/mesas/create';
+  static const String mesaDetail = '/mesas/:id';
+  static const String mesaEdit = '/mesas/:id/edit';
+  static const String mesaQueue = '/mesas/:id/orden';
+
+  /// Registro de resultados en orden (solo admin).
+  static const String mesaLive = '/mesas/:id/en-vivo';
+
+  /// Id de ruta para las categorías que todavía no tienen mesa (datos
+  /// anteriores a las mesas).
+  static const String noMesaId = 'sin-mesa';
+
+  // Categorías (en el código y la base siguen llamándose "tournaments")
   static const String tournaments = '/tournaments';
   static const String tournamentDetail = '/tournaments/:id';
   static const String tournamentCreate = '/tournaments/create';

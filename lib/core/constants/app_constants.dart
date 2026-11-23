@@ -1,6 +1,10 @@
 class AppConstants {
   AppConstants._();
 
+  /// Versión visible de la app (splash y pantalla de inicio). Mantener igual
+  /// a `version:` de pubspec.yaml.
+  static const String appVersion = '2.0.1';
+
   // Modalidades de torneo
   static const String tournamentModeGroups = 'groups';
   static const String tournamentModeElimination = 'elimination';

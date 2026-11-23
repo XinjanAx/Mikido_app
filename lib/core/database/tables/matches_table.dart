@@ -14,6 +14,11 @@ class Matches extends Table {
   DateTimeColumn get scheduledAt => dateTime().nullable()();
   TextColumn get round => text().nullable()();
   IntColumn get matchNumber => integer().nullable()();
+
+  /// Turno global del encuentro dentro de su mesa (1, 2, 3...), mezclando
+  /// todas las categorías de la mesa. Lo asigna MesaScheduleService, nunca
+  /// el usuario. null = sin turno (los BYE, o datos anteriores a la v6).
+  IntColumn get mesaOrder => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
 
   BoolColumn get dirty => boolean().withDefault(const Constant(false))();

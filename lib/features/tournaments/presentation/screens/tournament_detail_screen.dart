@@ -9,7 +9,11 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart'
     show matchesStreamProvider;
+import '../../../mesas/presentation/providers/mesa_provider.dart'
+    show mesaByIdProvider;
+import '../../../mesas/presentation/widgets/mesa_next_match_card.dart';
 import '../providers/tournament_provider.dart';
+import '../widgets/category_color_widgets.dart';
 
 class TournamentDetailScreen extends ConsumerWidget {
   final String tournamentId;
@@ -33,13 +37,14 @@ class TournamentDetailScreen extends ConsumerWidget {
         body: Center(
           child: isLoading
               ? const LoadingWidget()
-              : const Text('Torneo no encontrado'),
+              : const Text('Categoría no encontrada'),
         ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: CategoryHeaderGradient(tournamentId: tournamentId),
         title: Text(tournament.name),
         actions: [
           if (isAdmin)
@@ -47,7 +52,7 @@ class TournamentDetailScreen extends ConsumerWidget {
               icon: const Icon(Icons.edit_outlined),
               tooltip: hasMatches
                   ? 'No se puede editar: ya hay encuentros generados'
-                  : 'Editar torneo',
+                  : 'Editar categoría',
               onPressed: () {
                 if (hasMatches) {
                   showDialog<void>(
@@ -55,7 +60,7 @@ class TournamentDetailScreen extends ConsumerWidget {
                     builder: (_) => AlertDialog(
                       title: const Text('No se puede editar'),
                       content: const Text(
-                        'Este torneo ya tiene encuentros generados. Para '
+                        'Esta categoría ya tiene encuentros generados. Para '
                         'editarlo (por ejemplo, cambiar la modalidad), '
                         'primero elimina los encuentros desde la pantalla '
                         'de Encuentros.',
@@ -86,6 +91,14 @@ class TournamentDetailScreen extends ConsumerWidget {
             title: 'Información',
             child: Column(
               children: [
+                if (tournament.mesaId != null)
+                  _InfoRow(
+                    label: 'Mesa',
+                    value: ref
+                            .watch(mesaByIdProvider(tournament.mesaId!))
+                            ?.name ??
+                        '—',
+                  ),
                 _InfoRow(label: 'Modalidad', value: tournament.modeLabel),
                 _InfoRow(label: 'Estado', value: tournament.statusLabel),
                 if (tournament.description != null)
@@ -95,6 +108,12 @@ class TournamentDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // Orden de la mesa (con el siguiente encuentro a jugar).
+          if (tournament.mesaId != null) ...[
+            MesaNextMatchCard(mesaId: tournament.mesaId!),
+            const SizedBox(height: 12),
+          ],
 
           // Acciones rápidas
           Text('Módulos', style: AppTextStyles.titleMedium),

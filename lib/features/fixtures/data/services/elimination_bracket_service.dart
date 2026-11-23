@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
+import '../../../mesas/data/services/mesa_schedule_service.dart';
 import '../datasources/fixture_local_datasource.dart';
 import '../models/match_model.dart';
 
@@ -37,8 +38,9 @@ class PendingRoundAdvance {
 class EliminationBracketService {
   final FixtureLocalDataSource _local;
   final AppDatabase _db;
+  final MesaScheduleService _mesaSchedule;
 
-  const EliminationBracketService(this._local, this._db);
+  const EliminationBracketService(this._local, this._db, this._mesaSchedule);
 
   /// Solo consulta si la ronda ya está lista para avanzar — no escribe
   /// nada. La UI usa esto para pedir confirmación antes de llamar a
@@ -96,8 +98,16 @@ class EliminationBracketService {
     // partidos, 4 semifinalistas), los dos perdedores juegan el partido
     // por el 3er puesto — se genera junto con la Final, no aparte, para
     // que el admin lo vea desde el inicio de esa fase.
+    //
+    // Si una de las dos "semifinales" fue un BYE (cuadro de 3 participantes:
+    // uno pasa directo a la Final), no hay 3er puesto: el perdedor de la
+    // única semifinal real queda tercero. Antes el "perdedor" del BYE era el
+    // mismo jugador que avanzó, y se armaba un 3er puesto "BYE vs X" contra
+    // un finalista que además bloqueaba finalizar la categoría.
     List<({String id, String name})>? thirdPlacePlayers;
-    if (completedRound == 'Semifinal' && roundMatches.length == 2) {
+    if (completedRound == 'Semifinal' &&
+        roundMatches.length == 2 &&
+        roundMatches.every((m) => !m.isBye)) {
       thirdPlacePlayers = roundMatches.map((m) {
         if (m.homeScore! > m.awayScore!) {
           return (id: m.awayPlayerId, name: m.awayPlayerName);
@@ -184,7 +194,12 @@ class EliminationBracketService {
       ));
     }
 
-    for (final m in newMatches) {
+    // Turno en la cola de la mesa: primer hueco válido (con descanso)
+    // después de lo ya jugado; lo que venía detrás se corre un lugar.
+    final placed =
+        await _mesaSchedule.placeNewRoundMatches(tournamentId, newMatches);
+
+    for (final m in placed) {
       await _local.upsert(m, dirty: true);
       await _db.enqueueUpsert(SupabaseConstants.matchesTable, m.id, m.toJson());
     }

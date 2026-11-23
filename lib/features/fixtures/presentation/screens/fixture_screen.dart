@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:torneo_app/features/tournaments/domain/entities/tournament_entity.dart';
+import 'package:torneo_app/features/tournaments/presentation/widgets/category_color_widgets.dart';
+import 'package:torneo_app/features/fixtures/presentation/services/match_result_flow.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/sync/sync_engine_provider.dart';
@@ -21,7 +23,6 @@ import '../../domain/entities/match_entity.dart';
 import '../providers/fixture_provider.dart';
 import '../widgets/match_card_widget.dart';
 import '../widgets/random_groups_preview_dialog.dart';
-import '../widgets/round_advance_confirm_dialog.dart';
 import 'bracket_assignment_screen.dart';
 import 'group_assignment_screen.dart';
 
@@ -49,7 +50,9 @@ class FixtureScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(context);
-              await ref.read(fixtureProvider(tournamentId).notifier).deleteFixture();
+              await ref
+                  .read(fixtureProvider(tournamentId).notifier)
+                  .deleteFixture();
             },
             child: const Text('Eliminar'),
           ),
@@ -66,7 +69,8 @@ class FixtureScreen extends ConsumerWidget {
     final mode = tournament?.mode;
     final isElimination = mode == AppConstants.tournamentModeElimination;
     final isGroups = mode == AppConstants.tournamentModeGroups;
-    final isTournamentFinished = tournament?.status == AppConstants.statusFinished;
+    final isTournamentFinished =
+        tournament?.status == AppConstants.statusFinished;
     // El partido por el 3er puesto se evalúa aparte del resto del cuadro:
     // no se exige para considerar terminada la llave principal (si no,
     // "Finalizar torneo" desaparecería sin explicación apenas se genera),
@@ -76,9 +80,8 @@ class FixtureScreen extends ConsumerWidget {
     final thirdPlaceMatch = fixtureState.matches
         .where((m) => m.round == 'Tercer puesto')
         .firstOrNull;
-    final mainBracketMatches = fixtureState.matches
-        .where((m) => m.round != 'Tercer puesto')
-        .toList();
+    final mainBracketMatches =
+        fixtureState.matches.where((m) => m.round != 'Tercer puesto').toList();
     // En eliminación, que todos los partidos CARGADOS estén terminados no
     // basta: si el cuadro se quedó atascado en una ronda (p. ej. porque
     // advance() nunca generó la siguiente), "todos terminados" sería
@@ -97,7 +100,10 @@ class FixtureScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Encuentros'),
+        flexibleSpace: CategoryHeaderGradient(tournamentId: tournamentId),
+        title: Text(tournament != null
+            ? 'Encuentros - ${tournament.name}'
+            : 'Encuentros'),
         actions: [
           if (isAdmin) ...[
             if (fixtureState.matches.isNotEmpty && !isTournamentFinished)
@@ -111,10 +117,10 @@ class FixtureScreen extends ConsumerWidget {
               tooltip: fixtureState.matches.isNotEmpty
                   ? 'Ya hay encuentros generados — elimínalos primero para volver a generar'
                   : 'Generar encuentros',
-              onPressed: fixtureState.isGenerating ||
-                      fixtureState.matches.isNotEmpty
-                  ? null
-                  : () => _showGenerateDialog(context, ref),
+              onPressed:
+                  fixtureState.isGenerating || fixtureState.matches.isNotEmpty
+                      ? null
+                      : () => _showGenerateDialog(context, ref),
             ),
           ],
           if (isAdmin)
@@ -217,7 +223,7 @@ class FixtureScreen extends ConsumerWidget {
                         'Falta definir el partido por el tercer puesto '
                         '(${thirdPlaceMatch.homePlayerName} vs '
                         '${thirdPlaceMatch.awayPlayerName}) antes de poder '
-                        'finalizar el torneo.',
+                        'finalizar la categoría.',
                         style: AppTextStyles.bodySmall,
                       ),
                     ),
@@ -238,7 +244,7 @@ class FixtureScreen extends ConsumerWidget {
                 onPressed: () => _confirmFinalize(context, ref, standings,
                     isGroups, isElimination, fixtureState.matches),
                 icon: const Icon(Icons.flag_outlined),
-                label: const Text('Finalizar torneo'),
+                label: const Text('Finalizar categoría'),
               ),
             ),
           if (isTournamentFinished) ...[
@@ -246,10 +252,9 @@ class FixtureScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
                 children: [
-                  Icon(Icons.lock_outline,
-                      size: 16, color: AppColors.grey400),
+                  Icon(Icons.lock_outline, size: 16, color: AppColors.grey400),
                   const SizedBox(width: 6),
-                  Text('Torneo finalizado — resultados bloqueados',
+                  Text('Categoría finalizada — resultados bloqueados',
                       style: AppTextStyles.bodySmall
                           .copyWith(color: AppColors.grey400)),
                 ],
@@ -362,9 +367,9 @@ class FixtureScreen extends ConsumerWidget {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Finalizar torneo'),
+          title: const Text('Finalizar categoría'),
           content: const Text(
-              'Ya no se podrán registrar ni corregir resultados. ¿Confirmas que el torneo terminó?'),
+              'Ya no se podrán registrar ni corregir resultados. ¿Confirmas que la categoría terminó?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -399,22 +404,51 @@ class FixtureScreen extends ConsumerWidget {
     final tournament = ref.read(tournamentByIdProvider(tournamentId));
     if (tournament == null) return;
     await ref.read(tournamentsProvider.notifier).updateTournament(
-          TournamentEntity(
-            id: tournament.id,
-            name: tournament.name,
-            mode: tournament.mode,
-            status: AppConstants.statusFinished,
-            description: tournament.description,
-            startDate: tournament.startDate,
-            endDate: tournament.endDate,
-            createdBy: tournament.createdBy,
-            createdAt: tournament.createdAt,
-          ),
+          tournament.copyWith(status: AppConstants.statusFinished),
         );
   }
 
-  Widget _buildMatchesList(BuildContext context, WidgetRef ref,
-      FixtureState state, bool isAdmin, bool isTournamentFinished,
+  /// Un encuentro pendiente de una categoría con mesa se registra en Mesa en
+  /// vivo, que respeta el orden de la mesa. Aquí solo se avisa y se ofrece
+  /// ir allá.
+  ///
+  /// Es un diálogo y no un SnackBar a propósito: un SnackBar con acción ya
+  /// no se cierra solo, y como vive en el ScaffoldMessenger de toda la app
+  /// seguía visible al volver atrás, con un "IR" que navegaba desde esta
+  /// pantalla ya cerrada (no hacía nada).
+  Future<void> _goToLiveHint(BuildContext context, String mesaId) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.sports_kabaddi, color: AppColors.accent),
+        title: const Text('Se registra en Mesa en vivo'),
+        content: const Text(
+          'Los resultados se registran en Mesa en vivo, en el orden de la '
+          'mesa. Aquí solo se corrigen encuentros ya jugados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cerrar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Ir a Mesa en vivo'),
+          ),
+        ],
+      ),
+    );
+    if (go == true && context.mounted) {
+      context.push(RouteConstants.mesaLive.replaceAll(':id', mesaId));
+    }
+  }
+
+  Widget _buildMatchesList(
+      BuildContext context,
+      WidgetRef ref,
+      FixtureState state,
+      bool isAdmin,
+      bool isTournamentFinished,
       bool isElimination) {
     if (state.isLoading) {
       return const LoadingWidget(message: 'Cargando partidos...');
@@ -425,11 +459,12 @@ class FixtureScreen extends ConsumerWidget {
         icon: Icons.account_tree_outlined,
         title: 'Sin encuentros generados',
         subtitle: isAdmin
-            ? 'Genera los encuentros para comenzar el torneo'
+            ? 'Genera los encuentros para comenzar la categoría'
             : 'El administrador aún no ha generado los encuentros',
       );
     }
 
+    final mesaId = ref.watch(tournamentByIdProvider(tournamentId))?.mesaId;
     final byRound = state.matchesByRound;
     // En eliminación se muestra primero la ronda más avanzada (Final
     // arriba de todo), sin tener que hacer scroll por las ya jugadas. El
@@ -459,9 +494,14 @@ class FixtureScreen extends ConsumerWidget {
                   match: m,
                   isAdmin: isAdmin,
                   locked: locked,
-                  onTap: isAdmin && !isTournamentFinished && !locked
-                      ? () => _showResultDialog(context, ref, m)
-                      : null,
+                  registeredInLive: mesaId != null && !m.isFinished,
+                  onTap: !isAdmin || isTournamentFinished || locked
+                      ? null
+                      // Con mesa, los pendientes se registran en Mesa en
+                      // vivo (en orden); aquí solo se corrigen los jugados.
+                      : (mesaId != null && !m.isFinished)
+                          ? () => _goToLiveHint(context, mesaId)
+                          : () => _showResultDialog(context, ref, m),
                 )),
           ],
         );
@@ -510,10 +550,12 @@ class FixtureScreen extends ConsumerWidget {
     );
   }
 
-  void _showResultDialog(BuildContext context, WidgetRef ref, MatchEntity match) {
+  void _showResultDialog(
+      BuildContext context, WidgetRef ref, MatchEntity match) {
     showDialog(
       context: context,
       builder: (_) => _ResultDialog(
+        match: match,
         matchId: match.id,
         homePlayerName: match.homePlayerName,
         awayPlayerName: match.awayPlayerName,
@@ -636,8 +678,7 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
           ],
           if (isGroups) ...[
             const SizedBox(height: 16),
-            Text('¿Cómo armar los grupos?',
-                style: AppTextStyles.bodyMedium),
+            Text('¿Cómo armar los grupos?', style: AppTextStyles.bodyMedium),
             const SizedBox(height: 8),
             SegmentedButton<_ArrangementMode>(
               segments: const [
@@ -701,7 +742,7 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
           ],
           const SizedBox(height: 8),
           Text(
-            'Los encuentros se generarán automáticamente según la modalidad del torneo.',
+            'Los encuentros se generarán automáticamente según la modalidad de la categoría.',
             style: AppTextStyles.bodySmall,
           ),
         ],
@@ -721,11 +762,40 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
                       strokeWidth: 2, color: AppColors.white),
                 )
               : Text((isGroups || isElimination) &&
-                          _arrangementMode == _ArrangementMode.manual
-                      ? 'Continuar'
-                      : 'Generar'),
+                      _arrangementMode == _ArrangementMode.manual
+                  ? 'Continuar'
+                  : 'Generar'),
         ),
       ],
+    );
+  }
+
+  Future<bool?> _confirmThreePlayerElimination() {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: AppColors.warning, size: 36),
+        title: const Text('Solo hay 3 participantes'),
+        content: const Text(
+          'Con 3 participantes se recomienda cambiar la modalidad de la '
+          'categoría a Liga (todos contra todos).\n\n'
+          'En eliminación simple uno de los tres pasa directo a la final '
+          'sin jugar la semifinal, y no hay partido por el 3er puesto (el '
+          'perdedor de la semifinal queda tercero).\n\n'
+          '¿Generar igual en eliminación simple?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Generar igual'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -745,12 +815,23 @@ class _GenerateFixtureDialogState extends State<_GenerateFixtureDialog> {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No hay participantes inscritos en este torneo'),
+              content: Text('No hay participantes inscritos en esta categoría'),
               backgroundColor: Colors.orange,
             ),
           );
         }
         return;
+      }
+
+      // Eliminación simple con solo 3 participantes: se recomienda liga
+      // (todos contra todos). Se puede continuar igual si el admin insiste.
+      if (mode == AppConstants.tournamentModeElimination &&
+          enrolled.length == 3) {
+        final proceed = await _confirmThreePlayerElimination();
+        if (proceed != true) {
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
       }
 
       // Modo grupos: en vez de generar ya, mostrar antes cómo quedaron
@@ -861,6 +942,7 @@ class _MaxScoreInputFormatter extends TextInputFormatter {
 }
 
 class _ResultDialog extends StatefulWidget {
+  final MatchEntity match;
   final String matchId;
   final String homePlayerName;
   final String awayPlayerName;
@@ -872,6 +954,7 @@ class _ResultDialog extends StatefulWidget {
   final bool quickScoreMode;
 
   const _ResultDialog({
+    required this.match,
     required this.matchId,
     required this.homePlayerName,
     required this.awayPlayerName,
@@ -922,7 +1005,8 @@ class _ResultDialogState extends State<_ResultDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget._isEdit ? 'Corregir resultado' : 'Registrar resultado'),
+      title:
+          Text(widget._isEdit ? 'Corregir resultado' : 'Registrar resultado'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1018,58 +1102,19 @@ class _ResultDialogState extends State<_ResultDialog> {
     final home = int.tryParse(_homeController.text) ?? 0;
     final away = int.tryParse(_awayController.text) ?? 0;
 
-    final tournament =
-        widget.ref.read(tournamentByIdProvider(widget.tournamentId));
-    final isElimination =
-        tournament?.mode == AppConstants.tournamentModeElimination;
-
-    // En eliminación directa cada partido necesita un ganador para poder
-    // avanzar de ronda: sin esta validación, checkRoundComplete() más abajo
-    // resolvía el empate en silencio a favor del local (homeScore >=
-    // awayScore), avanzando a alguien sin que el marcador realmente lo
-    // respaldara.
-    if (isElimination && home == away) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'En eliminación directa no se permiten empates: el resultado debe tener un ganador.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
+    // Mismas reglas que Mesa en vivo (sin empates en eliminación,
+    // confirmación de avance de ronda): ver match_result_flow.dart.
     setState(() => _isSaving = true);
-    final ok = await widget.ref
-        .read(fixtureProvider(widget.tournamentId).notifier)
-        .updateResult(
-          matchId: widget.matchId,
-          homeScore: home,
-          awayScore: away,
-        );
-
-    if (ok && widget.round != null && mounted) {
-      if (isElimination) {
-        final bracket = widget.ref.read(eliminationBracketServiceProvider);
-        final pending = await bracket.checkRoundComplete(
-          tournamentId: widget.tournamentId,
-          completedRound: widget.round!,
-        );
-        if (pending != null && mounted) {
-          final confirmed =
-              await showRoundAdvanceConfirmDialog(context, pending);
-          if (confirmed) {
-            await bracket.generateNextRound(pending);
-            widget.ref
-                .read(fixtureProvider(widget.tournamentId).notifier)
-                .loadMatches();
-          }
-        }
-      }
-    }
-
+    final ok = await submitMatchResult(
+      context: context,
+      ref: widget.ref,
+      match: widget.match,
+      homeScore: home,
+      awayScore: away,
+    );
+    if (!mounted) return;
     setState(() => _isSaving = false);
-    if (mounted) Navigator.pop(context);
+    if (ok) Navigator.pop(context);
   }
 }
 

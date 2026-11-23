@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:torneo_app/features/tournaments/presentation/widgets/category_color_widgets.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -26,6 +27,7 @@ class BracketScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: CategoryHeaderGradient(tournamentId: tournamentId),
         title: Text(_screenTitle(mode)),
         actions: [
           IconButton(
@@ -210,8 +212,7 @@ class _SimpleMatchTile extends StatelessWidget {
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 12),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: finished
                     ? AppColors.primary.withOpacity(0.15)
@@ -224,12 +225,9 @@ class _SimpleMatchTile extends StatelessWidget {
                 ),
               ),
               child: Text(
-                finished
-                    ? '${match.homeScore} - ${match.awayScore}'
-                    : 'vs',
+                finished ? '${match.homeScore} - ${match.awayScore}' : 'vs',
                 style: TextStyle(
-                  color:
-                      finished ? AppColors.primary : AppColors.grey400,
+                  color: finished ? AppColors.primary : AppColors.grey400,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),

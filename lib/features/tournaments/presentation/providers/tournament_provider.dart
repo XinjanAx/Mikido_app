@@ -13,6 +13,8 @@ import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../../domain/usecases/tournament_usecases.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../mesas/presentation/providers/mesa_provider.dart'
+    show mesaScheduleServiceProvider;
 import '../../../../core/constants/app_constants.dart';
 import '../../../notifications/domain/usecases/schedule_notifications_usecase.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart'
@@ -39,6 +41,7 @@ final tournamentRepositoryProvider = Provider<TournamentRepository>(
     ref.watch(tournamentLocalDataSourceProvider),
     ref.watch(appDatabaseProvider),
     ref.watch(syncEngineProvider),
+    ref.watch(mesaScheduleServiceProvider),
   ),
 );
 
@@ -147,10 +150,14 @@ class TournamentsNotifier extends StateNotifier<TournamentsState> {
     required String mode,
     required DateTime startDate,
     required DateTime endDate,
+    required String mesaId,
+    required String color,
     String? description,
   }) async {
     state = state.copyWith(isLoading: true);
     final tournament = TournamentEntity(
+      mesaId: mesaId,
+      color: color,
       id: const Uuid().v4(),
       name: name,
       mode: mode,

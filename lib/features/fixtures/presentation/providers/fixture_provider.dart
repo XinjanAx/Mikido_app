@@ -4,6 +4,8 @@ import '../../../../core/database/database_provider.dart';
 import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../standings/presentation/providers/standing_provider.dart'
     show standingsRecalculationServiceProvider;
+import '../../../mesas/presentation/providers/mesa_provider.dart'
+    show mesaScheduleServiceProvider;
 import '../../../tournaments/presentation/providers/tournament_provider.dart'
     show tournamentLocalDataSourceProvider;
 import '../../data/datasources/fixture_local_datasource.dart';
@@ -28,6 +30,7 @@ final eliminationBracketServiceProvider = Provider<EliminationBracketService>(
   (ref) => EliminationBracketService(
     ref.watch(fixtureLocalDataSourceProvider),
     ref.watch(appDatabaseProvider),
+    ref.watch(mesaScheduleServiceProvider),
   ),
 );
 
@@ -54,6 +57,7 @@ final fixtureRepositoryProvider = Provider<FixtureRepository>(
     ref.watch(syncEngineProvider),
     ref.watch(matchResultServiceProvider),
     ref.watch(tournamentLocalDataSourceProvider),
+    ref.watch(mesaScheduleServiceProvider),
   ),
 );
 

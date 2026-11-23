@@ -9,6 +9,7 @@ import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/sync/sync_engine.dart';
+import '../../../mesas/data/services/mesa_schedule_service.dart';
 import '../../domain/entities/tournament_entity.dart';
 import '../../domain/repositories/tournament_repository.dart';
 import '../datasources/tournament_local_datasource.dart';
@@ -21,15 +22,17 @@ class TournamentRepositoryImpl implements TournamentRepository {
   final TournamentLocalDataSource _local;
   final AppDatabase _db;
   final SyncEngine _syncEngine;
+  final MesaScheduleService _mesaSchedule;
 
-  const TournamentRepositoryImpl(this._local, this._db, this._syncEngine);
+  const TournamentRepositoryImpl(
+      this._local, this._db, this._syncEngine, this._mesaSchedule);
 
   @override
   Future<Either<Failure, List<TournamentEntity>>> getTournaments() async {
     try {
       return Right(await _local.getTournaments());
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al leer torneos locales: $e'));
+      return Left(CacheFailure(message: 'Error al leer categorías locales: $e'));
     }
   }
 
@@ -39,11 +42,11 @@ class TournamentRepositoryImpl implements TournamentRepository {
     try {
       final result = await _local.getTournamentById(id);
       if (result == null) {
-        return const Left(NotFoundFailure(message: 'Torneo no encontrado'));
+        return const Left(NotFoundFailure(message: 'Categoría no encontrada'));
       }
       return Right(result);
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al leer torneo local: $e'));
+      return Left(CacheFailure(message: 'Error al leer categoría local: $e'));
     }
   }
 
@@ -67,7 +70,7 @@ class TournamentRepositoryImpl implements TournamentRepository {
       unawaited(_syncEngine.trySync());
       return Right(model);
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al guardar torneo local: $e'));
+      return Left(CacheFailure(message: 'Error al guardar categoría local: $e'));
     }
   }
 
@@ -91,12 +94,15 @@ class TournamentRepositoryImpl implements TournamentRepository {
             SupabaseConstants.enrollmentsTable, enrollment.id);
       }
 
+      final mesaId = (await _local.getTournamentById(id))?.mesaId;
       await _local.softDelete(id);
       await _enqueue(rowId: id, operation: 'delete', payload: null);
+      // La cola de la mesa se renumera sin los turnos de esta categoría.
+      await _mesaSchedule.compact(mesaId);
       unawaited(_syncEngine.trySync());
       return const Right(null);
     } catch (e) {
-      return Left(CacheFailure(message: 'Error al eliminar torneo local: $e'));
+      return Left(CacheFailure(message: 'Error al eliminar categoría local: $e'));
     }
   }
 

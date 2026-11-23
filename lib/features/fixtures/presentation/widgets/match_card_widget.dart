@@ -9,12 +9,16 @@ class MatchCard extends StatelessWidget {
   final bool isAdmin;
   final bool locked;
 
+  /// Pendiente que se registra en Mesa en vivo (no aquí).
+  final bool registeredInLive;
+
   const MatchCard({
     super.key,
     required this.match,
     this.onTap,
     this.isAdmin = false,
     this.locked = false,
+    this.registeredInLive = false,
   });
 
   @override
@@ -29,6 +33,11 @@ class MatchCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
+              // Turno en la mesa (los BYE no tienen)
+              if (match.mesaOrder != null) ...[
+                MesaTurnBadge(turn: match.mesaOrder!),
+                const SizedBox(width: 12),
+              ],
               // Local
               Expanded(
                 child: Column(
@@ -52,7 +61,8 @@ class MatchCard extends StatelessWidget {
               ),
               // Marcador
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
                   color: finished
                       ? AppColors.primary.withOpacity(0.15)
@@ -105,9 +115,11 @@ class MatchCard extends StatelessWidget {
                         children: [
                           Text('vs', style: AppTextStyles.bodySmall),
                           if (isAdmin)
-                            Text('Registrar',
+                            Text(registeredInLive ? 'En vivo' : 'Registrar',
                                 style: AppTextStyles.labelSmall.copyWith(
-                                  color: AppColors.primary,
+                                  color: registeredInLive
+                                      ? AppColors.grey400
+                                      : AppColors.primary,
                                 )),
                         ],
                       ),
@@ -153,4 +165,46 @@ class MatchCard extends StatelessWidget {
       match.homeScore != null &&
       match.awayScore != null &&
       match.awayScore! > match.homeScore!;
+}
+
+/// Número de turno del encuentro en la cola de su mesa.
+class MesaTurnBadge extends StatelessWidget {
+  final int turn;
+  final bool highlighted;
+
+  /// Color al resaltar (el de la categoría). Por defecto, accent.
+  final Color? highlightColor;
+
+  const MesaTurnBadge({
+    super.key,
+    required this.turn,
+    this.highlighted = false,
+    this.highlightColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        highlighted ? (highlightColor ?? AppColors.accent) : AppColors.grey400;
+    return Tooltip(
+      message: 'Turno $turn en la mesa',
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 34),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color),
+        ),
+        child: Text(
+          '#$turn',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
 }

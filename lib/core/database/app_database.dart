@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import 'tables/enrollments_table.dart';
 import 'tables/matches_table.dart';
+import 'tables/mesas_table.dart';
 import 'tables/players_table.dart';
 import 'tables/results_table.dart';
 import 'tables/standings_table.dart';
@@ -18,6 +19,7 @@ import 'tables/tournaments_table.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(tables: [
+  Mesas,
   Tournaments,
   Players,
   Enrollments,
@@ -31,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,8 +71,39 @@ class AppDatabase extends _$AppDatabase {
               newColumns: [standings.manualRank],
             ));
           }
+          if (from < 6) {
+            // v6: mesas. Cada categoría (tabla tournaments) pertenece a una
+            // mesa y cada encuentro tiene su turno global dentro de ella.
+            // Columnas nullable: los datos viejos se completan con el pull
+            // desde Supabase (la migración SQL los asigna a "Mesa 1").
+            await m.createTable(mesas); // CREATE TABLE IF NOT EXISTS
+            await _addColumnIfMissing(m, tournaments, tournaments.mesaId);
+            await _addColumnIfMissing(m, matches, matches.mesaOrder);
+          }
+          if (from < 7) {
+            // v7: color de cada categoría.
+            await _addColumnIfMissing(m, tournaments, tournaments.color);
+          }
         },
       );
+
+  /// Agrega la columna solo si todavía no existe.
+  ///
+  /// Necesario porque una versión ANTERIOR de la app puede abrir esta misma
+  /// base (en Windows todas usan Documents\torneo_app.sqlite): al ver una
+  /// base "más nueva" que la suya, Drift le baja la marca de versión
+  /// (user_version) sin tocar las tablas. Cuando después vuelve a abrirla
+  /// esta versión, cree que falta migrar e intentaba agregar columnas que ya
+  /// estaban → "duplicate column name". Visto en la práctica con la v7
+  /// (`color`) tras abrir el build 2.0.1 (v6).
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    final existing = await customSelect(
+            'PRAGMA table_info("${table.actualTableName}")')
+        .get();
+    final exists = existing.any((r) => r.read<String>('name') == column.name);
+    if (!exists) await m.addColumn(table, column);
+  }
 
   static QueryExecutor _openConnection() {
     return LazyDatabase(() async {
@@ -78,6 +111,84 @@ class AppDatabase extends _$AppDatabase {
       final file = File(p.join(dir.path, 'torneo_app.sqlite'));
       return NativeDatabase.createInBackground(file);
     });
+  }
+
+  // ---------- Mesas ----------
+
+  Future<List<Mesa>> getAllMesas() {
+    return (select(mesas)
+          ..where((t) => t.deletedLocally.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+  }
+
+  Stream<List<Mesa>> watchAllMesas() {
+    return (select(mesas)
+          ..where((t) => t.deletedLocally.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .watch();
+  }
+
+  Future<Mesa?> getMesaById(String id) {
+    return (select(mesas)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<void> upsertMesa(MesasCompanion entry) {
+    return into(mesas).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteMesa(String id) {
+    return (update(mesas)..where((t) => t.id.equals(id))).write(
+      const MesasCompanion(deletedLocally: Value(true), dirty: Value(true)),
+    );
+  }
+
+  /// Deshace un borrado local que el servidor rechazó.
+  Future<void> restoreMesa(String id) {
+    return (update(mesas)..where((t) => t.id.equals(id))).write(
+      const MesasCompanion(deletedLocally: Value(false), dirty: Value(false)),
+    );
+  }
+
+  Future<void> hardDeleteMesa(String id) {
+    return (delete(mesas)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> clearMesaDirty(String id) {
+    return (update(mesas)..where((t) => t.id.equals(id)))
+        .write(const MesasCompanion(dirty: Value(false)));
+  }
+
+  /// Categorías (tabla tournaments) de una mesa.
+  Future<List<Tournament>> getTournamentsByMesa(String mesaId) {
+    return (select(tournaments)
+          ..where((t) =>
+              t.mesaId.equals(mesaId) & t.deletedLocally.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+  }
+
+  /// Todos los encuentros vivos de todas las categorías de una mesa.
+  Future<List<MatchRow>> getMatchesByMesa(String mesaId) {
+    final query = select(matches).join([
+      innerJoin(tournaments, tournaments.id.equalsExp(matches.tournamentId)),
+    ])
+      ..where(tournaments.mesaId.equals(mesaId) &
+          tournaments.deletedLocally.equals(false) &
+          matches.deletedLocally.equals(false));
+    return query.map((row) => row.readTable(matches)).get();
+  }
+
+  /// Versión reactiva de [getMatchesByMesa], para la pantalla de la cola.
+  Stream<List<MatchRow>> watchMatchesByMesa(String mesaId) {
+    final query = select(matches).join([
+      innerJoin(tournaments, tournaments.id.equalsExp(matches.tournamentId)),
+    ])
+      ..where(tournaments.mesaId.equals(mesaId) &
+          tournaments.deletedLocally.equals(false) &
+          matches.deletedLocally.equals(false))
+      ..orderBy([OrderingTerm.asc(matches.mesaOrder)]);
+    return query.map((row) => row.readTable(matches)).watch();
   }
 
   // ---------- Tournaments ----------

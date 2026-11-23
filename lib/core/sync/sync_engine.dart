@@ -15,24 +15,27 @@ import 'sync_adapter.dart';
 class SyncEngine {
   final AppDatabase _db;
   final List<SyncAdapter> _adapters;
-  bool _isSyncing = false;
+
+  /// Sincronización en curso, si la hay.
+  Future<void>? _running;
 
   SyncEngine(this._db, this._adapters);
 
-  Future<void> trySync() async {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    try {
-      await _pushOutbox();
-      for (final adapter in _adapters) {
-        try {
-          await adapter.pull();
-        } catch (_) {
-          // Sin red o error remoto: seguimos con lo que haya en local.
-        }
+  /// Sincroniza. Si ya hay una sincronización en curso NO arranca otra:
+  /// devuelve esa misma, así quien llama puede esperarla (p. ej. el splash
+  /// espera la sincronización inicial que ya disparó syncTriggerProvider).
+  Future<void> trySync() {
+    return _running ??= _sync().whenComplete(() => _running = null);
+  }
+
+  Future<void> _sync() async {
+    await _pushOutbox();
+    for (final adapter in _adapters) {
+      try {
+        await adapter.pull();
+      } catch (_) {
+        // Sin red o error remoto: seguimos con lo que haya en local.
       }
-    } finally {
-      _isSyncing = false;
     }
   }
 

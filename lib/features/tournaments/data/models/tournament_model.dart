@@ -12,6 +12,8 @@ class TournamentModel extends TournamentEntity {
     required super.endDate,
     required super.createdBy,
     super.createdAt,
+    super.mesaId,
+    super.color,
   });
 
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,8 @@ class TournamentModel extends TournamentEntity {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
+      mesaId: json['mesa_id'] as String?,
+      color: json['color'] as String?,
     );
   }
 
@@ -39,6 +43,8 @@ class TournamentModel extends TournamentEntity {
         'start_date': startDate.toApiDateTime(),
         'end_date': endDate.toApiDateTime(),
         'created_by': createdBy,
+        'mesa_id': mesaId,
+        'color': color,
       };
 
   Map<String, dynamic> toInsertJson() {
@@ -57,5 +63,7 @@ class TournamentModel extends TournamentEntity {
         endDate: e.endDate,
         createdBy: e.createdBy,
         createdAt: e.createdAt,
+        mesaId: e.mesaId,
+        color: e.color,
       );
 }

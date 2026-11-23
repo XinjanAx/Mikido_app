@@ -56,6 +56,7 @@ class MatchResultService {
       round: existing.round,
       matchNumber: existing.matchNumber,
       createdAt: existing.createdAt,
+      mesaOrder: existing.mesaOrder,
     );
 
     await _matches.upsert(updated, dirty: true);

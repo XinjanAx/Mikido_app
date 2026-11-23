@@ -10,6 +10,10 @@ abstract class FixtureLocalDataSource {
   Future<List<MatchModel>> getAllMatches();
   Stream<List<MatchModel>> watchMatches(String tournamentId);
 
+  /// Encuentros de todas las categorías de una mesa (ver MesaScheduleService).
+  Future<List<MatchModel>> getMatchesByMesa(String mesaId);
+  Stream<List<MatchModel>> watchMatchesByMesa(String mesaId);
+
   Future<void> upsert(MatchModel match, {required bool dirty});
   Future<bool> isDirty(String id);
   Future<void> markSynced(String id);
@@ -35,6 +39,7 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
         round: row.round,
         matchNumber: row.matchNumber,
         createdAt: row.createdAt,
+        mesaOrder: row.mesaOrder,
       );
 
   @override
@@ -63,6 +68,15 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
       _db.watchMatches(tournamentId).map((rows) => rows.map(_toModel).toList());
 
   @override
+  Future<List<MatchModel>> getMatchesByMesa(String mesaId) async =>
+      (await _db.getMatchesByMesa(mesaId)).map(_toModel).toList();
+
+  @override
+  Stream<List<MatchModel>> watchMatchesByMesa(String mesaId) => _db
+      .watchMatchesByMesa(mesaId)
+      .map((rows) => rows.map(_toModel).toList());
+
+  @override
   Future<void> upsert(MatchModel match, {required bool dirty}) {
     return _db.upsertMatch(MatchesCompanion.insert(
       id: match.id,
@@ -78,6 +92,7 @@ class FixtureLocalDataSourceImpl implements FixtureLocalDataSource {
       round: Value(match.round),
       matchNumber: Value(match.matchNumber),
       createdAt: Value(match.createdAt),
+      mesaOrder: Value(match.mesaOrder),
       dirty: Value(dirty),
     ));
   }

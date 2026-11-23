@@ -3,6 +3,402 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $MesasTable extends Mesas with TableInfo<$MesasTable, Mesa> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MesasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+      'description', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdByMeta =
+      const VerificationMeta('createdBy');
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+      'created_by', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+      'dirty', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("dirty" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _deletedLocallyMeta =
+      const VerificationMeta('deletedLocally');
+  @override
+  late final GeneratedColumn<bool> deletedLocally = GeneratedColumn<bool>(
+      'deleted_locally', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("deleted_locally" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, description, createdBy, createdAt, dirty, deletedLocally];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mesas';
+  @override
+  VerificationContext validateIntegrity(Insertable<Mesa> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+          _descriptionMeta,
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(_createdByMeta,
+          createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta));
+    } else if (isInserting) {
+      context.missing(_createdByMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+          _dirtyMeta, dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta));
+    }
+    if (data.containsKey('deleted_locally')) {
+      context.handle(
+          _deletedLocallyMeta,
+          deletedLocally.isAcceptableOrUnknown(
+              data['deleted_locally']!, _deletedLocallyMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Mesa map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Mesa(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      createdBy: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}created_by'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
+      dirty: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}dirty'])!,
+      deletedLocally: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted_locally'])!,
+    );
+  }
+
+  @override
+  $MesasTable createAlias(String alias) {
+    return $MesasTable(attachedDatabase, alias);
+  }
+}
+
+class Mesa extends DataClass implements Insertable<Mesa> {
+  final String id;
+  final String name;
+  final String? description;
+  final String createdBy;
+  final DateTime? createdAt;
+
+  /// true = hay cambios locales que aún no se subieron a Supabase.
+  final bool dirty;
+
+  /// Tombstone: se borró localmente pero aún no se confirmó el borrado remoto.
+  final bool deletedLocally;
+  const Mesa(
+      {required this.id,
+      required this.name,
+      this.description,
+      required this.createdBy,
+      this.createdAt,
+      required this.dirty,
+      required this.deletedLocally});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['created_by'] = Variable<String>(createdBy);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted_locally'] = Variable<bool>(deletedLocally);
+    return map;
+  }
+
+  MesasCompanion toCompanion(bool nullToAbsent) {
+    return MesasCompanion(
+      id: Value(id),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      createdBy: Value(createdBy),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      dirty: Value(dirty),
+      deletedLocally: Value(deletedLocally),
+    );
+  }
+
+  factory Mesa.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Mesa(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      createdBy: serializer.fromJson<String>(json['createdBy']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'createdBy': serializer.toJson<String>(createdBy),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deletedLocally': serializer.toJson<bool>(deletedLocally),
+    };
+  }
+
+  Mesa copyWith(
+          {String? id,
+          String? name,
+          Value<String?> description = const Value.absent(),
+          String? createdBy,
+          Value<DateTime?> createdAt = const Value.absent(),
+          bool? dirty,
+          bool? deletedLocally}) =>
+      Mesa(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        description: description.present ? description.value : this.description,
+        createdBy: createdBy ?? this.createdBy,
+        createdAt: createdAt.present ? createdAt.value : this.createdAt,
+        dirty: dirty ?? this.dirty,
+        deletedLocally: deletedLocally ?? this.deletedLocally,
+      );
+  Mesa copyWithCompanion(MesasCompanion data) {
+    return Mesa(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      description:
+          data.description.present ? data.description.value : this.description,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deletedLocally: data.deletedLocally.present
+          ? data.deletedLocally.value
+          : this.deletedLocally,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Mesa(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, name, description, createdBy, createdAt, dirty, deletedLocally);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Mesa &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.createdBy == this.createdBy &&
+          other.createdAt == this.createdAt &&
+          other.dirty == this.dirty &&
+          other.deletedLocally == this.deletedLocally);
+}
+
+class MesasCompanion extends UpdateCompanion<Mesa> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<String> createdBy;
+  final Value<DateTime?> createdAt;
+  final Value<bool> dirty;
+  final Value<bool> deletedLocally;
+  final Value<int> rowid;
+  const MesasCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MesasCompanion.insert({
+    required String id,
+    required String name,
+    this.description = const Value.absent(),
+    required String createdBy,
+    this.createdAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        createdBy = Value(createdBy);
+  static Insertable<Mesa> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<String>? createdBy,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? dirty,
+    Expression<bool>? deletedLocally,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (createdBy != null) 'created_by': createdBy,
+      if (createdAt != null) 'created_at': createdAt,
+      if (dirty != null) 'dirty': dirty,
+      if (deletedLocally != null) 'deleted_locally': deletedLocally,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MesasCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String?>? description,
+      Value<String>? createdBy,
+      Value<DateTime?>? createdAt,
+      Value<bool>? dirty,
+      Value<bool>? deletedLocally,
+      Value<int>? rowid}) {
+    return MesasCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      dirty: dirty ?? this.dirty,
+      deletedLocally: deletedLocally ?? this.deletedLocally,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deletedLocally.present) {
+      map['deleted_locally'] = Variable<bool>(deletedLocally.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MesasCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TournamentsTable extends Tournaments
     with TableInfo<$TournamentsTable, Tournament> {
   @override
@@ -59,6 +455,16 @@ class $TournamentsTable extends Tournaments
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _mesaIdMeta = const VerificationMeta('mesaId');
+  @override
+  late final GeneratedColumn<String> mesaId = GeneratedColumn<String>(
+      'mesa_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+      'color', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -89,6 +495,8 @@ class $TournamentsTable extends Tournaments
         endDate,
         createdBy,
         createdAt,
+        mesaId,
+        color,
         dirty,
         deletedLocally
       ];
@@ -153,6 +561,14 @@ class $TournamentsTable extends Tournaments
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
+    if (data.containsKey('mesa_id')) {
+      context.handle(_mesaIdMeta,
+          mesaId.isAcceptableOrUnknown(data['mesa_id']!, _mesaIdMeta));
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+          _colorMeta, color.isAcceptableOrUnknown(data['color']!, _colorMeta));
+    }
     if (data.containsKey('dirty')) {
       context.handle(
           _dirtyMeta, dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta));
@@ -190,6 +606,10 @@ class $TournamentsTable extends Tournaments
           .read(DriftSqlType.string, data['${effectivePrefix}created_by'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
+      mesaId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mesa_id']),
+      color: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}color']),
       dirty: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}dirty'])!,
       deletedLocally: attachedDatabase.typeMapping
@@ -214,6 +634,15 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final String createdBy;
   final DateTime? createdAt;
 
+  /// Mesa a la que pertenece la categoría (en la UI "torneo" se muestra
+  /// como "categoría"). Nullable solo por los datos anteriores a la v6;
+  /// toda categoría nueva se crea dentro de una mesa y no cambia de mesa.
+  final String? mesaId;
+
+  /// Color de la categoría, '#RRGGBB' (ver CategoryColors). null en datos
+  /// anteriores a la v7.
+  final String? color;
+
   /// true = hay cambios locales que aún no se subieron a Supabase.
   final bool dirty;
 
@@ -229,6 +658,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       required this.endDate,
       required this.createdBy,
       this.createdAt,
+      this.mesaId,
+      this.color,
       required this.dirty,
       required this.deletedLocally});
   @override
@@ -246,6 +677,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     map['created_by'] = Variable<String>(createdBy);
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    if (!nullToAbsent || mesaId != null) {
+      map['mesa_id'] = Variable<String>(mesaId);
+    }
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<String>(color);
     }
     map['dirty'] = Variable<bool>(dirty);
     map['deleted_locally'] = Variable<bool>(deletedLocally);
@@ -267,6 +704,10 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
+      mesaId:
+          mesaId == null && nullToAbsent ? const Value.absent() : Value(mesaId),
+      color:
+          color == null && nullToAbsent ? const Value.absent() : Value(color),
       dirty: Value(dirty),
       deletedLocally: Value(deletedLocally),
     );
@@ -285,6 +726,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       endDate: serializer.fromJson<DateTime>(json['endDate']),
       createdBy: serializer.fromJson<String>(json['createdBy']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      mesaId: serializer.fromJson<String?>(json['mesaId']),
+      color: serializer.fromJson<String?>(json['color']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
     );
@@ -302,6 +745,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'endDate': serializer.toJson<DateTime>(endDate),
       'createdBy': serializer.toJson<String>(createdBy),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'mesaId': serializer.toJson<String?>(mesaId),
+      'color': serializer.toJson<String?>(color),
       'dirty': serializer.toJson<bool>(dirty),
       'deletedLocally': serializer.toJson<bool>(deletedLocally),
     };
@@ -317,6 +762,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           DateTime? endDate,
           String? createdBy,
           Value<DateTime?> createdAt = const Value.absent(),
+          Value<String?> mesaId = const Value.absent(),
+          Value<String?> color = const Value.absent(),
           bool? dirty,
           bool? deletedLocally}) =>
       Tournament(
@@ -329,6 +776,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         endDate: endDate ?? this.endDate,
         createdBy: createdBy ?? this.createdBy,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
+        mesaId: mesaId.present ? mesaId.value : this.mesaId,
+        color: color.present ? color.value : this.color,
         dirty: dirty ?? this.dirty,
         deletedLocally: deletedLocally ?? this.deletedLocally,
       );
@@ -344,6 +793,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      mesaId: data.mesaId.present ? data.mesaId.value : this.mesaId,
+      color: data.color.present ? data.color.value : this.color,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deletedLocally: data.deletedLocally.present
           ? data.deletedLocally.value
@@ -363,6 +814,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('endDate: $endDate, ')
           ..write('createdBy: $createdBy, ')
           ..write('createdAt: $createdAt, ')
+          ..write('mesaId: $mesaId, ')
+          ..write('color: $color, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally')
           ..write(')'))
@@ -370,8 +823,20 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, mode, status, description,
-      startDate, endDate, createdBy, createdAt, dirty, deletedLocally);
+  int get hashCode => Object.hash(
+      id,
+      name,
+      mode,
+      status,
+      description,
+      startDate,
+      endDate,
+      createdBy,
+      createdAt,
+      mesaId,
+      color,
+      dirty,
+      deletedLocally);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -385,6 +850,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.endDate == this.endDate &&
           other.createdBy == this.createdBy &&
           other.createdAt == this.createdAt &&
+          other.mesaId == this.mesaId &&
+          other.color == this.color &&
           other.dirty == this.dirty &&
           other.deletedLocally == this.deletedLocally);
 }
@@ -399,6 +866,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<DateTime> endDate;
   final Value<String> createdBy;
   final Value<DateTime?> createdAt;
+  final Value<String?> mesaId;
+  final Value<String?> color;
   final Value<bool> dirty;
   final Value<bool> deletedLocally;
   final Value<int> rowid;
@@ -412,6 +881,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.endDate = const Value.absent(),
     this.createdBy = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.mesaId = const Value.absent(),
+    this.color = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -426,6 +897,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     required DateTime endDate,
     required String createdBy,
     this.createdAt = const Value.absent(),
+    this.mesaId = const Value.absent(),
+    this.color = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -446,6 +919,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<DateTime>? endDate,
     Expression<String>? createdBy,
     Expression<DateTime>? createdAt,
+    Expression<String>? mesaId,
+    Expression<String>? color,
     Expression<bool>? dirty,
     Expression<bool>? deletedLocally,
     Expression<int>? rowid,
@@ -460,6 +935,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (endDate != null) 'end_date': endDate,
       if (createdBy != null) 'created_by': createdBy,
       if (createdAt != null) 'created_at': createdAt,
+      if (mesaId != null) 'mesa_id': mesaId,
+      if (color != null) 'color': color,
       if (dirty != null) 'dirty': dirty,
       if (deletedLocally != null) 'deleted_locally': deletedLocally,
       if (rowid != null) 'rowid': rowid,
@@ -476,6 +953,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       Value<DateTime>? endDate,
       Value<String>? createdBy,
       Value<DateTime?>? createdAt,
+      Value<String?>? mesaId,
+      Value<String?>? color,
       Value<bool>? dirty,
       Value<bool>? deletedLocally,
       Value<int>? rowid}) {
@@ -489,6 +968,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       endDate: endDate ?? this.endDate,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
+      mesaId: mesaId ?? this.mesaId,
+      color: color ?? this.color,
       dirty: dirty ?? this.dirty,
       deletedLocally: deletedLocally ?? this.deletedLocally,
       rowid: rowid ?? this.rowid,
@@ -525,6 +1006,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (mesaId.present) {
+      map['mesa_id'] = Variable<String>(mesaId.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -549,6 +1036,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('endDate: $endDate, ')
           ..write('createdBy: $createdBy, ')
           ..write('createdAt: $createdAt, ')
+          ..write('mesaId: $mesaId, ')
+          ..write('color: $color, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally, ')
           ..write('rowid: $rowid')
@@ -1421,6 +1910,12 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
   late final GeneratedColumn<int> matchNumber = GeneratedColumn<int>(
       'match_number', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _mesaOrderMeta =
+      const VerificationMeta('mesaOrder');
+  @override
+  late final GeneratedColumn<int> mesaOrder = GeneratedColumn<int>(
+      'mesa_order', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1460,6 +1955,7 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
         scheduledAt,
         round,
         matchNumber,
+        mesaOrder,
         createdAt,
         dirty,
         deletedLocally
@@ -1549,6 +2045,10 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
           matchNumber.isAcceptableOrUnknown(
               data['match_number']!, _matchNumberMeta));
     }
+    if (data.containsKey('mesa_order')) {
+      context.handle(_mesaOrderMeta,
+          mesaOrder.isAcceptableOrUnknown(data['mesa_order']!, _mesaOrderMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1596,6 +2096,8 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, MatchRow> {
           .read(DriftSqlType.string, data['${effectivePrefix}round']),
       matchNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}match_number']),
+      mesaOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}mesa_order']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
       dirty: attachedDatabase.typeMapping
@@ -1624,6 +2126,11 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
   final DateTime? scheduledAt;
   final String? round;
   final int? matchNumber;
+
+  /// Turno global del encuentro dentro de su mesa (1, 2, 3...), mezclando
+  /// todas las categorías de la mesa. Lo asigna MesaScheduleService, nunca
+  /// el usuario. null = sin turno (los BYE, o datos anteriores a la v6).
+  final int? mesaOrder;
   final DateTime? createdAt;
   final bool dirty;
   final bool deletedLocally;
@@ -1640,6 +2147,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       this.scheduledAt,
       this.round,
       this.matchNumber,
+      this.mesaOrder,
       this.createdAt,
       required this.dirty,
       required this.deletedLocally});
@@ -1667,6 +2175,9 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
     }
     if (!nullToAbsent || matchNumber != null) {
       map['match_number'] = Variable<int>(matchNumber);
+    }
+    if (!nullToAbsent || mesaOrder != null) {
+      map['mesa_order'] = Variable<int>(mesaOrder);
     }
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
@@ -1699,6 +2210,9 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       matchNumber: matchNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(matchNumber),
+      mesaOrder: mesaOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mesaOrder),
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
@@ -1723,6 +2237,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       scheduledAt: serializer.fromJson<DateTime?>(json['scheduledAt']),
       round: serializer.fromJson<String?>(json['round']),
       matchNumber: serializer.fromJson<int?>(json['matchNumber']),
+      mesaOrder: serializer.fromJson<int?>(json['mesaOrder']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
@@ -1744,6 +2259,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       'scheduledAt': serializer.toJson<DateTime?>(scheduledAt),
       'round': serializer.toJson<String?>(round),
       'matchNumber': serializer.toJson<int?>(matchNumber),
+      'mesaOrder': serializer.toJson<int?>(mesaOrder),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
       'dirty': serializer.toJson<bool>(dirty),
       'deletedLocally': serializer.toJson<bool>(deletedLocally),
@@ -1763,6 +2279,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
           Value<DateTime?> scheduledAt = const Value.absent(),
           Value<String?> round = const Value.absent(),
           Value<int?> matchNumber = const Value.absent(),
+          Value<int?> mesaOrder = const Value.absent(),
           Value<DateTime?> createdAt = const Value.absent(),
           bool? dirty,
           bool? deletedLocally}) =>
@@ -1779,6 +2296,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
         scheduledAt: scheduledAt.present ? scheduledAt.value : this.scheduledAt,
         round: round.present ? round.value : this.round,
         matchNumber: matchNumber.present ? matchNumber.value : this.matchNumber,
+        mesaOrder: mesaOrder.present ? mesaOrder.value : this.mesaOrder,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
         dirty: dirty ?? this.dirty,
         deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -1809,6 +2327,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       round: data.round.present ? data.round.value : this.round,
       matchNumber:
           data.matchNumber.present ? data.matchNumber.value : this.matchNumber,
+      mesaOrder: data.mesaOrder.present ? data.mesaOrder.value : this.mesaOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deletedLocally: data.deletedLocally.present
@@ -1832,6 +2351,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
           ..write('scheduledAt: $scheduledAt, ')
           ..write('round: $round, ')
           ..write('matchNumber: $matchNumber, ')
+          ..write('mesaOrder: $mesaOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally')
@@ -1853,6 +2373,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
       scheduledAt,
       round,
       matchNumber,
+      mesaOrder,
       createdAt,
       dirty,
       deletedLocally);
@@ -1872,6 +2393,7 @@ class MatchRow extends DataClass implements Insertable<MatchRow> {
           other.scheduledAt == this.scheduledAt &&
           other.round == this.round &&
           other.matchNumber == this.matchNumber &&
+          other.mesaOrder == this.mesaOrder &&
           other.createdAt == this.createdAt &&
           other.dirty == this.dirty &&
           other.deletedLocally == this.deletedLocally);
@@ -1890,6 +2412,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
   final Value<DateTime?> scheduledAt;
   final Value<String?> round;
   final Value<int?> matchNumber;
+  final Value<int?> mesaOrder;
   final Value<DateTime?> createdAt;
   final Value<bool> dirty;
   final Value<bool> deletedLocally;
@@ -1907,6 +2430,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     this.scheduledAt = const Value.absent(),
     this.round = const Value.absent(),
     this.matchNumber = const Value.absent(),
+    this.mesaOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
@@ -1925,6 +2449,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     this.scheduledAt = const Value.absent(),
     this.round = const Value.absent(),
     this.matchNumber = const Value.absent(),
+    this.mesaOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
@@ -1949,6 +2474,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     Expression<DateTime>? scheduledAt,
     Expression<String>? round,
     Expression<int>? matchNumber,
+    Expression<int>? mesaOrder,
     Expression<DateTime>? createdAt,
     Expression<bool>? dirty,
     Expression<bool>? deletedLocally,
@@ -1967,6 +2493,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
       if (scheduledAt != null) 'scheduled_at': scheduledAt,
       if (round != null) 'round': round,
       if (matchNumber != null) 'match_number': matchNumber,
+      if (mesaOrder != null) 'mesa_order': mesaOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (dirty != null) 'dirty': dirty,
       if (deletedLocally != null) 'deleted_locally': deletedLocally,
@@ -1987,6 +2514,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
       Value<DateTime?>? scheduledAt,
       Value<String?>? round,
       Value<int?>? matchNumber,
+      Value<int?>? mesaOrder,
       Value<DateTime?>? createdAt,
       Value<bool>? dirty,
       Value<bool>? deletedLocally,
@@ -2004,6 +2532,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
       scheduledAt: scheduledAt ?? this.scheduledAt,
       round: round ?? this.round,
       matchNumber: matchNumber ?? this.matchNumber,
+      mesaOrder: mesaOrder ?? this.mesaOrder,
       createdAt: createdAt ?? this.createdAt,
       dirty: dirty ?? this.dirty,
       deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -2050,6 +2579,9 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
     if (matchNumber.present) {
       map['match_number'] = Variable<int>(matchNumber.value);
     }
+    if (mesaOrder.present) {
+      map['mesa_order'] = Variable<int>(mesaOrder.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2080,6 +2612,7 @@ class MatchesCompanion extends UpdateCompanion<MatchRow> {
           ..write('scheduledAt: $scheduledAt, ')
           ..write('round: $round, ')
           ..write('matchNumber: $matchNumber, ')
+          ..write('mesaOrder: $mesaOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally, ')
@@ -3735,6 +4268,7 @@ class SyncQueueEntriesCompanion extends UpdateCompanion<SyncQueueEntry> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $MesasTable mesas = $MesasTable(this);
   late final $TournamentsTable tournaments = $TournamentsTable(this);
   late final $PlayersTable players = $PlayersTable(this);
   late final $EnrollmentsTable enrollments = $EnrollmentsTable(this);
@@ -3748,6 +4282,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+        mesas,
         tournaments,
         players,
         enrollments,
@@ -3758,6 +4293,202 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ];
 }
 
+typedef $$MesasTableCreateCompanionBuilder = MesasCompanion Function({
+  required String id,
+  required String name,
+  Value<String?> description,
+  required String createdBy,
+  Value<DateTime?> createdAt,
+  Value<bool> dirty,
+  Value<bool> deletedLocally,
+  Value<int> rowid,
+});
+typedef $$MesasTableUpdateCompanionBuilder = MesasCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String?> description,
+  Value<String> createdBy,
+  Value<DateTime?> createdAt,
+  Value<bool> dirty,
+  Value<bool> deletedLocally,
+  Value<int> rowid,
+});
+
+class $$MesasTableFilterComposer extends Composer<_$AppDatabase, $MesasTable> {
+  $$MesasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+      column: $table.createdBy, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+      column: $table.dirty, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deletedLocally => $composableBuilder(
+      column: $table.deletedLocally,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$MesasTableOrderingComposer
+    extends Composer<_$AppDatabase, $MesasTable> {
+  $$MesasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+      column: $table.createdBy, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+      column: $table.dirty, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deletedLocally => $composableBuilder(
+      column: $table.deletedLocally,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$MesasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MesasTable> {
+  $$MesasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deletedLocally => $composableBuilder(
+      column: $table.deletedLocally, builder: (column) => column);
+}
+
+class $$MesasTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $MesasTable,
+    Mesa,
+    $$MesasTableFilterComposer,
+    $$MesasTableOrderingComposer,
+    $$MesasTableAnnotationComposer,
+    $$MesasTableCreateCompanionBuilder,
+    $$MesasTableUpdateCompanionBuilder,
+    (Mesa, BaseReferences<_$AppDatabase, $MesasTable, Mesa>),
+    Mesa,
+    PrefetchHooks Function()> {
+  $$MesasTableTableManager(_$AppDatabase db, $MesasTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MesasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MesasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MesasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> description = const Value.absent(),
+            Value<String> createdBy = const Value.absent(),
+            Value<DateTime?> createdAt = const Value.absent(),
+            Value<bool> dirty = const Value.absent(),
+            Value<bool> deletedLocally = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MesasCompanion(
+            id: id,
+            name: name,
+            description: description,
+            createdBy: createdBy,
+            createdAt: createdAt,
+            dirty: dirty,
+            deletedLocally: deletedLocally,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<String?> description = const Value.absent(),
+            required String createdBy,
+            Value<DateTime?> createdAt = const Value.absent(),
+            Value<bool> dirty = const Value.absent(),
+            Value<bool> deletedLocally = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MesasCompanion.insert(
+            id: id,
+            name: name,
+            description: description,
+            createdBy: createdBy,
+            createdAt: createdAt,
+            dirty: dirty,
+            deletedLocally: deletedLocally,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$MesasTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $MesasTable,
+    Mesa,
+    $$MesasTableFilterComposer,
+    $$MesasTableOrderingComposer,
+    $$MesasTableAnnotationComposer,
+    $$MesasTableCreateCompanionBuilder,
+    $$MesasTableUpdateCompanionBuilder,
+    (Mesa, BaseReferences<_$AppDatabase, $MesasTable, Mesa>),
+    Mesa,
+    PrefetchHooks Function()>;
 typedef $$TournamentsTableCreateCompanionBuilder = TournamentsCompanion
     Function({
   required String id,
@@ -3769,6 +4500,8 @@ typedef $$TournamentsTableCreateCompanionBuilder = TournamentsCompanion
   required DateTime endDate,
   required String createdBy,
   Value<DateTime?> createdAt,
+  Value<String?> mesaId,
+  Value<String?> color,
   Value<bool> dirty,
   Value<bool> deletedLocally,
   Value<int> rowid,
@@ -3784,6 +4517,8 @@ typedef $$TournamentsTableUpdateCompanionBuilder = TournamentsCompanion
   Value<DateTime> endDate,
   Value<String> createdBy,
   Value<DateTime?> createdAt,
+  Value<String?> mesaId,
+  Value<String?> color,
   Value<bool> dirty,
   Value<bool> deletedLocally,
   Value<int> rowid,
@@ -3824,6 +4559,12 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mesaId => $composableBuilder(
+      column: $table.mesaId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get color => $composableBuilder(
+      column: $table.color, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get dirty => $composableBuilder(
       column: $table.dirty, builder: (column) => ColumnFilters(column));
@@ -3869,6 +4610,12 @@ class $$TournamentsTableOrderingComposer
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get mesaId => $composableBuilder(
+      column: $table.mesaId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get color => $composableBuilder(
+      column: $table.color, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
       column: $table.dirty, builder: (column) => ColumnOrderings(column));
 
@@ -3913,6 +4660,12 @@ class $$TournamentsTableAnnotationComposer
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
+  GeneratedColumn<String> get mesaId =>
+      $composableBuilder(column: $table.mesaId, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -3952,6 +4705,8 @@ class $$TournamentsTableTableManager extends RootTableManager<
             Value<DateTime> endDate = const Value.absent(),
             Value<String> createdBy = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
+            Value<String?> mesaId = const Value.absent(),
+            Value<String?> color = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -3966,6 +4721,8 @@ class $$TournamentsTableTableManager extends RootTableManager<
             endDate: endDate,
             createdBy: createdBy,
             createdAt: createdAt,
+            mesaId: mesaId,
+            color: color,
             dirty: dirty,
             deletedLocally: deletedLocally,
             rowid: rowid,
@@ -3980,6 +4737,8 @@ class $$TournamentsTableTableManager extends RootTableManager<
             required DateTime endDate,
             required String createdBy,
             Value<DateTime?> createdAt = const Value.absent(),
+            Value<String?> mesaId = const Value.absent(),
+            Value<String?> color = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -3994,6 +4753,8 @@ class $$TournamentsTableTableManager extends RootTableManager<
             endDate: endDate,
             createdBy: createdBy,
             createdAt: createdAt,
+            mesaId: mesaId,
+            color: color,
             dirty: dirty,
             deletedLocally: deletedLocally,
             rowid: rowid,
@@ -4427,6 +5188,7 @@ typedef $$MatchesTableCreateCompanionBuilder = MatchesCompanion Function({
   Value<DateTime?> scheduledAt,
   Value<String?> round,
   Value<int?> matchNumber,
+  Value<int?> mesaOrder,
   Value<DateTime?> createdAt,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -4445,6 +5207,7 @@ typedef $$MatchesTableUpdateCompanionBuilder = MatchesCompanion Function({
   Value<DateTime?> scheduledAt,
   Value<String?> round,
   Value<int?> matchNumber,
+  Value<int?> mesaOrder,
   Value<DateTime?> createdAt,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -4497,6 +5260,9 @@ class $$MatchesTableFilterComposer
 
   ColumnFilters<int> get matchNumber => $composableBuilder(
       column: $table.matchNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get mesaOrder => $composableBuilder(
+      column: $table.mesaOrder, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -4559,6 +5325,9 @@ class $$MatchesTableOrderingComposer
   ColumnOrderings<int> get matchNumber => $composableBuilder(
       column: $table.matchNumber, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get mesaOrder => $composableBuilder(
+      column: $table.mesaOrder, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -4615,6 +5384,9 @@ class $$MatchesTableAnnotationComposer
   GeneratedColumn<int> get matchNumber => $composableBuilder(
       column: $table.matchNumber, builder: (column) => column);
 
+  GeneratedColumn<int> get mesaOrder =>
+      $composableBuilder(column: $table.mesaOrder, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4660,6 +5432,7 @@ class $$MatchesTableTableManager extends RootTableManager<
             Value<DateTime?> scheduledAt = const Value.absent(),
             Value<String?> round = const Value.absent(),
             Value<int?> matchNumber = const Value.absent(),
+            Value<int?> mesaOrder = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -4678,6 +5451,7 @@ class $$MatchesTableTableManager extends RootTableManager<
             scheduledAt: scheduledAt,
             round: round,
             matchNumber: matchNumber,
+            mesaOrder: mesaOrder,
             createdAt: createdAt,
             dirty: dirty,
             deletedLocally: deletedLocally,
@@ -4696,6 +5470,7 @@ class $$MatchesTableTableManager extends RootTableManager<
             Value<DateTime?> scheduledAt = const Value.absent(),
             Value<String?> round = const Value.absent(),
             Value<int?> matchNumber = const Value.absent(),
+            Value<int?> mesaOrder = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -4714,6 +5489,7 @@ class $$MatchesTableTableManager extends RootTableManager<
             scheduledAt: scheduledAt,
             round: round,
             matchNumber: matchNumber,
+            mesaOrder: mesaOrder,
             createdAt: createdAt,
             dirty: dirty,
             deletedLocally: deletedLocally,
@@ -5508,6 +6284,8 @@ typedef $$SyncQueueEntriesTableProcessedTableManager = ProcessedTableManager<
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$MesasTableTableManager get mesas =>
+      $$MesasTableTableManager(_db, _db.mesas);
   $$TournamentsTableTableManager get tournaments =>
       $$TournamentsTableTableManager(_db, _db.tournaments);
   $$PlayersTableTableManager get players =>

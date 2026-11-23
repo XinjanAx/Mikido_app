@@ -6,6 +6,7 @@ class SupabaseConstants {
       'sb_publishable_Vg-FlgaDmbYwfJGSxVkoEQ_jRDpdXMd';
 
   // Nombres de tablas
+  static const String mesasTable = 'mesas';
   static const String tournamentsTable = 'tournaments';
   static const String playersTable = 'players';
   static const String matchesTable = 'matches';

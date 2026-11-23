@@ -6,6 +6,8 @@ import 'package:torneo_app/core/sync/sync_engine_provider.dart';
 import 'package:torneo_app/core/theme/app_colors.dart';
 import 'package:torneo_app/features/fixtures/presentation/providers/fixture_provider.dart';
 import 'package:torneo_app/features/players/presentation/providers/player_provider.dart';
+import 'package:torneo_app/features/tournaments/presentation/providers/tournament_provider.dart';
+import 'package:torneo_app/features/tournaments/presentation/widgets/category_color_widgets.dart';
 
 class PlayerEnrollmentScreen extends ConsumerStatefulWidget {
   final String tournamentId;
@@ -44,7 +46,7 @@ class PlayerEnrollmentScreenState
           builder: (_) => AlertDialog(
             title: const Text('No se puede desinscribir'),
             content: Text(
-              '"$playerName" ya tiene encuentros generados en este torneo. '
+              '"$playerName" ya tiene encuentros generados en esta categoría. '
               'No se puede quitar su inscripción.',
             ),
             actions: [
@@ -88,6 +90,7 @@ class PlayerEnrollmentScreenState
     final allPlayers = ref.watch(playersProvider).players;
     final enrolledAsync =
         ref.watch(playersByTournamentProvider(widget.tournamentId));
+    final tournament = ref.watch(tournamentByIdProvider(widget.tournamentId));
 
     // Filtrar jugadores disponibles por búsqueda
     final availablePlayers = allPlayers.where((p) {
@@ -99,7 +102,11 @@ class PlayerEnrollmentScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Participantes del torneo'),
+        flexibleSpace:
+            CategoryHeaderGradient(tournamentId: widget.tournamentId),
+        title: Text(tournament != null
+            ? 'Participantes - ${tournament.name}'
+            : 'Participantes de la categoría'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

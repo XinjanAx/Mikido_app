@@ -132,7 +132,7 @@ class PlayerDetailScreen extends ConsumerWidget {
                         content: Text(
                           '"${player.name}" está inscrito en: '
                           '$tournamentNames.\n\n'
-                          'Debes quitar su inscripción de esos torneos '
+                          'Debes quitar su inscripción de esas categorías '
                           'antes de poder eliminarlo.',
                         ),
                         actions: [

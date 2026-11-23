@@ -5,13 +5,20 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/extensions/datetime_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/theme/category_colors.dart';
+import '../../../mesas/presentation/providers/mesa_provider.dart'
+    show categoriesByMesaProvider;
 import '../../domain/entities/tournament_entity.dart';
 import '../providers/tournament_provider.dart';
 
 class TournamentFormScreen extends ConsumerStatefulWidget {
   final TournamentEntity? tournament; // null = crear
 
-  const TournamentFormScreen({super.key, this.tournament});
+  /// Mesa donde se crea la categoría (solo al crear: una categoría no
+  /// cambia de mesa).
+  final String? mesaId;
+
+  const TournamentFormScreen({super.key, this.tournament, this.mesaId});
 
   @override
   ConsumerState<TournamentFormScreen> createState() =>
@@ -27,9 +34,20 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
   late DateTime _endDate;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
+  late String _selectedColor;
   bool _isSaving = false;
 
   bool get _isEdit => widget.tournament != null;
+
+  /// Colores que ya usan las OTRAS categorías de la misma mesa.
+  Set<String> get _usedColorsInMesa {
+    final mesaId = widget.tournament?.mesaId ?? widget.mesaId;
+    return ref
+        .read(categoriesByMesaProvider(mesaId))
+        .where((t) => t.id != widget.tournament?.id && t.color != null)
+        .map((t) => t.color!.toUpperCase())
+        .toSet();
+  }
 
   @override
   void initState() {
@@ -48,6 +66,9 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
     _endTime = widget.tournament != null
         ? TimeOfDay.fromDateTime(widget.tournament!.endDate)
         : const TimeOfDay(hour: 18, minute: 0);
+    // Al crear se sugiere un color que nadie use todavía en la mesa.
+    _selectedColor =
+        widget.tournament?.color ?? CategoryColors.suggest(_usedColorsInMesa);
   }
 
   @override
@@ -128,15 +149,31 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
         endDate: endDateTime,
         createdBy: widget.tournament!.createdBy,
         createdAt: widget.tournament!.createdAt,
+        mesaId: widget.tournament!.mesaId,
+        color: _selectedColor,
       );
-      success =
-          await ref.read(tournamentsProvider.notifier).updateTournament(updated);
+      success = await ref
+          .read(tournamentsProvider.notifier)
+          .updateTournament(updated);
     } else {
+      final mesaId = widget.mesaId;
+      if (mesaId == null) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La categoría debe crearse dentro de una mesa'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
       success = await ref.read(tournamentsProvider.notifier).createTournament(
             name: name,
             mode: _selectedMode,
             startDate: startDateTime,
             endDate: endDateTime,
+            mesaId: mesaId,
+            color: _selectedColor,
             description: description,
           );
     }
@@ -149,7 +186,7 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Editar torneo' : 'Nuevo torneo'),
+        title: Text(_isEdit ? 'Editar categoría' : 'Nueva categoría'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -162,11 +199,12 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre del torneo',
+                  labelText: 'Nombre de la categoría',
                   prefixIcon: Icon(Icons.emoji_events_outlined),
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Ingresa un nombre' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Ingresa un nombre'
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -186,6 +224,12 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
               Text('Modalidad', style: AppTextStyles.titleMedium),
               const SizedBox(height: 12),
               _buildModeSelector(),
+              const SizedBox(height: 24),
+
+              // Color
+              Text('Color de la categoría', style: AppTextStyles.titleMedium),
+              const SizedBox(height: 12),
+              _buildColorSelector(),
               const SizedBox(height: 24),
 
               // Fechas
@@ -234,7 +278,8 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
               Text(
                 'Se usan para avisarte con anticipación (30, 10 y 5 min '
                 'antes de empezar; 1h, 30, 10 y 5 min antes de terminar).',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
+                style:
+                    AppTextStyles.bodySmall.copyWith(color: AppColors.grey400),
               ),
               const SizedBox(height: 36),
 
@@ -249,7 +294,7 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
                           color: AppColors.white,
                         ),
                       )
-                    : Text(_isEdit ? 'Guardar cambios' : 'Crear torneo'),
+                    : Text(_isEdit ? 'Guardar cambios' : 'Crear categoría'),
               ),
             ],
           ),
@@ -258,11 +303,80 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
     );
   }
 
+  Widget _buildColorSelector() {
+    final used = _usedColorsInMesa;
+    final selected = CategoryColors.palette
+        .where((c) => c.hex == _selectedColor.toUpperCase())
+        .firstOrNull;
+    final selectedIsUsed = used.contains(_selectedColor.toUpperCase());
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: CategoryColors.palette.map((c) {
+            final isSelected = c.hex == _selectedColor.toUpperCase();
+            final isUsed = used.contains(c.hex);
+            return Tooltip(
+              message: isUsed ? '${c.name} (ya usado en esta mesa)' : c.name,
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedColor = c.hex),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: c.color.withValues(alpha: isUsed ? 0.4 : 1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color:
+                          isSelected ? AppColors.offWhite : Colors.transparent,
+                      width: 3,
+                    ),
+                  ),
+                  child: isSelected
+                      ? Icon(Icons.check,
+                          color: c.color.computeLuminance() > 0.5
+                              ? Colors.black87
+                              : Colors.white,
+                          size: 22)
+                      : isUsed
+                          ? const Icon(Icons.remove,
+                              color: Colors.white70, size: 18)
+                          : null,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          selectedIsUsed
+              ? '${selected?.name ?? 'Este color'} ya lo usa otra categoría de '
+                  'esta mesa. Puedes repetirlo, pero es mejor uno distinto.'
+              : 'Los colores atenuados ya los usa otra categoría de esta mesa.',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: selectedIsUsed ? AppColors.warning : AppColors.grey400,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildModeSelector() {
     final modes = [
-      (AppConstants.tournamentModeGroups, 'Por grupos', Icons.grid_view_rounded),
-      (AppConstants.tournamentModeElimination, 'Eliminación simple',
-          Icons.account_tree_outlined),
+      (
+        AppConstants.tournamentModeGroups,
+        'Por grupos',
+        Icons.grid_view_rounded
+      ),
+      (
+        AppConstants.tournamentModeElimination,
+        'Eliminación simple',
+        Icons.account_tree_outlined
+      ),
       (AppConstants.tournamentModeLeague, 'Liga', Icons.leaderboard_outlined),
     ];
     return Column(
@@ -293,13 +407,15 @@ class _TournamentFormScreenState extends ConsumerState<TournamentFormScreen> {
                 const SizedBox(width: 12),
                 Text(m.$2,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: isSelected ? AppColors.primary : AppColors.offWhite,
+                      color:
+                          isSelected ? AppColors.primary : AppColors.offWhite,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
                     )),
                 const Spacer(),
                 if (isSelected)
-                  const Icon(Icons.check_circle, color: AppColors.primary, size: 18),
+                  const Icon(Icons.check_circle,
+                      color: AppColors.primary, size: 18),
               ],
             ),
           ),
@@ -335,8 +451,8 @@ class _DateField extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.grey400)),
+                style: AppTextStyles.labelSmall
+                    .copyWith(color: AppColors.grey400)),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -379,8 +495,8 @@ class _TimeField extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.grey400)),
+                style: AppTextStyles.labelSmall
+                    .copyWith(color: AppColors.grey400)),
             const SizedBox(height: 4),
             Row(
               children: [

@@ -6,6 +6,17 @@ class ServerException implements Exception {
   String toString() => 'ServerException: $message';
 }
 
+/// Supabase rechazó borrar una fila porque otra la referencia (violación de
+/// clave foránea, código Postgres 23503) — p. ej. una mesa que todavía tiene
+/// categorías en el servidor aunque el dispositivo aún no las haya bajado.
+class StillReferencedException implements Exception {
+  final String message;
+  const StillReferencedException({required this.message});
+
+  @override
+  String toString() => 'StillReferencedException: $message';
+}
+
 class AuthException implements Exception {
   final String message;
   const AuthException({required this.message});

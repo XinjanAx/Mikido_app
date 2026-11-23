@@ -181,7 +181,7 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
             title: const Text('No se puede eliminar'),
             content: Text(
               '"$playerName" está inscrito en: $tournamentNames.\n\n'
-              'Debes quitar su inscripción de esos torneos antes de poder '
+              'Debes quitar su inscripción de esas categorías antes de poder '
               'eliminarlo.',
             ),
             actions: [

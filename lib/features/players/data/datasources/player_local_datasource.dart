@@ -45,6 +45,8 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
         birthDate: row.birthDate,
         photoUrl: row.photoUrl,
         createdAt: row.createdAt,
+        guild: row.guild,
+        guildAcronym: row.guildAcronym,
       );
 
   @override
@@ -72,6 +74,8 @@ class PlayerLocalDataSourceImpl implements PlayerLocalDataSource {
       birthDate: Value(player.birthDate),
       photoUrl: Value(player.photoUrl),
       createdAt: Value(player.createdAt),
+      guild: Value(player.guild),
+      guildAcronym: Value(player.guildAcronym),
       dirty: Value(dirty),
     ));
   }

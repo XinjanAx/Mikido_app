@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider;
 import '../../../../core/widgets/brand_footer.dart';
 import '../../../../core/widgets/tournament_phase_header.dart';
 import '../../domain/entities/match_entity.dart';
@@ -563,6 +566,10 @@ class _BracketCanvasBody extends StatelessWidget {
                 name: thirdPlaceMatch!.winner == thirdPlaceMatch!.homePlayerId
                     ? thirdPlaceMatch!.homePlayerName
                     : thirdPlaceMatch!.awayPlayerName,
+                playerId:
+                    thirdPlaceMatch!.winner == thirdPlaceMatch!.homePlayerId
+                        ? thirdPlaceMatch!.homePlayerId
+                        : thirdPlaceMatch!.awayPlayerId,
                 score:
                     thirdPlaceMatch!.winner == thirdPlaceMatch!.homePlayerId
                         ? thirdPlaceMatch!.homeScore
@@ -667,6 +674,7 @@ class _MatchPair extends StatelessWidget {
       children: [
         _TeamBox(
           name: match?.homePlayerName,
+          playerId: match?.homePlayerId,
           score: match?.homeScore,
           isWinner: _homeWon,
           isFinished: match?.isFinished ?? false,
@@ -674,6 +682,7 @@ class _MatchPair extends StatelessWidget {
         const SizedBox(height: BracketWidget._boxGap),
         _TeamBox(
           name: match?.awayPlayerName,
+          playerId: match?.awayPlayerId,
           score: match?.awayScore,
           isWinner: _awayWon,
           isFinished: match?.isFinished ?? false,
@@ -684,13 +693,14 @@ class _MatchPair extends StatelessWidget {
   }
 }
 
-class _TeamBox extends StatelessWidget {
+class _TeamBox extends ConsumerWidget {
   const _TeamBox({
     required this.name,
     required this.score,
     required this.isWinner,
     required this.isFinished,
     this.isBye = false,
+    this.playerId,
   });
 
   final String? name;
@@ -699,8 +709,13 @@ class _TeamBox extends StatelessWidget {
   final bool isFinished;
   final bool isBye;
 
+  /// Para buscar el acrónimo del gremio (null = sin acrónimo).
+  final String? playerId;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final acronym =
+        playerId == null ? null : ref.watch(playerAcronymsProvider)[playerId];
     if (name == null) {
       return Container(
         height: BracketWidget._boxHeight,
@@ -767,17 +782,46 @@ class _TeamBox extends StatelessWidget {
             const Icon(Icons.shield_outlined,
                 size: 12, color: AppColors.primary),
           const SizedBox(width: 6),
+          // Si el nombre no cabe se recorta con "…", pero el acrónimo del
+          // gremio queda siempre visible (va aparte, sin recortar).
+          // El nombre usa todo el ancho libre de la casilla; solo se recorta
+          // lo justo para que el acrónimo entre a su lado.
           Expanded(
-            child: Text(
-              name!,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12,
-                fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
-                color: isWinner ? AppColors.accent : AppColors.textSecondary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    name!,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight:
+                          isWinner ? FontWeight.w700 : FontWeight.w500,
+                      color: isWinner
+                          ? AppColors.accent
+                          : AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (acronym != null) ...[
+                  const SizedBox(width: 5),
+                  Text(
+                    acronym,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: isWinner
+                          ? AppColors.accent
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 4),
+              ],
             ),
           ),
           Text(
@@ -852,6 +896,7 @@ class _ChampionPodium extends StatelessWidget {
             right: 0,
             child: _TeamBox(
               name: name,
+              playerId: homeWon ? match.homePlayerId : match.awayPlayerId,
               score: score,
               isWinner: true,
               isFinished: true,

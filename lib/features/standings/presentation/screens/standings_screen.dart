@@ -14,6 +14,8 @@ import '../../../fixtures/presentation/providers/fixture_provider.dart'
 import '../../../tournaments/presentation/providers/tournament_provider.dart'
     show tournamentByIdProvider;
 import '../../domain/entities/standing_entity.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerGuildsProvider, nameWithGuild;
 import '../providers/standing_provider.dart';
 
 class StandingsScreen extends ConsumerWidget {
@@ -143,14 +145,15 @@ class StandingsScreen extends ConsumerWidget {
 
 /// Tarjeta con título (trofeo + nombre), encabezado de columnas y filas de
 /// datos — mismo bloque visual para la tabla única (liga) o cada grupo.
-class _StandingsCard extends StatelessWidget {
+class _StandingsCard extends ConsumerWidget {
   final String title;
   final List<StandingEntity> standings;
 
   const _StandingsCard({required this.title, required this.standings});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final guilds = ref.watch(playerGuildsProvider);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
@@ -191,7 +194,7 @@ class _StandingsCard extends StatelessWidget {
           _buildHeaderRow(),
           const Divider(height: 1),
           for (final entry in standings.asMap().entries) ...[
-            _buildDataRow(entry.value, entry.key + 1),
+            _buildDataRow(entry.value, entry.key + 1, guilds),
             if (entry.key < standings.length - 1) const Divider(height: 1),
           ],
         ],
@@ -222,7 +225,8 @@ class _StandingsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDataRow(StandingEntity s, int position) {
+  Widget _buildDataRow(
+      StandingEntity s, int position, Map<String, String> guilds) {
     return Container(
       color: position <= 3 ? _podiumColor(position).withOpacity(0.05) : null,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -234,7 +238,8 @@ class _StandingsCard extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              s.playerName,
+              // "Nombre - Gremio completo" si tiene gremio.
+              nameWithGuild(guilds, s.playerId, s.playerName),
               style: AppTextStyles.titleMedium.copyWith(
                 color:
                     position <= 3 ? _podiumColor(position) : AppColors.textPrimary,

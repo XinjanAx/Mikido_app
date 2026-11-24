@@ -1083,6 +1083,17 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
   late final GeneratedColumn<String> photoUrl = GeneratedColumn<String>(
       'photo_url', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _guildMeta = const VerificationMeta('guild');
+  @override
+  late final GeneratedColumn<String> guild = GeneratedColumn<String>(
+      'guild', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _guildAcronymMeta =
+      const VerificationMeta('guildAcronym');
+  @override
+  late final GeneratedColumn<String> guildAcronym = GeneratedColumn<String>(
+      'guild_acronym', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1116,6 +1127,8 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
         phone,
         birthDate,
         photoUrl,
+        guild,
+        guildAcronym,
         createdAt,
         dirty,
         deletedLocally
@@ -1157,6 +1170,16 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
       context.handle(_photoUrlMeta,
           photoUrl.isAcceptableOrUnknown(data['photo_url']!, _photoUrlMeta));
     }
+    if (data.containsKey('guild')) {
+      context.handle(
+          _guildMeta, guild.isAcceptableOrUnknown(data['guild']!, _guildMeta));
+    }
+    if (data.containsKey('guild_acronym')) {
+      context.handle(
+          _guildAcronymMeta,
+          guildAcronym.isAcceptableOrUnknown(
+              data['guild_acronym']!, _guildAcronymMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1192,6 +1215,10 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
           .read(DriftSqlType.dateTime, data['${effectivePrefix}birth_date']),
       photoUrl: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}photo_url']),
+      guild: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}guild']),
+      guildAcronym: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}guild_acronym']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
       dirty: attachedDatabase.typeMapping
@@ -1214,6 +1241,11 @@ class Player extends DataClass implements Insertable<Player> {
   final String? phone;
   final DateTime? birthDate;
   final String? photoUrl;
+
+  /// Gremio o clan (opcional) y su acrónimo (máx. 4 letras, en mayúsculas;
+  /// obligatorio solo si hay gremio).
+  final String? guild;
+  final String? guildAcronym;
   final DateTime? createdAt;
   final bool dirty;
   final bool deletedLocally;
@@ -1224,6 +1256,8 @@ class Player extends DataClass implements Insertable<Player> {
       this.phone,
       this.birthDate,
       this.photoUrl,
+      this.guild,
+      this.guildAcronym,
       this.createdAt,
       required this.dirty,
       required this.deletedLocally});
@@ -1243,6 +1277,12 @@ class Player extends DataClass implements Insertable<Player> {
     }
     if (!nullToAbsent || photoUrl != null) {
       map['photo_url'] = Variable<String>(photoUrl);
+    }
+    if (!nullToAbsent || guild != null) {
+      map['guild'] = Variable<String>(guild);
+    }
+    if (!nullToAbsent || guildAcronym != null) {
+      map['guild_acronym'] = Variable<String>(guildAcronym);
     }
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
@@ -1266,6 +1306,11 @@ class Player extends DataClass implements Insertable<Player> {
       photoUrl: photoUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(photoUrl),
+      guild:
+          guild == null && nullToAbsent ? const Value.absent() : Value(guild),
+      guildAcronym: guildAcronym == null && nullToAbsent
+          ? const Value.absent()
+          : Value(guildAcronym),
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
@@ -1284,6 +1329,8 @@ class Player extends DataClass implements Insertable<Player> {
       phone: serializer.fromJson<String?>(json['phone']),
       birthDate: serializer.fromJson<DateTime?>(json['birthDate']),
       photoUrl: serializer.fromJson<String?>(json['photoUrl']),
+      guild: serializer.fromJson<String?>(json['guild']),
+      guildAcronym: serializer.fromJson<String?>(json['guildAcronym']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
@@ -1299,6 +1346,8 @@ class Player extends DataClass implements Insertable<Player> {
       'phone': serializer.toJson<String?>(phone),
       'birthDate': serializer.toJson<DateTime?>(birthDate),
       'photoUrl': serializer.toJson<String?>(photoUrl),
+      'guild': serializer.toJson<String?>(guild),
+      'guildAcronym': serializer.toJson<String?>(guildAcronym),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
       'dirty': serializer.toJson<bool>(dirty),
       'deletedLocally': serializer.toJson<bool>(deletedLocally),
@@ -1312,6 +1361,8 @@ class Player extends DataClass implements Insertable<Player> {
           Value<String?> phone = const Value.absent(),
           Value<DateTime?> birthDate = const Value.absent(),
           Value<String?> photoUrl = const Value.absent(),
+          Value<String?> guild = const Value.absent(),
+          Value<String?> guildAcronym = const Value.absent(),
           Value<DateTime?> createdAt = const Value.absent(),
           bool? dirty,
           bool? deletedLocally}) =>
@@ -1322,6 +1373,9 @@ class Player extends DataClass implements Insertable<Player> {
         phone: phone.present ? phone.value : this.phone,
         birthDate: birthDate.present ? birthDate.value : this.birthDate,
         photoUrl: photoUrl.present ? photoUrl.value : this.photoUrl,
+        guild: guild.present ? guild.value : this.guild,
+        guildAcronym:
+            guildAcronym.present ? guildAcronym.value : this.guildAcronym,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
         dirty: dirty ?? this.dirty,
         deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -1334,6 +1388,10 @@ class Player extends DataClass implements Insertable<Player> {
       phone: data.phone.present ? data.phone.value : this.phone,
       birthDate: data.birthDate.present ? data.birthDate.value : this.birthDate,
       photoUrl: data.photoUrl.present ? data.photoUrl.value : this.photoUrl,
+      guild: data.guild.present ? data.guild.value : this.guild,
+      guildAcronym: data.guildAcronym.present
+          ? data.guildAcronym.value
+          : this.guildAcronym,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deletedLocally: data.deletedLocally.present
@@ -1351,6 +1409,8 @@ class Player extends DataClass implements Insertable<Player> {
           ..write('phone: $phone, ')
           ..write('birthDate: $birthDate, ')
           ..write('photoUrl: $photoUrl, ')
+          ..write('guild: $guild, ')
+          ..write('guildAcronym: $guildAcronym, ')
           ..write('createdAt: $createdAt, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally')
@@ -1360,7 +1420,7 @@ class Player extends DataClass implements Insertable<Player> {
 
   @override
   int get hashCode => Object.hash(id, name, email, phone, birthDate, photoUrl,
-      createdAt, dirty, deletedLocally);
+      guild, guildAcronym, createdAt, dirty, deletedLocally);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1371,6 +1431,8 @@ class Player extends DataClass implements Insertable<Player> {
           other.phone == this.phone &&
           other.birthDate == this.birthDate &&
           other.photoUrl == this.photoUrl &&
+          other.guild == this.guild &&
+          other.guildAcronym == this.guildAcronym &&
           other.createdAt == this.createdAt &&
           other.dirty == this.dirty &&
           other.deletedLocally == this.deletedLocally);
@@ -1383,6 +1445,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   final Value<String?> phone;
   final Value<DateTime?> birthDate;
   final Value<String?> photoUrl;
+  final Value<String?> guild;
+  final Value<String?> guildAcronym;
   final Value<DateTime?> createdAt;
   final Value<bool> dirty;
   final Value<bool> deletedLocally;
@@ -1394,6 +1458,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     this.phone = const Value.absent(),
     this.birthDate = const Value.absent(),
     this.photoUrl = const Value.absent(),
+    this.guild = const Value.absent(),
+    this.guildAcronym = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
@@ -1406,6 +1472,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     this.phone = const Value.absent(),
     this.birthDate = const Value.absent(),
     this.photoUrl = const Value.absent(),
+    this.guild = const Value.absent(),
+    this.guildAcronym = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deletedLocally = const Value.absent(),
@@ -1419,6 +1487,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     Expression<String>? phone,
     Expression<DateTime>? birthDate,
     Expression<String>? photoUrl,
+    Expression<String>? guild,
+    Expression<String>? guildAcronym,
     Expression<DateTime>? createdAt,
     Expression<bool>? dirty,
     Expression<bool>? deletedLocally,
@@ -1431,6 +1501,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
       if (phone != null) 'phone': phone,
       if (birthDate != null) 'birth_date': birthDate,
       if (photoUrl != null) 'photo_url': photoUrl,
+      if (guild != null) 'guild': guild,
+      if (guildAcronym != null) 'guild_acronym': guildAcronym,
       if (createdAt != null) 'created_at': createdAt,
       if (dirty != null) 'dirty': dirty,
       if (deletedLocally != null) 'deleted_locally': deletedLocally,
@@ -1445,6 +1517,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
       Value<String?>? phone,
       Value<DateTime?>? birthDate,
       Value<String?>? photoUrl,
+      Value<String?>? guild,
+      Value<String?>? guildAcronym,
       Value<DateTime?>? createdAt,
       Value<bool>? dirty,
       Value<bool>? deletedLocally,
@@ -1456,6 +1530,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
       phone: phone ?? this.phone,
       birthDate: birthDate ?? this.birthDate,
       photoUrl: photoUrl ?? this.photoUrl,
+      guild: guild ?? this.guild,
+      guildAcronym: guildAcronym ?? this.guildAcronym,
       createdAt: createdAt ?? this.createdAt,
       dirty: dirty ?? this.dirty,
       deletedLocally: deletedLocally ?? this.deletedLocally,
@@ -1484,6 +1560,12 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     if (photoUrl.present) {
       map['photo_url'] = Variable<String>(photoUrl.value);
     }
+    if (guild.present) {
+      map['guild'] = Variable<String>(guild.value);
+    }
+    if (guildAcronym.present) {
+      map['guild_acronym'] = Variable<String>(guildAcronym.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1508,6 +1590,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
           ..write('phone: $phone, ')
           ..write('birthDate: $birthDate, ')
           ..write('photoUrl: $photoUrl, ')
+          ..write('guild: $guild, ')
+          ..write('guildAcronym: $guildAcronym, ')
           ..write('createdAt: $createdAt, ')
           ..write('dirty: $dirty, ')
           ..write('deletedLocally: $deletedLocally, ')
@@ -4785,6 +4869,8 @@ typedef $$PlayersTableCreateCompanionBuilder = PlayersCompanion Function({
   Value<String?> phone,
   Value<DateTime?> birthDate,
   Value<String?> photoUrl,
+  Value<String?> guild,
+  Value<String?> guildAcronym,
   Value<DateTime?> createdAt,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -4797,6 +4883,8 @@ typedef $$PlayersTableUpdateCompanionBuilder = PlayersCompanion Function({
   Value<String?> phone,
   Value<DateTime?> birthDate,
   Value<String?> photoUrl,
+  Value<String?> guild,
+  Value<String?> guildAcronym,
   Value<DateTime?> createdAt,
   Value<bool> dirty,
   Value<bool> deletedLocally,
@@ -4829,6 +4917,12 @@ class $$PlayersTableFilterComposer
 
   ColumnFilters<String> get photoUrl => $composableBuilder(
       column: $table.photoUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get guild => $composableBuilder(
+      column: $table.guild, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get guildAcronym => $composableBuilder(
+      column: $table.guildAcronym, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -4868,6 +4962,13 @@ class $$PlayersTableOrderingComposer
   ColumnOrderings<String> get photoUrl => $composableBuilder(
       column: $table.photoUrl, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get guild => $composableBuilder(
+      column: $table.guild, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get guildAcronym => $composableBuilder(
+      column: $table.guildAcronym,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -4905,6 +5006,12 @@ class $$PlayersTableAnnotationComposer
 
   GeneratedColumn<String> get photoUrl =>
       $composableBuilder(column: $table.photoUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get guild =>
+      $composableBuilder(column: $table.guild, builder: (column) => column);
+
+  GeneratedColumn<String> get guildAcronym => $composableBuilder(
+      column: $table.guildAcronym, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4945,6 +5052,8 @@ class $$PlayersTableTableManager extends RootTableManager<
             Value<String?> phone = const Value.absent(),
             Value<DateTime?> birthDate = const Value.absent(),
             Value<String?> photoUrl = const Value.absent(),
+            Value<String?> guild = const Value.absent(),
+            Value<String?> guildAcronym = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -4957,6 +5066,8 @@ class $$PlayersTableTableManager extends RootTableManager<
             phone: phone,
             birthDate: birthDate,
             photoUrl: photoUrl,
+            guild: guild,
+            guildAcronym: guildAcronym,
             createdAt: createdAt,
             dirty: dirty,
             deletedLocally: deletedLocally,
@@ -4969,6 +5080,8 @@ class $$PlayersTableTableManager extends RootTableManager<
             Value<String?> phone = const Value.absent(),
             Value<DateTime?> birthDate = const Value.absent(),
             Value<String?> photoUrl = const Value.absent(),
+            Value<String?> guild = const Value.absent(),
+            Value<String?> guildAcronym = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
             Value<bool> dirty = const Value.absent(),
             Value<bool> deletedLocally = const Value.absent(),
@@ -4981,6 +5094,8 @@ class $$PlayersTableTableManager extends RootTableManager<
             phone: phone,
             birthDate: birthDate,
             photoUrl: photoUrl,
+            guild: guild,
+            guildAcronym: guildAcronym,
             createdAt: createdAt,
             dirty: dirty,
             deletedLocally: deletedLocally,

@@ -299,7 +299,7 @@ class _SeedRow extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                isBye ? 'BYE — pasa directo' : player!.name,
+                isBye ? 'BYE — pasa directo' : player!.nameWithAcronym,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: isBye

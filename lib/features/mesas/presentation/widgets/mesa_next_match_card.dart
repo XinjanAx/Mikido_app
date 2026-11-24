@@ -8,6 +8,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/category_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider, nameWithAcronym;
 import '../../../tournaments/domain/entities/tournament_entity.dart';
 import '../../../fixtures/presentation/widgets/match_card_widget.dart'
     show MesaTurnBadge;
@@ -27,6 +29,7 @@ class MesaNextMatchCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final queue = ref.watch(mesaQueueProvider(mesaId)).valueOrNull ?? const [];
     final next = queue.where((m) => !m.isFinished).firstOrNull;
+    final acronyms = ref.watch(playerAcronymsProvider);
     final category = next == null
         ? null
         : ref.watch(tournamentByIdProvider(next.tournamentId));
@@ -38,11 +41,13 @@ class MesaNextMatchCard extends ConsumerWidget {
     } else if (next == null) {
       subtitle = 'Todos los encuentros de la mesa ya se jugaron';
     } else {
-      subtitle = '$played de ${queue.length} jugados';
+      // Total final (incluye rondas de eliminación por generar).
+      subtitle =
+          '$played de ${ref.watch(mesaProjectedTotalProvider(mesaId))} jugados';
     }
 
     final isAdmin = ref.watch(isAdminProvider);
-    final card = _buildCard(context, next, category, subtitle);
+    final card = _buildCard(context, next, category, subtitle, acronyms);
     if (!isAdmin) return card;
 
     // Solo el admin ve (y puede abrir) Mesa en vivo.
@@ -57,7 +62,7 @@ class MesaNextMatchCard extends ConsumerWidget {
             child: ElevatedButton.icon(
               onPressed: () => context
                   .push(RouteConstants.mesaLive.replaceAll(':id', mesaId)),
-              icon: const Icon(Icons.sports_kabaddi),
+              icon: const Icon(Icons.tv),
               label: const Text('MESA EN VIVO',
                   style:
                       TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1)),
@@ -68,11 +73,14 @@ class MesaNextMatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCard(BuildContext context, MatchEntity? next,
-      TournamentEntity? category, String subtitle) {
+  Widget _buildCard(
+      BuildContext context,
+      MatchEntity? next,
+      TournamentEntity? category,
+      String subtitle,
+      Map<String, String> acronyms) {
     // El siguiente se resalta con el color de SU categoría.
-    final highlight =
-        CategoryColors.parse(category?.color) ?? AppColors.accent;
+    final highlight = CategoryColors.parse(category?.color) ?? AppColors.accent;
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
@@ -130,8 +138,9 @@ class MesaNextMatchCard extends ConsumerWidget {
                                           ),
                                         ),
                                         Text(
-                                          '${next.homePlayerName}  vs  '
-                                          '${next.awayPlayerName}',
+                                          '${nameWithAcronym(acronyms, next.homePlayerId, next.homePlayerName)}'
+                                          '  vs  '
+                                          '${nameWithAcronym(acronyms, next.awayPlayerId, next.awayPlayerName)}',
                                           style: AppTextStyles.bodyMedium,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,

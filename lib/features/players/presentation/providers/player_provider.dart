@@ -156,6 +156,8 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
     String? email,
     String? phone,
     DateTime? birthDate,
+    String? guild,
+    String? guildAcronym,
   }) async {
     final player = PlayerEntity(
       id: const Uuid().v4(),
@@ -163,6 +165,8 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
       email: email,
       phone: phone,
       birthDate: birthDate,
+      guild: guild,
+      guildAcronym: guildAcronym,
     );
     final result = await _create(player);
     // No hace falta tocar `state.players` acá: el stream del constructor
@@ -227,6 +231,36 @@ class PlayersNotifier extends StateNotifier<PlayersState> {
     }, (_) => true);
   }
 }
+
+/// Acrónimo del gremio por id de participante (solo los que tienen).
+/// Para mostrar "Nombre - ACRO" en encuentros: los partidos guardan solo el
+/// nombre, así que el acrónimo se busca acá (y se actualiza solo si cambia).
+final playerAcronymsProvider = Provider<Map<String, String>>((ref) {
+  final players = ref.watch(playersProvider).players;
+  return {
+    for (final p in players)
+      if (p.guildAcronym != null && p.guildAcronym!.isNotEmpty)
+        p.id: p.guildAcronym!,
+  };
+});
+
+/// "Nombre - ACRO" si el participante [playerId] tiene gremio.
+String nameWithAcronym(
+        Map<String, String> acronyms, String playerId, String name) =>
+    acronyms[playerId] == null ? name : '$name - ${acronyms[playerId]}';
+
+/// Nombre completo del gremio por id de participante (solo los que tienen).
+final playerGuildsProvider = Provider<Map<String, String>>((ref) {
+  final players = ref.watch(playersProvider).players;
+  return {
+    for (final p in players)
+      if (p.guild != null && p.guild!.isNotEmpty) p.id: p.guild!,
+  };
+});
+
+/// "Nombre - Gremio completo" si el participante [playerId] tiene gremio.
+String nameWithGuild(Map<String, String> guilds, String playerId, String name) =>
+    guilds[playerId] == null ? name : '$name - ${guilds[playerId]}';
 
 final playersProvider = StateNotifierProvider<PlayersNotifier, PlayersState>(
   (ref) => PlayersNotifier(

@@ -97,6 +97,7 @@ class PlayerEnrollmentScreenState
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       return p.name.toLowerCase().contains(q) ||
+          (p.guildAcronym?.toLowerCase().contains(q) ?? false) ||
           (p.email?.toLowerCase().contains(q) ?? false);
     }).toList();
 
@@ -157,6 +158,10 @@ class PlayerEnrollmentScreenState
                 final inscritos = enrolled.where((p) {
                   return _searchQuery.isEmpty ||
                       p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                      (p.guildAcronym
+                              ?.toLowerCase()
+                              .contains(_searchQuery.toLowerCase()) ??
+                          false) ||
                       (p.email
                               ?.toLowerCase()
                               .contains(_searchQuery.toLowerCase()) ??
@@ -206,7 +211,7 @@ class PlayerEnrollmentScreenState
                         ),
                       )
                     else
-                      ...inscritos.map((p) => ListTile(
+                      ..._withDividers(inscritos.map((p) => ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Colors.green.withOpacity(0.15),
                               child: Text(
@@ -214,7 +219,7 @@ class PlayerEnrollmentScreenState
                                 style: const TextStyle(color: Colors.green),
                               ),
                             ),
-                            title: Text(p.name),
+                            title: Text(p.nameWithAcronym),
                             subtitle: p.email != null ? Text(p.email!) : null,
                             trailing: IconButton(
                               icon: const Icon(Icons.remove_circle_outline,
@@ -222,7 +227,7 @@ class PlayerEnrollmentScreenState
                               tooltip: 'Desinscribir',
                               onPressed: () => _unenroll(p.id, p.name),
                             ),
-                          )),
+                          ))),
                     const Divider(height: 1),
 
                     // ── Disponibles (no inscritos) ──
@@ -239,7 +244,7 @@ class PlayerEnrollmentScreenState
                       ),
                     ),
 
-                    ...disponibles.map((p) => ListTile(
+                    ..._withDividers(disponibles.map((p) => ListTile(
                           leading: CircleAvatar(
                             backgroundColor: Colors.blueGrey.withOpacity(0.15),
                             child: Text(
@@ -247,13 +252,13 @@ class PlayerEnrollmentScreenState
                               style: const TextStyle(color: Colors.blueGrey),
                             ),
                           ),
-                          title: Text(p.name),
+                          title: Text(p.nameWithAcronym),
                           subtitle: p.email != null ? Text(p.email!) : null,
                           trailing: TextButton(
                             onPressed: () => _enroll(p.id),
                             child: const Text('Inscribir'),
                           ),
-                        )),
+                        ))),
 
                     if (disponibles.isEmpty)
                       Padding(
@@ -284,3 +289,12 @@ class PlayerEnrollmentScreenState
     );
   }
 }
+
+/// Línea divisoria entre cada participante (de lado a lado), para que se vea
+/// claro a qué nombre corresponde cada botón "Inscribir"/"Desinscribir".
+List<Widget> _withDividers(Iterable<Widget> tiles) => [
+      for (final tile in tiles) ...[
+        tile,
+        Divider(height: 1, thickness: 1, color: AppColors.border),
+      ],
+    ];

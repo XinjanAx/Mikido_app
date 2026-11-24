@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/standing_entity.dart';
 import '../../domain/services/tiebreak_detector.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider, nameWithAcronym;
 
 /// Antes de finalizar un torneo con empates sin resolver (mismos puntos Y
 /// misma diferencia), pide al admin que decida a mano el orden de cada
@@ -20,17 +23,21 @@ Future<Map<String, int>?> showTiebreakResolutionDialog(
   );
 }
 
-class _TiebreakResolutionDialog extends StatefulWidget {
+class _TiebreakResolutionDialog extends ConsumerStatefulWidget {
   final List<TiedGroup> tiedGroups;
   const _TiebreakResolutionDialog({required this.tiedGroups});
 
   @override
-  State<_TiebreakResolutionDialog> createState() =>
+  ConsumerState<_TiebreakResolutionDialog> createState() =>
       _TiebreakResolutionDialogState();
 }
 
 class _TiebreakResolutionDialogState
-    extends State<_TiebreakResolutionDialog> {
+    extends ConsumerState<_TiebreakResolutionDialog> {
+  /// "Nombre - ACRO" si el jugador tiene gremio.
+  String _label(StandingEntity s) => nameWithAcronym(
+      ref.read(playerAcronymsProvider), s.playerId, s.playerName);
+
   late final List<List<StandingEntity>> _remaining = widget.tiedGroups
       .map((g) => List<StandingEntity>.from(g.members))
       .toList();
@@ -58,14 +65,14 @@ class _TiebreakResolutionDialogState
   Future<void> _pickWinner(int groupIndex, StandingEntity candidate) async {
     final others = _remaining[groupIndex]
         .where((s) => s.playerId != candidate.playerId)
-        .map((s) => s.playerName)
+        .map(_label)
         .join(', ');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar desempate'),
         content: Text(
-          '¿Confirmas que ${candidate.playerName} queda por delante de '
+          '¿Confirmas que ${_label(candidate)} queda por delante de '
           '$others en este desempate?',
         ),
         actions: [
@@ -144,7 +151,7 @@ class _TiebreakResolutionDialogState
   }
 }
 
-class _TiedGroupCard extends StatelessWidget {
+class _TiedGroupCard extends ConsumerWidget {
   final TiedGroup group;
   final List<StandingEntity> remaining;
   final List<StandingEntity> resolved;
@@ -158,7 +165,11 @@ class _TiedGroupCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final acronyms = ref.watch(playerAcronymsProvider);
+    // "Nombre - ACRO" si el jugador tiene gremio.
+    String playerLabel(StandingEntity s) =>
+        nameWithAcronym(acronyms, s.playerId, s.playerName);
     final points = group.members.first.points;
     final label = group.groupLabel != null
         ? '${group.groupLabel} — empate en $points pts'
@@ -185,7 +196,7 @@ class _TiedGroupCard extends StatelessWidget {
                   const Icon(Icons.check_circle,
                       size: 16, color: AppColors.success),
                   const SizedBox(width: 6),
-                  Text('${i + 1}. ${resolved[i].playerName}',
+                  Text('${i + 1}. ${playerLabel(resolved[i])}',
                       style: AppTextStyles.bodyMedium),
                 ],
               ),
@@ -201,7 +212,7 @@ class _TiedGroupCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.error),
                     onPressed: () => onPick(s),
-                    child: Text('${s.playerName} ganó'),
+                    child: Text('${playerLabel(s)} ganó'),
                   ),
               ],
             ),

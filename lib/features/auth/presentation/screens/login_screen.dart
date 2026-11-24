@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -170,10 +171,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    // No hay recuperación por correo: la cuenta la
+                    // restablece un admin desde Supabase.
+                    // Mismo estilo que el texto de la versión al pie.
+                    SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        '¿Olvidaste tu correo o contraseña? Comunícate '
+                        'con la administración del Club MIKIDO para '
+                        'restablecer tu cuenta.',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.labelSmall
+                            .copyWith(color: AppColors.grey400),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+      // Versión fija al pie, igual que en la pantalla de inicio.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'Versión ${AppConstants.appVersion}',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelSmall.copyWith(color: AppColors.grey400),
           ),
         ),
       ),

@@ -12,6 +12,8 @@ import '../../../fixtures/presentation/providers/fixture_provider.dart'
 import '../../../mesas/presentation/providers/mesa_provider.dart'
     show mesaByIdProvider;
 import '../../../mesas/presentation/widgets/mesa_next_match_card.dart';
+import '../../../standings/presentation/providers/podium_provider.dart';
+import '../../../standings/presentation/widgets/podium_widgets.dart';
 import '../providers/tournament_provider.dart';
 import '../widgets/category_color_widgets.dart';
 
@@ -29,6 +31,7 @@ class TournamentDetailScreen extends ConsumerWidget {
             .valueOrNull
             ?.isNotEmpty ??
         false;
+    final podium = ref.watch(podiumProvider(tournamentId));
 
     if (tournament == null) {
       final isLoading = ref.watch(tournamentsProvider).isLoading;
@@ -108,6 +111,12 @@ class TournamentDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // Podio (solo con la categoría finalizada).
+          if (podium.isNotEmpty) ...[
+            PodiumCard(podium: podium),
+            const SizedBox(height: 12),
+          ],
 
           // Orden de la mesa (con el siguiente encuentro a jugar).
           if (tournament.mesaId != null) ...[

@@ -17,6 +17,7 @@ import '../../data/repositories/mesa_repository.dart';
 import '../../data/services/mesa_schedule_service.dart';
 import '../../data/sync/mesa_sync_adapter.dart';
 import '../../domain/entities/mesa_entity.dart';
+import '../../domain/services/mesa_progress.dart';
 
 // ---------- Infraestructura ----------
 
@@ -85,6 +86,25 @@ final mesaQueueProvider =
       .watchMatchesByMesa(mesaId)
       .map((list) => list.where((m) => m.mesaOrder != null).toList()
         ..sort((a, b) => a.mesaOrder!.compareTo(b.mesaOrder!)));
+});
+
+/// Total final de encuentros de la mesa para el contador "X de Y": en
+/// eliminación incluye las rondas que todavía no se generan (y el 3er
+/// puesto). Ver [MesaProgress.projectedTotal].
+final mesaProjectedTotalProvider = Provider.family<int, String>((ref, mesaId) {
+  final all = ref
+          .watch(_mesaAllMatchesProvider(mesaId))
+          .valueOrNull ??
+      const <MatchEntity>[];
+  final tournaments = ref.watch(tournamentsProvider).tournaments;
+  final modes = {for (final t in tournaments) t.id: t.mode};
+  return MesaProgress.projectedTotal(all, (id) => modes[id]);
+});
+
+/// Todos los encuentros de la mesa, incluidos los BYE (sin turno).
+final _mesaAllMatchesProvider =
+    StreamProvider.family<List<MatchEntity>, String>((ref, mesaId) {
+  return ref.watch(fixtureLocalDataSourceProvider).watchMatchesByMesa(mesaId);
 });
 
 class MesaActions {

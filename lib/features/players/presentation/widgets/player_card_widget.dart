@@ -36,7 +36,23 @@ class PlayerCard extends StatelessWidget {
                 )
               : null,
         ),
-        title: Text(player.name, style: AppTextStyles.titleMedium),
+        // "Nombre - Gremio completo" (el gremio en gris, si lo tiene).
+        title: Text.rich(
+          TextSpan(
+            text: player.name,
+            children: [
+              if (player.guild != null && player.guild!.isNotEmpty)
+                TextSpan(
+                  text: ' - ${player.guild}',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: AppColors.grey400,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+          style: AppTextStyles.titleMedium,
+        ),
         subtitle: player.email != null
             ? Text(player.email!, style: AppTextStyles.bodySmall)
             : null,

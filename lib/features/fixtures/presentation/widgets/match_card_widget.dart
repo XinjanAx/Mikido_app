@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider, nameWithAcronym;
 import '../../domain/entities/match_entity.dart';
 
-class MatchCard extends StatelessWidget {
+class MatchCard extends ConsumerWidget {
   final MatchEntity match;
   final VoidCallback? onTap;
   final bool isAdmin;
@@ -22,8 +25,9 @@ class MatchCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final finished = match.isFinished;
+    final acronyms = ref.watch(playerAcronymsProvider);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -44,7 +48,8 @@ class MatchCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      match.homePlayerName,
+                      nameWithAcronym(
+                          acronyms, match.homePlayerId, match.homePlayerName),
                       style: AppTextStyles.titleMedium.copyWith(
                         color: finished && _homeWon
                             ? AppColors.accent
@@ -130,7 +135,8 @@ class MatchCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      match.awayPlayerName,
+                      nameWithAcronym(
+                          acronyms, match.awayPlayerId, match.awayPlayerName),
                       style: AppTextStyles.titleMedium.copyWith(
                         color: finished && _awayWon
                             ? AppColors.accent

@@ -94,8 +94,11 @@ class FixtureScreen extends ConsumerWidget {
     final isTournamentComplete = isMainBracketComplete && !needsThirdPlace;
     final standings =
         ref.watch(standingsStreamProvider(tournamentId)).valueOrNull ?? [];
-    final championName =
-        _championName(fixtureState.matches, isElimination, standings);
+    final champion = _champion(fixtureState.matches, isElimination, standings);
+    final championName = champion?.name;
+    final championGuild = champion == null
+        ? null
+        : ref.watch(playerGuildsProvider)[champion.id];
     final quickScoreMode = ref.watch(quickScoreModeProvider(tournamentId));
 
     return Scaffold(
@@ -286,6 +289,11 @@ class FixtureScreen extends ConsumerWidget {
                             Text(championName,
                                 style: AppTextStyles.headlineMedium
                                     .copyWith(color: AppColors.gold)),
+                            // Gremio completo, más chico y en gris.
+                            if (championGuild != null)
+                              Text(championGuild,
+                                  style: AppTextStyles.bodyMedium
+                                      .copyWith(color: AppColors.grey400)),
                           ],
                         ),
                       ),
@@ -306,8 +314,8 @@ class FixtureScreen extends ConsumerWidget {
 
   /// Eliminación: gana quien ganó la Final. Grupos/liga: gana quien
   /// encabeza la tabla de posiciones.
-  String? _championName(List<MatchEntity> matches, bool isElimination,
-      List<StandingEntity> standings) {
+  ({String id, String name})? _champion(List<MatchEntity> matches,
+      bool isElimination, List<StandingEntity> standings) {
     if (isElimination) {
       // Se busca la ronda "Final" explícitamente en vez de asumir que es
       // el partido con mayor `matchNumber`: el partido por el 3er puesto
@@ -322,11 +330,11 @@ class FixtureScreen extends ConsumerWidget {
       final winnerId = finalMatch.winner;
       if (winnerId == null) return null;
       return winnerId == finalMatch.homePlayerId
-          ? finalMatch.homePlayerName
-          : finalMatch.awayPlayerName;
+          ? (id: finalMatch.homePlayerId, name: finalMatch.homePlayerName)
+          : (id: finalMatch.awayPlayerId, name: finalMatch.awayPlayerName);
     }
     if (standings.isEmpty) return null;
-    return standings.first.playerName;
+    return (id: standings.first.playerId, name: standings.first.playerName);
   }
 
   /// Si no hay empates sin resolver, el flujo de siempre (confirmar y
@@ -420,7 +428,7 @@ class FixtureScreen extends ConsumerWidget {
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.sports_kabaddi, color: AppColors.accent),
+        icon: const Icon(Icons.tv, color: AppColors.accent),
         title: const Text('Se registra en Mesa en vivo'),
         content: const Text(
           'Los resultados se registran en Mesa en vivo, en el orden de la '

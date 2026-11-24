@@ -9,6 +9,8 @@ class PlayerModel extends PlayerEntity {
     super.birthDate,
     super.photoUrl,
     super.createdAt,
+    super.guild,
+    super.guildAcronym,
   });
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) => PlayerModel(
@@ -23,6 +25,8 @@ class PlayerModel extends PlayerEntity {
         createdAt: json['created_at'] != null
             ? DateTime.tryParse(json['created_at'] as String)
             : null,
+        guild: json['guild'] as String?,
+        guildAcronym: json['guild_acronym'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +36,8 @@ class PlayerModel extends PlayerEntity {
         'phone': phone,
         'birth_date': birthDate?.toIso8601String(),
         'photo_url': photoUrl,
+        'guild': guild,
+        'guild_acronym': guildAcronym,
       };
 
   Map<String, dynamic> toInsertJson() {
@@ -48,5 +54,7 @@ class PlayerModel extends PlayerEntity {
         birthDate: e.birthDate,
         photoUrl: e.photoUrl,
         createdAt: e.createdAt,
+        guild: e.guild,
+        guildAcronym: e.guildAcronym,
       );
 }

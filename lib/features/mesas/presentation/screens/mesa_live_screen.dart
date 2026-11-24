@@ -9,9 +9,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/category_colors.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/services/match_result_flow.dart';
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider, playerGuildsProvider, nameWithAcronym;
 import '../../../fixtures/presentation/widgets/match_card_widget.dart'
     show MesaTurnBadge;
 import '../../../tournaments/presentation/providers/tournament_provider.dart';
@@ -29,6 +32,9 @@ import '../providers/mesa_provider.dart';
 /// Las correcciones de encuentros ya jugados se hacen en Encuentros de la
 /// categoría. Las reglas de guardado (sin empates en eliminación, avance de
 /// ronda con confirmación) son las mismas: submitMatchResult.
+/// Por debajo de este ancho (celular) el "VS" va arriba de las esquinas.
+const double _narrowCardWidth = 520;
+
 class MesaLiveScreen extends ConsumerStatefulWidget {
   final String mesaId;
 
@@ -73,9 +79,6 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: current == null
-            ? null
-            : CategoryHeaderGradient(tournamentId: current.tournamentId),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -108,7 +111,9 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Text(
-                  '${queue.length - pending.length} de ${queue.length}',
+                  // Total final (incluye rondas de eliminación por generar).
+                  '${queue.length - pending.length} de '
+                  '${ref.watch(mesaProjectedTotalProvider(widget.mesaId))}',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.grey400),
                 ),
@@ -120,6 +125,7 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
             onPressed: () => context.push(
                 RouteConstants.mesaQueue.replaceAll(':id', widget.mesaId)),
           ),
+          const ThemeToggleButton(),
         ],
       ),
       body: !isAdmin
@@ -174,6 +180,7 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
   Widget _buildCurrent(MatchEntity match) {
     final category = ref.watch(tournamentByIdProvider(match.tournamentId));
     final color = CategoryColors.parse(category?.color) ?? AppColors.accent;
+    final guilds = ref.watch(playerGuildsProvider);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -213,7 +220,7 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
                     '#${match.mesaOrder}',
                     style: const TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 64,
+                      fontSize: 48,
                       height: 1.1,
                       fontWeight: FontWeight.w700,
                     ),
@@ -243,37 +250,71 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
               ],
             ),
           ),
-          // Competidores y marcador.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _ScoreColumn(
-                    name: match.homePlayerName,
-                    score: _home,
-                    enabled: !_isSaving,
-                    onChanged: (v) => setState(() => _home = v),
+          // Competidores y marcador. En pantallas angostas (celular) el "VS"
+          // va arriba, debajo de la ronda y más chico, para que cada
+          // esquina use todo el ancho; en anchas va entre las dos esquinas.
+          LayoutBuilder(builder: (context, constraints) {
+            final narrow = constraints.maxWidth < _narrowCardWidth;
+            final blue = Expanded(
+              child: _ScoreColumn(
+                corner: _Corner.blue,
+                name: match.homePlayerName,
+                guild: guilds[match.homePlayerId],
+                score: _home,
+                enabled: !_isSaving,
+                onChanged: (v) => setState(() => _home = v),
+              ),
+            );
+            final red = Expanded(
+              child: _ScoreColumn(
+                corner: _Corner.red,
+                name: match.awayPlayerName,
+                guild: guilds[match.awayPlayerId],
+                score: _away,
+                enabled: !_isSaving,
+                onChanged: (v) => setState(() => _away = v),
+              ),
+            );
+            TextStyle vsStyle(double size) =>
+                AppTextStyles.titleMedium.copyWith(
+                  fontSize: size,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: AppColors.grey400,
+                );
+
+            if (narrow) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                child: Column(
+                  children: [
+                    Text('VS', style: vsStyle(20)),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [blue, const SizedBox(width: 8), red],
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  blue,
+                  Padding(
+                    // 122 + 22 de la línea del gremio.
+                    padding:
+                        const EdgeInsets.only(top: 166, left: 10, right: 10),
+                    child: Text('VS', style: vsStyle(30)),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 78),
-                  child: Text('vs',
-                      style: AppTextStyles.titleMedium
-                          .copyWith(color: AppColors.grey400)),
-                ),
-                Expanded(
-                  child: _ScoreColumn(
-                    name: match.awayPlayerName,
-                    score: _away,
-                    enabled: !_isSaving,
-                    onChanged: (v) => setState(() => _away = v),
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  red,
+                ],
+              ),
+            );
+          }),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
             child: SizedBox(
@@ -309,9 +350,23 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('Confirmar resultado #${match.mesaOrder}'),
-        content: Text(
-          '${match.homePlayerName}  $_home  –  $_away  ${match.awayPlayerName}',
-          style: AppTextStyles.titleMedium,
+        content: Text.rich(
+          TextSpan(
+            style: AppTextStyles.titleMedium,
+            children: [
+              TextSpan(
+                text: '${match.homePlayerName}  $_home',
+                style: TextStyle(
+                    color: _Corner.blue.color, fontWeight: FontWeight.w700),
+              ),
+              const TextSpan(text: '  –  '),
+              TextSpan(
+                text: '$_away  ${match.awayPlayerName}',
+                style: TextStyle(
+                    color: _Corner.red.color, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -369,14 +424,32 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
 
 /// Nombre del competidor + marcador grande con botones − / +. Tocar el
 /// número permite escribirlo.
+/// Esquina de cada competidor en Mesa en vivo. Fija, no aleatoria: el
+/// primero del encuentro (local) va en la esquina azul, a la izquierda, y el
+/// segundo (visitante) en la roja, a la derecha.
+enum _Corner {
+  blue('ESQUINA AZUL', Color(0xFF1E88E5)),
+  red('ESQUINA ROJA', Color(0xFFE53935));
+
+  const _Corner(this.label, this.color);
+  final String label;
+  final Color color;
+}
+
 class _ScoreColumn extends StatelessWidget {
+  final _Corner corner;
   final String name;
+
+  /// Gremio completo del competidor (null si no tiene).
+  final String? guild;
   final int score;
   final bool enabled;
   final ValueChanged<int> onChanged;
 
   const _ScoreColumn({
+    required this.corner,
     required this.name,
+    this.guild,
     required this.score,
     required this.enabled,
     required this.onChanged,
@@ -384,17 +457,60 @@ class _ScoreColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = corner.color;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
+      ),
+      child: _buildContent(context, color),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Color color) {
     return Column(
       children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            corner.label,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
         SizedBox(
-          height: 64,
+          height: 72,
           child: Center(
             child: Text(
               name,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.titleLarge.copyWith(fontSize: 20),
+              style: AppTextStyles.titleLarge.copyWith(fontSize: 26),
+            ),
+          ),
+        ),
+        // Gremio completo, más chico. La línea se reserva siempre (aunque
+        // no tenga gremio) para que las dos esquinas queden alineadas.
+        SizedBox(
+          height: 22,
+          child: Text(
+            guild ?? '',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontSize: 14,
+              color: AppColors.grey400,
             ),
           ),
         ),
@@ -408,12 +524,12 @@ class _ScoreColumn extends StatelessWidget {
             child: FittedBox(
               child: Text(
                 '$score',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 80,
+                  fontSize: 104,
                   height: 1.1,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: color,
                 ),
               ),
             ),
@@ -425,11 +541,13 @@ class _ScoreColumn extends StatelessWidget {
           children: [
             _RoundButton(
               icon: Icons.remove,
+              color: color,
               onTap: enabled && score > 0 ? () => onChanged(score - 1) : null,
             ),
             const SizedBox(width: 16),
             _RoundButton(
               icon: Icons.add,
+              color: color,
               filled: true,
               onTap: enabled && score < AppConstants.maxMatchScore
                   ? () => onChanged(score + 1)
@@ -480,13 +598,22 @@ class _RoundButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool filled;
 
-  const _RoundButton({required this.icon, this.onTap, this.filled = false});
+  /// Color de la esquina del competidor.
+  final Color color;
+
+  const _RoundButton({
+    required this.icon,
+    required this.color,
+    this.onTap,
+    this.filled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = onTap == null ? AppColors.grey400 : AppColors.primary;
+    final enabledColor = this.color;
+    final color = onTap == null ? AppColors.grey400 : enabledColor;
     return Material(
-      color: filled && onTap != null ? AppColors.primary : Colors.transparent,
+      color: filled && onTap != null ? enabledColor : Colors.transparent,
       shape: CircleBorder(side: BorderSide(color: color, width: 2)),
       child: InkWell(
         canRequestFocus: false, // ver _saveFocus
@@ -511,6 +638,8 @@ class _UpcomingList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // En la lista de siguientes va el acrónimo del gremio (más corto).
+    final acronyms = ref.watch(playerAcronymsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -555,7 +684,9 @@ class _UpcomingList extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${m.homePlayerName}  vs  ${m.awayPlayerName}',
+                                    '${nameWithAcronym(acronyms, m.homePlayerId, m.homePlayerName)}'
+                                    '  vs  '
+                                    '${nameWithAcronym(acronyms, m.awayPlayerId, m.awayPlayerName)}',
                                     style: AppTextStyles.titleMedium,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,

@@ -8,9 +8,9 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../../core/sync/sync_engine_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/mesa_entity.dart';
 import '../providers/mesa_provider.dart';
@@ -98,13 +98,7 @@ class _MesaListScreenState extends ConsumerState<MesaListScreen> {
             tooltip: 'Sincronizar',
             onPressed: () => ref.read(syncEngineProvider).trySync(),
           ),
-          IconButton(
-            icon: Icon(ref.watch(themeModeProvider) == ThemeMode.dark
-                ? Icons.light_mode_outlined
-                : Icons.dark_mode_outlined),
-            tooltip: 'Cambiar tema',
-            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
-          ),
+          const ThemeToggleButton(),
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.people_outline),

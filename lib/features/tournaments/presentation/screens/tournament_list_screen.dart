@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart'
     show matchesStreamProvider;
@@ -54,6 +55,7 @@ class TournamentListScreen extends ConsumerWidget {
                 extra: mesa,
               ),
             ),
+          const ThemeToggleButton(),
         ],
       ),
       body: _buildBody(context, ref, state, categories, isAdmin, canCreate),

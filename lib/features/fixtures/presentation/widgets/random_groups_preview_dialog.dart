@@ -138,7 +138,7 @@ class _RandomGroupsPreviewDialogState
                 const SizedBox(height: 4),
                 ..._groups[i].map((p) => Padding(
                       padding: const EdgeInsets.only(left: 8, bottom: 2),
-                      child: Text('• ${p.name}',
+                      child: Text('• ${p.nameWithAcronym}',
                           style: AppTextStyles.bodyMedium),
                     )),
                 const SizedBox(height: 12),

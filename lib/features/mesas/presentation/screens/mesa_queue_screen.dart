@@ -11,6 +11,8 @@ import '../../../../core/widgets/loading_widget.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/widgets/match_card_widget.dart'
     show MesaTurnBadge;
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider;
 import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../../../tournaments/presentation/widgets/category_color_widgets.dart';
 import '../providers/mesa_provider.dart';
@@ -80,7 +82,10 @@ class _MesaQueueScreenState extends ConsumerState<MesaQueueScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Text(
-                  '$played de ${queue.length} encuentros jugados',
+                  // Total final (incluye rondas de eliminación por generar).
+                  '$played de '
+                  '${ref.watch(mesaProjectedTotalProvider(widget.mesaId))} '
+                  'encuentros jugados',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.grey400),
                 ),
@@ -123,14 +128,14 @@ class _QueueTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final category = ref.watch(tournamentByIdProvider(match.tournamentId));
+    final acronyms = ref.watch(playerAcronymsProvider);
     final finished = match.isFinished;
     final subtitle = [
       if (category != null) category.name,
       if (match.round != null) match.round!,
     ].join(' · ');
     // El siguiente se resalta con el color de SU categoría.
-    final highlight =
-        CategoryColors.parse(category?.color) ?? AppColors.accent;
+    final highlight = CategoryColors.parse(category?.color) ?? AppColors.accent;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -150,7 +155,8 @@ class _QueueTile extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 CategoryColorStrip(hex: category?.color, width: 6),
-                Expanded(child: _content(subtitle, finished, highlight)),
+                Expanded(
+                    child: _content(subtitle, finished, highlight, acronyms)),
               ],
             ),
           ),
@@ -159,7 +165,8 @@ class _QueueTile extends ConsumerWidget {
     );
   }
 
-  Widget _content(String subtitle, bool finished, Color highlight) {
+  Widget _content(String subtitle, bool finished, Color highlight,
+      Map<String, String> acronyms) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -181,8 +188,24 @@ class _QueueTile extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.6,
                       )),
-                Text(
-                  '${match.homePlayerName}  vs  ${match.awayPlayerName}',
+                // El acrónimo del gremio va en letra más delgada para
+                // diferenciarlo del nombre.
+                Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: match.homePlayerName),
+                    if (acronyms[match.homePlayerId] != null)
+                      TextSpan(
+                        text: ' - ${acronyms[match.homePlayerId]}',
+                        style: const TextStyle(fontWeight: FontWeight.w400),
+                      ),
+                    const TextSpan(text: '  vs  '),
+                    TextSpan(text: match.awayPlayerName),
+                    if (acronyms[match.awayPlayerId] != null)
+                      TextSpan(
+                        text: ' - ${acronyms[match.awayPlayerId]}',
+                        style: const TextStyle(fontWeight: FontWeight.w400),
+                      ),
+                  ]),
                   style: AppTextStyles.titleMedium,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

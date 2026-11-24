@@ -23,17 +23,21 @@ class CategoryHeaderGradient extends ConsumerWidget {
     final color = CategoryColors.parse(hex);
     if (color == null) return const SizedBox.shrink();
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            color.withValues(alpha: 0.65),
-            color.withValues(alpha: 0.25),
-            color.withValues(alpha: 0.0),
-          ],
-          stops: const [0.0, 0.45, 0.9],
+    // SizedBox.expand: un DecoratedBox sin hijo recibe del AppBar
+    // restricciones sueltas y se queda en 0×0 — el degradado nunca se veía.
+    return SizedBox.expand(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              color.withValues(alpha: 0.65),
+              color.withValues(alpha: 0.25),
+              color.withValues(alpha: 0.0),
+            ],
+            stops: const [0.0, 0.45, 0.9],
+          ),
         ),
       ),
     );

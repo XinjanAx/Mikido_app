@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -81,6 +81,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             // v7: color de cada categoría.
             await _addColumnIfMissing(m, tournaments, tournaments.color);
+          }
+          if (from < 8) {
+            // v8: gremio/clan del participante y su acrónimo.
+            await _addColumnIfMissing(m, players, players.guild);
+            await _addColumnIfMissing(m, players, players.guildAcronym);
           }
         },
       );

@@ -6,6 +6,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../fixtures/domain/entities/match_entity.dart';
 import '../../../fixtures/presentation/providers/fixture_provider.dart';
+import '../../../mesas/presentation/providers/mesa_provider.dart'
+    show mesaByIdProvider;
+import '../../../players/presentation/providers/player_provider.dart'
+    show playerAcronymsProvider, playerGuildsProvider, nameWithGuild;
 import '../../../standings/presentation/providers/standing_provider.dart';
 import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../../domain/entities/report_params.dart';
@@ -104,6 +108,9 @@ class ReportScreen extends ConsumerWidget {
     // puntos, diferencia de gol, desempate manual) en vez de recalcularla
     // desde los partidos — así el PDF respeta cualquier empate que el
     // admin ya haya resuelto a mano.
+    final guilds = ref.read(playerGuildsProvider);
+    final acronyms = ref.read(playerAcronymsProvider);
+
     Map<String, List<Map<String, dynamic>>>? groupedStandings;
     if (tournament.mode == AppConstants.tournamentModeGroups) {
       final groupOf = <String, String>{};
@@ -117,7 +124,7 @@ class ReportScreen extends ConsumerWidget {
       for (final s in standings) {
         final group = groupOf[s.playerId] ?? 'Sin grupo';
         groupedStandings.putIfAbsent(group, () => []).add({
-          'player_name': s.playerName,
+          'player_name': nameWithGuild(guilds, s.playerId, s.playerName),
           'played': s.played,
           'won': s.won,
           'lost': s.lost,
@@ -128,13 +135,26 @@ class ReportScreen extends ConsumerWidget {
       }
     }
 
+    // "Nombre - Gremio completo": en todas las tablas de resultados y, solo
+    // en liga, en la tabla de posiciones general (en grupos, en la tabla
+    // de cada grupo).
+    final isLeague = tournament.mode == AppConstants.tournamentModeLeague;
+
+    final mesaName = tournament.mesaId == null
+        ? null
+        : ref.read(mesaByIdProvider(tournament.mesaId!))?.name;
+
     final params = ReportParams(
       tournamentName: tournament.name,
       category: tournament.modeLabel,
       mode: tournament.mode,
+      categoryColor: tournament.color,
+      mesaName: mesaName,
       standings: standings
           .map((s) => {
-                'player_name': s.playerName,
+                'player_name': isLeague
+                    ? nameWithGuild(guilds, s.playerId, s.playerName)
+                    : s.playerName,
                 'played': s.played,
                 'won': s.won,
                 'lost': s.lost,
@@ -145,8 +165,18 @@ class ReportScreen extends ConsumerWidget {
           .toList(),
       matches: matches
           .map((m) => {
-                'home': m.homePlayerName,
-                'away': m.awayPlayerName,
+                // Tablas de resultados: con gremio (el BYE queda tal cual).
+                'home': nameWithGuild(guilds, m.homePlayerId, m.homePlayerName),
+                'away': m.isBye
+                    ? m.awayPlayerName
+                    : nameWithGuild(guilds, m.awayPlayerId, m.awayPlayerName),
+                // Cuadro de eliminatorias (cajas angostas): solo el nombre.
+                'home_name': m.homePlayerName,
+                'away_name': m.awayPlayerName,
+                // ...con el acrónimo del gremio al lado.
+                'home_acronym': acronyms[m.homePlayerId],
+                'away_acronym': m.isBye ? null : acronyms[m.awayPlayerId],
+                'is_bye': m.isBye,
                 'home_score': m.homeScore ?? 0,
                 'away_score': m.awayScore ?? 0,
                 'status': m.status,

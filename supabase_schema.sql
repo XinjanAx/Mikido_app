@@ -49,7 +49,17 @@ create table public.players (
   birth_date date,
   photo_url text,
   created_at timestamp with time zone default now(),
-  constraint players_pkey primary key (id)
+  -- Gremio o clan (opcional) y su acrónimo (máx. 4 letras, mayúsculas,
+  -- obligatorio si hay gremio).
+  guild text,
+  guild_acronym text,
+  constraint players_pkey primary key (id),
+  constraint players_guild_acronym_check check (
+    (guild is null and guild_acronym is null)
+    or (guild is not null and guild_acronym is not null
+        and char_length(guild_acronym) between 1 and 4
+        and guild_acronym = upper(guild_acronym))
+  )
 );
 
 create table public.enrollments (

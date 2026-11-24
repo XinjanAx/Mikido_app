@@ -26,9 +26,15 @@ void main() {
         .customSelect('PRAGMA table_info("tournaments")')
         .get();
     expect(columns.where((r) => r.read<String>('name') == 'color').length, 1);
+    // v8: gremio del participante, sin duplicar columnas.
+    final playerColumns =
+        await db.customSelect('PRAGMA table_info("players")').get();
+    final names = playerColumns.map((r) => r.read<String>('name')).toList();
+    expect(names.where((n) => n == 'guild').length, 1);
+    expect(names.where((n) => n == 'guild_acronym').length, 1);
     final version =
         await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 7);
+    expect(version.read<int>('user_version'), db.schemaVersion);
 
     await db.close();
     await dir.delete(recursive: true);

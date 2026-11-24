@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../constants/app_constants.dart';
+import '../theme/category_colors.dart';
 
 class PdfUtils {
   PdfUtils._();
@@ -48,7 +49,17 @@ class PdfUtils {
     required List<Map<String, dynamic>> standings,
     required List<Map<String, dynamic>> matches,
     Map<String, List<Map<String, dynamic>>>? groupedStandings,
+    String? categoryColorHex,
+    String? mesaName,
   }) async {
+    // Código de color de la categoría (el mismo de la app).
+    final categoryColor = CategoryColors.parse(categoryColorHex);
+    final categoryPdfColor =
+        categoryColor == null ? null : PdfColor.fromInt(categoryColor.toARGB32());
+    final categoryColorName = CategoryColors.palette
+        .where((c) => c.hex == categoryColorHex?.toUpperCase())
+        .map((c) => c.name)
+        .firstOrNull;
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.openSansRegular();
     final boldFont = await PdfGoogleFonts.openSansBold();
@@ -73,14 +84,19 @@ class PdfUtils {
         header: (context) => _buildHeader(logo, font, boldFont),
         footer: (context) => _buildFooter(context, font, generatedAt),
         build: (pw.Context context) => [
-          // Título del torneo
-          pw.Text(
-            tournamentName,
-            style: pw.TextStyle(font: boldFont, fontSize: 18),
-          ),
-          pw.Text(
-            'Categoría: $category',
-            style: pw.TextStyle(font: font, fontSize: 12, color: PdfColors.grey700),
+          // Título, con el código de color de la categoría (franja a la
+          // izquierda + etiqueta con el nombre del color + línea debajo).
+          _buildTitleBlock(
+            title: tournamentName,
+            // `category` trae la modalidad (ej. "Eliminación simple").
+            subtitle: [
+              'Modalidad: $category',
+              if (mesaName != null && mesaName.isNotEmpty) 'Mesa: $mesaName',
+            ].join('   ·   '),
+            color: categoryPdfColor,
+            colorName: categoryColorName,
+            font: font,
+            boldFont: boldFont,
           ),
           pw.SizedBox(height: 20),
 
@@ -309,6 +325,60 @@ class PdfUtils {
     );
   }
 
+  static pw.Widget _buildTitleBlock({
+    required String title,
+    required String subtitle,
+    required PdfColor? color,
+    required String? colorName,
+    required pw.Font font,
+    required pw.Font boldFont,
+  }) {
+    final texts = pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(title, style: pw.TextStyle(font: boldFont, fontSize: 18)),
+        pw.Text(subtitle,
+            style: pw.TextStyle(font: font, fontSize: 12, color: PdfColors.grey700)),
+      ],
+    );
+    if (color == null) return texts; // categoría sin color: como antes
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border(bottom: pw.BorderSide(color: color, width: 2.5)),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Container(width: 7, height: 40, color: color),
+          pw.SizedBox(width: 10),
+          pw.Expanded(child: texts),
+          if (colorName != null)
+            pw.Container(
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: pw.BoxDecoration(
+                color: color,
+                borderRadius: pw.BorderRadius.circular(10),
+              ),
+              child: pw.Text(
+                'Color: $colorName',
+                style: pw.TextStyle(
+                  font: boldFont,
+                  fontSize: 10,
+                  // Texto oscuro sobre colores claros (amarillo, celeste).
+                  color: color.luminance > 0.5
+                      ? PdfColors.black
+                      : PdfColors.white,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   static pw.Widget _buildSectionTitle(String title, pw.Font boldFont) {
     return pw.Row(
       children: [
@@ -438,7 +508,7 @@ class PdfUtils {
     final gridHeight = rounds.first.length * slotHeight;
     final totalWidth =
         rounds.length * colWidth + (rounds.length - 1) * colGap;
-    final totalHeight = headerHeight + gridHeight;
+    var totalHeight = headerHeight + gridHeight;
 
     // Posición vertical (desde arriba) de cada caja: la 1ª ronda se reparte
     // en franjas iguales, y cada ronda siguiente se centra entre el par de
@@ -457,6 +527,40 @@ class PdfUtils {
     }
 
     double colX(int c) => c * (colWidth + colGap);
+
+    // Partido por el 3er puesto: debajo de la Final, igual que en la app.
+    // Si ya se generó, con sus contendientes; si no, una caja vacía para
+    // llenar a mano — solo cuando va a existir, es decir, cuando las
+    // semifinales no tienen BYE (con 3 competidores no hay 3er puesto).
+    final finalCol = roundNames.indexOf('Final');
+    final semiCol = roundNames.indexOf('Semifinal');
+    final thirdMatches = matchesByRound['Tercer puesto'];
+    final thirdMatch = (thirdMatches == null || thirdMatches.isEmpty)
+        ? null
+        : thirdMatches.first;
+    var showThird = false;
+    if (finalCol != -1 && semiCol != -1) {
+      final semis = rounds[semiCol];
+      if (thirdMatch != null) {
+        showThird = true;
+      } else if (semis.every((m) => m != null)) {
+        // Semifinales ya generadas: hay 3er puesto si ninguna es BYE.
+        showThird = semis.length == 2 &&
+            semis.every((m) => m!['is_bye'] != true);
+      } else {
+        // Semifinales proyectadas: habrá BYE si la ronda anterior deja un
+        // número impar de clasificados (uno por partido).
+        final prevCount = semiCol > 0 ? rounds[semiCol - 1].length : 4;
+        showThird = semis.length == 2 && prevCount.isEven;
+      }
+    }
+    const thirdLabelHeight = 12.0;
+    double? thirdLabelTop;
+    if (showThird) {
+      thirdLabelTop = yPositions[finalCol][0] + boxHeight / 2 + 14;
+      final bottom = thirdLabelTop + thirdLabelHeight + boxHeight + 4;
+      if (bottom > totalHeight) totalHeight = bottom;
+    }
 
     final children = <pw.Widget>[];
 
@@ -541,6 +645,31 @@ class PdfUtils {
       }
     }
 
+    if (showThird && thirdLabelTop != null) {
+      children.add(pw.Positioned(
+        left: colX(finalCol),
+        top: thirdLabelTop,
+        child: pw.SizedBox(
+          width: colWidth,
+          height: thirdLabelHeight,
+          child: pw.Center(
+            child: pw.Text(
+              'Tercer puesto',
+              style:
+                  pw.TextStyle(font: boldFont, fontSize: 7.5, color: _brandRed),
+            ),
+          ),
+        ),
+      ));
+      children.add(pw.Positioned(
+        left: colX(finalCol),
+        top: thirdLabelTop + thirdLabelHeight,
+        child: thirdMatch == null
+            ? _bracketPlaceholderBox(colWidth, boxHeight)
+            : _bracketMatchBox(thirdMatch, colWidth, boxHeight, font, boldFont),
+      ));
+    }
+
     final diagram = pw.SizedBox(
       width: totalWidth,
       height: totalHeight,
@@ -579,8 +708,9 @@ class PdfUtils {
     pw.Font font,
     pw.Font boldFont,
   ) {
-    final home = (m['home'] as String?) ?? '';
-    final away = (m['away'] as String?) ?? '';
+    // Nombre sin gremio: las cajas del cuadro son angostas.
+    final home = (m['home_name'] as String?) ?? (m['home'] as String?) ?? '';
+    final away = (m['away_name'] as String?) ?? (m['away'] as String?) ?? '';
     final isFinished = m['status'] == AppConstants.matchStatusFinished;
     final homeScore = m['home_score'] as int?;
     final awayScore = m['away_score'] as int?;
@@ -593,21 +723,43 @@ class PdfUtils {
         awayScore != null &&
         awayScore > homeScore;
 
-    pw.Widget row(String name, int? score, bool isWinner) {
+    // Acrónimo del gremio: va al lado del nombre, en letra normal, y queda
+    // siempre visible (si el nombre no cabe, se recorta el nombre).
+    final homeAcronym = m['home_acronym'] as String?;
+    final awayAcronym = m['away_acronym'] as String?;
+
+    pw.Widget row(String name, String? acronym, int? score, bool isWinner) {
+      final color = isWinner ? _brandRed : PdfColors.black;
       return pw.Padding(
         padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: pw.Row(
           children: [
             pw.Expanded(
-              child: pw.Text(
-                name.isEmpty ? '-' : name,
-                maxLines: 1,
-                overflow: pw.TextOverflow.clip,
-                style: pw.TextStyle(
-                  font: isWinner ? boldFont : font,
-                  fontSize: 7,
-                  color: isWinner ? _brandRed : PdfColors.black,
-                ),
+              child: pw.Row(
+                children: [
+                  pw.Flexible(
+                    child: pw.Text(
+                      name.isEmpty ? '-' : name,
+                      maxLines: 1,
+                      overflow: pw.TextOverflow.clip,
+                      style: pw.TextStyle(
+                        font: isWinner ? boldFont : font,
+                        fontSize: 7,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                  if (acronym != null && acronym.isNotEmpty) ...[
+                    pw.SizedBox(width: 3),
+                    pw.Text(
+                      acronym,
+                      maxLines: 1,
+                      style:
+                          pw.TextStyle(font: font, fontSize: 7, color: color),
+                    ),
+                  ],
+                  pw.SizedBox(width: 3),
+                ],
               ),
             ),
             pw.Text(
@@ -635,9 +787,9 @@ class PdfUtils {
         mainAxisAlignment: pw.MainAxisAlignment.center,
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          row(home, homeScore, homeWins),
+          row(home, homeAcronym, homeScore, homeWins),
           pw.Container(height: 0.6, color: PdfColors.grey300),
-          row(away, awayScore, awayWins),
+          row(away, awayAcronym, awayScore, awayWins),
         ],
       ),
     );

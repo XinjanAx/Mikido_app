@@ -12,6 +12,12 @@ class ReportParams {
   /// perdía el desempate manual que el admin ya había resuelto.
   final Map<String, List<Map<String, dynamic>>>? groupedStandings;
 
+  /// Color de la categoría, '#RRGGBB' (ver CategoryColors). null = sin color.
+  final String? categoryColor;
+
+  /// Nombre de la mesa de la categoría (null en datos sin mesa).
+  final String? mesaName;
+
   const ReportParams({
     required this.tournamentName,
     required this.category,
@@ -19,5 +25,7 @@ class ReportParams {
     required this.standings,
     required this.matches,
     this.groupedStandings,
+    this.categoryColor,
+    this.mesaName,
   });
 }

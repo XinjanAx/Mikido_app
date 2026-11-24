@@ -22,6 +22,8 @@ class ReportDataSourceImpl implements ReportDataSource {
         standings: params.standings,
         matches: params.matches,
         groupedStandings: params.groupedStandings,
+        categoryColorHex: params.categoryColor,
+        mesaName: params.mesaName,
       );
 
   @override

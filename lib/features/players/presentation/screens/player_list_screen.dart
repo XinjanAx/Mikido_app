@@ -39,7 +39,9 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
       final q = _searchQuery.toLowerCase();
       return p.name.toLowerCase().contains(q) ||
           (p.email?.toLowerCase().contains(q) ?? false) ||
-          (p.phone?.toLowerCase().contains(q) ?? false);
+          (p.phone?.toLowerCase().contains(q) ?? false) ||
+          (p.guild?.toLowerCase().contains(q) ?? false) ||
+          (p.guildAcronym?.toLowerCase().contains(q) ?? false);
     }).toList();
 
     return Scaffold(
@@ -62,7 +64,7 @@ class _PlayerListScreenState extends ConsumerState<PlayerListScreen> {
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre, correo o teléfono...',
+                hintText: 'Buscar por nombre, gremio, correo o teléfono...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(

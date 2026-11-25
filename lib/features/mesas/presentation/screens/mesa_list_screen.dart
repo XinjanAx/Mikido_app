@@ -14,6 +14,7 @@ import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/mesa_entity.dart';
 import '../providers/mesa_provider.dart';
+import '../widgets/web_qr_panel.dart';
 
 /// Pantalla de inicio: lista de mesas. Cada mesa agrupa sus categorías.
 class MesaListScreen extends ConsumerStatefulWidget {
@@ -126,13 +127,28 @@ class _MesaListScreenState extends ConsumerState<MesaListScreen> {
         ),
         data: (mesas) => _buildList(context, mesas, isAdmin),
       ),
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
+      // "Nueva mesa" (solo admin) y, a su derecha, el QR de la web de
+      // resultados (para todos, sin importar el rol), con el mismo estilo.
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isAdmin) ...[
+            FloatingActionButton.extended(
+              heroTag: 'fab_new_mesa',
               onPressed: () => context.push(RouteConstants.mesaCreate),
               icon: const Icon(Icons.add),
               label: const Text('Nueva mesa'),
-            )
-          : null,
+            ),
+            const SizedBox(width: 12),
+          ],
+          FloatingActionButton(
+            heroTag: 'fab_web_qr',
+            tooltip: 'QR de resultados en vivo',
+            onPressed: () => showWebQrDialog(context),
+            child: const Icon(Icons.qr_code_2),
+          ),
+        ],
+      ),
       // Versión fija al pie (el botón flotante queda por encima, sin taparla).
       bottomNavigationBar: SafeArea(
         child: Padding(

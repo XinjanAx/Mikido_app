@@ -20,6 +20,7 @@ import '../../../fixtures/presentation/widgets/match_card_widget.dart'
 import '../../../tournaments/presentation/providers/tournament_provider.dart';
 import '../../../tournaments/presentation/widgets/category_color_widgets.dart';
 import '../providers/mesa_provider.dart';
+import '../widgets/web_qr_panel.dart';
 
 /// Mesa en vivo: la forma normal de registrar resultados (solo admin).
 ///
@@ -156,7 +157,17 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
                                 child: SingleChildScrollView(
                                   padding:
                                       const EdgeInsets.fromLTRB(0, 16, 16, 16),
-                                  child: upcomingPanel,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      upcomingPanel,
+                                      // Escritorio: QR de la web de
+                                      // resultados debajo de los siguientes.
+                                      const SizedBox(height: 16),
+                                      const WebQrPanel(horizontal: true),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -165,10 +176,22 @@ class _MesaLiveScreenState extends ConsumerState<MesaLiveScreen> {
                         return SingleChildScrollView(
                           padding: const EdgeInsets.all(12),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               currentPanel,
                               const SizedBox(height: 16),
                               upcomingPanel,
+                              // Celular: botón al final que abre el QR.
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () => showWebQrDialog(context),
+                                icon: const Icon(Icons.qr_code_2),
+                                label: const Text('QR DE RESULTADOS EN VIVO'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(50),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
                             ],
                           ),
                         );

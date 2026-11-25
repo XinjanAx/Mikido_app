@@ -99,7 +99,6 @@ class FixtureScreen extends ConsumerWidget {
     final championGuild = champion == null
         ? null
         : ref.watch(playerGuildsProvider)[champion.id];
-    final quickScoreMode = ref.watch(quickScoreModeProvider(tournamentId));
 
     return Scaffold(
       appBar: AppBar(
@@ -162,41 +161,28 @@ class FixtureScreen extends ConsumerWidget {
             ),
 
           // Acceso rápido a la vista de resultados: cuadro gráfico en
-          // eliminación simple, tabla de posiciones en grupos/liga. Al
-          // lado, solo para el admin, el toggle de carga rápida de
-          // resultados (agrega botones +1 al diálogo de registrar
-          // resultado, ver [_ResultDialog]).
+          // eliminación simple, tabla de posiciones en grupos/liga. (El
+          // botón de "carga rápida" se quitó: los resultados se registran
+          // en Mesa en vivo.)
           if (fixtureState.matches.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.push(
-                        (isElimination
-                                ? RouteConstants.bracket
-                                : RouteConstants.standings)
-                            .replaceAll(':id', tournamentId),
-                      ),
-                      icon: Icon(isElimination
-                          ? Icons.account_tree_outlined
-                          : Icons.leaderboard_outlined),
-                      label: Text(isElimination
-                          ? 'Ver cuadro de eliminatorias'
-                          : 'Ver tabla de posiciones'),
-                    ),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push(
+                    (isElimination
+                            ? RouteConstants.bracket
+                            : RouteConstants.standings)
+                        .replaceAll(':id', tournamentId),
                   ),
-                  if (isAdmin && !isTournamentFinished) ...[
-                    const SizedBox(width: 10),
-                    _QuickScoreModeToggle(
-                      active: quickScoreMode,
-                      onPressed: () => ref
-                          .read(quickScoreModeProvider(tournamentId).notifier)
-                          .state = !quickScoreMode,
-                    ),
-                  ],
-                ],
+                  icon: Icon(isElimination
+                      ? Icons.account_tree_outlined
+                      : Icons.leaderboard_outlined),
+                  label: Text(isElimination
+                      ? 'Ver cuadro de eliminatorias'
+                      : 'Ver tabla de posiciones'),
+                ),
               ),
             ),
 
@@ -572,46 +558,6 @@ class FixtureScreen extends ConsumerWidget {
         tournamentId: tournamentId,
         round: match.round,
         ref: ref,
-        quickScoreMode: ref.read(quickScoreModeProvider(tournamentId)),
-      ),
-    );
-  }
-}
-
-/// Botón cuadrado junto a "Ver cuadro/tabla" que activa el modo de carga
-/// rápida de resultados: rojo cuando está activo, del color de fondo
-/// cuando no (apagado por defecto).
-class _QuickScoreModeToggle extends StatelessWidget {
-  final bool active;
-  final VoidCallback onPressed;
-
-  const _QuickScoreModeToggle({required this.active, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: active
-          ? 'Desactivar carga rápida de resultados'
-          : 'Activar carga rápida de resultados (+1 por jugador)',
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: active ? AppColors.error : AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: active ? AppColors.error : AppColors.border,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.bolt,
-            color: active ? AppColors.white : AppColors.textPrimary,
-          ),
-        ),
       ),
     );
   }
@@ -959,7 +905,6 @@ class _ResultDialog extends StatefulWidget {
   final String tournamentId;
   final String? round;
   final WidgetRef ref;
-  final bool quickScoreMode;
 
   const _ResultDialog({
     required this.match,
@@ -971,7 +916,6 @@ class _ResultDialog extends StatefulWidget {
     required this.tournamentId,
     this.round,
     required this.ref,
-    this.quickScoreMode = false,
   });
 
   bool get _isEdit => initialHomeScore != null || initialAwayScore != null;
@@ -996,18 +940,6 @@ class _ResultDialogState extends State<_ResultDialog> {
     _homeController.dispose();
     _awayController.dispose();
     super.dispose();
-  }
-
-  /// Suma 1 al valor que se está escribiendo en el campo (modo de carga
-  /// rápida). Solo toca el texto del diálogo — no guarda nada hasta que
-  /// se toque "Guardar", igual que si se hubiera tecleado el número a
-  /// mano.
-  void _incrementLocal(TextEditingController controller) {
-    final current = int.tryParse(controller.text) ?? 0;
-    if (current >= AppConstants.maxMatchScore) return;
-    final next = (current + 1).toString();
-    controller.text = next;
-    controller.selection = TextSelection.collapsed(offset: next.length);
   }
 
   @override
@@ -1040,12 +972,6 @@ class _ResultDialogState extends State<_ResultDialog> {
                             .copyWith(color: AppColors.grey600),
                       ),
                     ),
-                    if (widget.quickScoreMode) ...[
-                      const SizedBox(height: 8),
-                      _QuickAddPointButton(
-                        onTap: () => _incrementLocal(_homeController),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -1073,12 +999,6 @@ class _ResultDialogState extends State<_ResultDialog> {
                             .copyWith(color: AppColors.grey600),
                       ),
                     ),
-                    if (widget.quickScoreMode) ...[
-                      const SizedBox(height: 8),
-                      _QuickAddPointButton(
-                        onTap: () => _incrementLocal(_awayController),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -1123,38 +1043,5 @@ class _ResultDialogState extends State<_ResultDialog> {
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (ok) Navigator.pop(context);
-  }
-}
-
-/// Botón "+1" del modo de carga rápida, debajo de cada marcador en el
-/// diálogo de registrar/corregir resultado.
-class _QuickAddPointButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _QuickAddPointButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        alignment: Alignment.center,
-        child: const Text(
-          '+1',
-          style: TextStyle(
-            color: AppColors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
   }
 }
